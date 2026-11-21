@@ -47,11 +47,14 @@ button { font: inherit; color: inherit; }
 .c-sec-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; margin-bottom: 14px; }
 .c-sec-head h2 { margin: 0; font-size: 22px; font-weight: 640; letter-spacing: -.01em; }
 .c-sec-head p { margin: 0; font-size: 14px; color: var(--ink-3); }
-.c-flow-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 32px; align-items: stretch; }
+.c-flow-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.c-flow-grid .c-trend { padding-left: 0; border-left: 0; padding-top: 18px; border-top: 1px solid var(--rule); }
 .c-flow { margin: 0; }
-.c-flow svg { display: block; width: 100%; height: auto; }
+.c-flow svg { display: block; width: 100%; max-width: 720px; height: auto; margin: 0 auto; }
 .c-flow-list { display: none; list-style: none; padding: 0; margin: 0; }
-.c-flow-list li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--rule); font-size: 15px; }
+.c-flow-list li { border-bottom: 1px solid var(--rule); }
+.c-flow-list button { display: flex; width: 100%; justify-content: space-between; padding: 10px 0; border: 0; background: none; font: inherit; font-size: 15px; color: inherit; cursor: pointer; text-align: left; }
+.c-flow-list button[aria-pressed="true"] { box-shadow: inset 3px 0 0 var(--ink); padding-left: 10px; }
 .c-flow-list li span { color: var(--ink-2); } .c-flow-list i { font-style: normal; color: var(--ink); font-weight: 600; padding: 0 4px; }
 .c-flow-list b { font-variant-numeric: tabular-nums; }
 .c-flow-list .s b { color: var(--energy-ink); }
@@ -59,7 +62,19 @@ button { font: inherit; color: inherit; }
 .c-link.rev { animation-direction: reverse; }
 .c-link.idle { stroke: var(--rule-strong); stroke-width: 1.5; stroke-dasharray: 3 5; animation: none; }
 @keyframes flow { to { stroke-dashoffset: -12; } }
-.c-node rect { fill: var(--card); stroke: var(--rule-strong); }
+.c-node { cursor: pointer; outline: none; }
+.c-node rect { fill: var(--card); stroke: var(--rule-strong); transition: stroke var(--t-fast), fill var(--t-fast); }
+.c-node:hover rect, .c-node:focus-visible rect { stroke: var(--ink); }
+.c-node.sel rect { fill: #fff; stroke: var(--ink); stroke-width: 2; }
+.c-node:focus-visible rect { stroke-width: 2.5; }
+.c-flow-col { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+.c-why-card { padding: 16px 18px; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+.c-why-card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 640; }
+.c-why-card > p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+.c-why-card dl { margin: 12px 0 0; border-top: 1px solid var(--rule); }
+.c-why-card dl div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 13.5px; }
+.c-why-card dt { color: var(--ink-3); } .c-why-card dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.c-why-card .c-hint { margin-top: 10px; font-size: 12.5px; color: var(--ink-3); }
 .c-node.sun rect { stroke: var(--sun); stroke-width: 2; }
 .c-node.wind rect, .c-node.bat rect { stroke: var(--ember); stroke-width: 1.5; }
 .c-node text { text-anchor: middle; }
@@ -160,6 +175,7 @@ button { font: inherit; color: inherit; }
   .c-main { width: calc(100% - 32px); padding-top: 20px; }
   .c-decision { font-size: 18px; }
   .c-cards { grid-template-columns: 1fr; }
+  .c-flow-col { grid-template-columns: 1fr; }
   .c-card, .c-card + .c-card { padding: 20px 0; border-right: 0; }
   .c-card + .c-card { border-top: 1px solid var(--rule); }
   .instrument-row, .condition-grid { grid-template-columns: 1fr 1fr; }

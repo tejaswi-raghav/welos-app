@@ -106,6 +106,7 @@ function App() {
   };
 
   const [showIO, setShowIO] = useState(false);
+  const [inspect, setInspect] = useState("Battery");
   const reason = modeReason(result, shown, DEFAULT_CONFIG);
   const decision = controller.lastDecision.replace(/^Storm mode: /, "").replace(/^./, (c) => c.toUpperCase());
   const clock = new Date(sensors.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -142,7 +143,7 @@ function App() {
         <section className="c-flow-wrap" aria-labelledby="flowTitle">
           <header className="c-sec-head"><h2 id="flowTitle">Where the power is going</h2><p>Arrows point the way energy moves right now; thickness follows kW.</p></header>
           <div className="c-flow-grid">
-            <EnergyFlow result={result} sensors={shown} />
+            <div className="c-flow-col"><EnergyFlow result={result} sensors={shown} inspect={inspect} setInspect={setInspect} /><NodeWhy id={inspect} result={result} sensors={shown} /></div>
             <Trend history={history} />
           </div>
         </section>
@@ -183,7 +184,7 @@ function Card({ title, kicker, id, children }) {
   return <section className="c-card" id={id}><header><h2>{title}</h2><span>{kicker}</span></header>{children}</section>;
 }
 
-function EnergyFlow({ result, sensors }) {
+function EnergyFlow({ result, sensors, inspect, setInspect }) {
   const p = result.power, o = result.outputs;
   const bat = p.batteryChargeKw - p.batteryDischargeKw;
   const grid = p.gridExportKw - p.gridImportKw;
@@ -192,7 +193,8 @@ function EnergyFlow({ result, sensors }) {
     ? <path key={id} d={d} className={`c-link ${dir < 0 ? "rev" : ""}`} stroke={color} strokeWidth={w(kw)} />
     : <path key={id} d={d} className="c-link idle" />;
   const node = (x, y, label, value, sub, cls = "") => (
-    <g className={`c-node ${cls}`} transform={`translate(${x} ${y})`}>
+    <g className={`c-node ${cls} ${inspect === label ? "sel" : ""}`} transform={`translate(${x} ${y})`} role="button" tabIndex={0} aria-pressed={inspect === label} aria-label={`Why: ${label}`}
+      onClick={() => setInspect(label)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setInspect(label); } }}>
       <rect x="-74" y="-30" width="148" height="60" rx="6" />
       <text className="n-l" y="-9">{label}</text>
       <text className="n-v" y="13">{value}</text>
@@ -207,7 +209,7 @@ function EnergyFlow({ result, sensors }) {
     ["Bus", grid >= 0 ? "→" : "←", "Grid", !sensors.gridAvailable ? "Offline" : fmt(Math.abs(grid), " kW", 1), "g"],
   ];
   return <figure className="c-flow">
-    <ul className="c-flow-list" aria-hidden="true">{rows.map(([a, d, b, v, c]) => <li key={b + a} className={c}><span>{a} <i>{d}</i> {b}</span><b>{v}</b></li>)}</ul>
+    <ul className="c-flow-list">{rows.map(([a, d, b, v, c]) => { const n = a === "Bus" ? b : a; return <li key={b + a} className={c}><button type="button" aria-pressed={inspect === n} onClick={() => setInspect(n)}><span>{a} <i>{d}</i> {b}</span><b>{v}</b></button></li>; })}</ul>
     <svg viewBox="0 0 640 330" role="img" aria-label={`Sun ${fmt(p.pvKw, " kW", 1)}, wind ${fmt(p.windKw, " kW", 1)}, home ${fmt(p.servedLoadKw, " kW", 1)}, battery ${bat >= 0 ? "charging" : "discharging"} ${fmt(Math.abs(bat), " kW", 1)}, grid ${sensors.gridAvailable ? (grid >= 0 ? "export" : "import") + " " + fmt(Math.abs(grid), " kW", 1) : "unavailable"}`}>
       {link("pv", "M150 70 C 230 70 250 165 290 165", p.pvKw, 1, "var(--sun)")}
       {link("wind", "M150 260 C 230 260 250 165 290 165", p.windKw, 1, "var(--ember)")}
@@ -222,6 +224,40 @@ function EnergyFlow({ result, sensors }) {
       {node(564, 260, "Grid", !sensors.gridAvailable ? "Offline" : Math.abs(grid) < 0.02 ? "0 kW" : `${grid > 0 ? "export " : "import "}${fmt(Math.abs(grid), " kW", 1)}`, null, "grid")}
     </svg>
   </figure>;
+}
+
+// Why is this node doing what it is doing? Measurements and limits straight from the engine.
+function NodeWhy({ id, result, sensors }) {
+  const c = DEFAULT_CONFIG, p = result.power, o = result.outputs;
+  const kw = (x) => fmt(x, " kW", 2);
+  const W = {
+    Sun: () => [p.pvKw > 0.02 ? `Producing ${kw(p.pvKw)}.` : "Not producing: no usable sunlight.",
+      [["Sunlight", fmt(sensors.solarIrradianceWm2, " W/m²", 0)], ["Dust loss", fmt(sensors.soilingIndex * 100, "%", 0)], ["Panel temp", fmt(sensors.panelTempC, " °C", 0)], ["Cleans at", `${c.cleaningAutoThreshold * 100}% dust`]],
+      sensors.soilingIndex >= c.cleaningAutoThreshold ? (result.cleaning.eligible ? "Dust passed the trigger and every safety check passes, so a rinse runs." : `Dust passed the trigger but cleaning is held: ${result.cleaning.blockers.join(", ").toLowerCase()}.`) : "Output follows sunlight, minus dust and heat losses."],
+    Wind: () => [o.windBrake ? "Braked." : p.windKw > 0.02 ? `Producing ${kw(p.windKw)}.` : "Turning too slowly to produce.",
+      [["Wind", fmt(sensors.windSpeedMs, " m/s", 1)], ["Starts at", `${c.windCutInMs} m/s`], ["Brakes at", `${c.windCutOutMs} m/s`], ["Storm mode at", `${c.windStormMs} m/s`]],
+      o.windBrake ? `Wind is outside the safe band (${c.windCutInMs}–${c.windCutOutMs} m/s) or a fault is active, so the rotor is braked and its contactor opened.` : "Inside the safe band: the rectifier feeds the DC bus."],
+    Home: () => [`Supplying ${kw(p.servedLoadKw)}${p.loadShedKw > 0 ? `, shedding ${kw(p.loadShedKw)}` : ""}.`,
+      [["Demand", kw(p.demandKw)], ["From sun + wind", kw(Math.min(p.renewableKw, p.servedLoadKw))], ["From battery", kw(p.batteryDischargeKw)], ["From grid", kw(p.gridImportKw)]],
+      p.loadShedKw > 0 ? "Islanded with the battery at its reserve: non-critical circuits are shed to protect it." : "The home is always served first; the battery and grid only fill what the roof can't."],
+    Battery: () => [p.batteryChargeKw > 0.01 ? `Charging ${kw(p.batteryChargeKw)}.` : p.batteryDischargeKw > 0.01 ? `Supplying ${kw(p.batteryDischargeKw)}.` : "Holding.",
+      [["Charge", fmt(sensors.batterySoc, "%", 0)], ["Reserve now", `${p.reserveSoc}%`], ["Max rate", kw(c.batteryMaxChargeKw)], ["Temperature", fmt(sensors.batteryTempC, " °C", 0)]],
+      p.batteryChargeKw > 0.01 ? "Sun and wind exceed the home's demand, so the surplus goes here before any export."
+        : p.batteryDischargeKw > 0.01 ? `Demand is above generation, so the battery covers the gap down to its ${p.reserveSoc}% reserve.`
+        : sensors.batterySoc <= p.reserveSoc + 0.5 ? `At its ${p.reserveSoc}% reserve: kept for outages and storms.` : "Generation and demand are balanced."],
+    Grid: () => [!sensors.gridAvailable ? "Offline: the unit is running as an island." : p.gridImportKw > 0.01 ? `Importing ${kw(p.gridImportKw)}.` : p.gridExportKw > 0.01 ? `Exporting ${kw(p.gridExportKw)}.` : "Idle.",
+      [["Grid", sensors.gridAvailable ? "Available" : "Down"], ["Import", kw(p.gridImportKw)], ["Export", kw(p.gridExportKw)], ["Curtailed", kw(p.curtailedKw)]],
+      !sensors.gridAvailable ? "Without the grid the reserve rises to 35% and only the home is supplied." : p.gridImportKw > 0.01 ? "Last resort: used only after the battery reaches its reserve." : p.gridExportKw > 0.01 ? "Battery is full or at its charge limit, so surplus is exported." : "Nothing to buy or sell right now."],
+  };
+  const f = W[id] || W.Battery;
+  const [head, facts, why] = f();
+  return <aside className="c-why-card" aria-live="polite">
+    <p className="c-eyebrow">Why · {id}</p>
+    <h3>{head}</h3>
+    <p>{why}</p>
+    <dl>{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+    <p className="c-hint">Select any box in the diagram to ask why.</p>
+  </aside>;
 }
 
 function Trend({ history }) {
