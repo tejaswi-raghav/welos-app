@@ -1,12 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { sizeSystem, ruleAdvice, TIERS } from "../src/site/sizing.js";
 
-// WELOS AI advisor. The deterministic engine owns every number; Claude explains
+// WELOS AI advisor. The deterministic engine owns every number; an LLM explains
 // the build for this specific site and suggests what to change or verify.
-// Any failure (no key, timeout, refusal, bad output) returns the rule-based
-// advice instead, so the page always has an answer.
+// Provider order: Groq (free tier, GROQ_API_KEY) → Claude (ANTHROPIC_API_KEY) →
+// rule-based advice. Any failure falls through, so the page always has an answer.
 
-const MODEL = "claude-opus-5-5";
+const CLAUDE_MODEL = "claude-opus-5-5";
+// Groq retires models over time, so several are tried in order; GROQ_MODEL wins if set.
+const GROQ_MODELS = [process.env.GROQ_MODEL, "openai/gpt-oss-120b", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"].filter(Boolean);
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_PER_WINDOW = 20;
 const hits = new Map();
@@ -134,17 +137,80 @@ export default async function handler(req, res) {
   const result = sizeSystem(input.climate, input.tier, input.inputs, input.choices);
   const fallback = (reason) => res.status(200).json({ ...ruleAdvice(result, input.place), fallbackReason: reason });
 
-  if (!process.env.ANTHROPIC_API_KEY) return fallback("not_configured");
+  if (!process.env.GROQ_API_KEY && !process.env.ANTHROPIC_API_KEY) return fallback("not_configured");
   if (rateLimited(req)) return fallback("rate_limited");
 
   const payload = compact(result, input.place);
   const key = JSON.stringify(payload);
   if (cache.has(key)) return res.status(200).json(cache.get(key));
 
+  const reasons = [];
+  for (const [enabled, ask] of [[process.env.GROQ_API_KEY, askGroq], [process.env.ANTHROPIC_API_KEY, askClaude]]) {
+    if (!enabled) continue;
+    try {
+      const advice = await ask(payload);
+      if (!valid(advice)) { reasons.push("invalid_output"); continue; }
+      const response = {
+        source: "ai",
+        headline: String(advice.headline),
+        summary: String(advice.summary),
+        reasons: advice.reasons.slice(0, 5).map((r) => ({ component: String(r.component ?? ""), text: String(r.text ?? "") })),
+        upgrades: advice.upgrades.slice(0, 3).map((u) => ({ title: String(u.title ?? ""), text: String(u.text ?? ""), impact: String(u.impact ?? "") })),
+        questions: advice.questions.slice(0, 3).map(String),
+      };
+      if (cache.size > 200) cache.clear();
+      cache.set(key, response);
+      return res.status(200).json(response);
+    } catch (error) {
+      reasons.push(error.code || error.message || "error");
+    }
+  }
+  return fallback(reasons.join(",") || "error");
+}
+
+async function askGroq(payload) {
+  const deadline = Date.now() + 22_000;
+  let lastError = new Error("groq_unavailable");
+  for (const model of GROQ_MODELS) {
+    const remaining = deadline - Date.now();
+    if (remaining < 2_000) break;
+    const response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0.3,
+        max_completion_tokens: 2048,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: `${SYSTEM}\n\nReply with only a JSON object matching this JSON Schema:\n${JSON.stringify(SCHEMA)}` },
+          { role: "user", content: `Site and engine output:\n${JSON.stringify(payload)}` },
+        ],
+      }),
+      signal: AbortSignal.timeout(Math.min(remaining, 15_000)),
+    }).catch((error) => ({ ok: false, status: 0, error }));
+    if (!response.ok) {
+      lastError = Object.assign(new Error(`groq_${response.status}`), { code: `groq_${response.status}` });
+      // Auth and rate-limit errors won't improve with another model.
+      if (response.status === 401 || response.status === 403 || response.status === 429) throw lastError;
+      continue; // retired model (404/400), overload (5xx) or timeout: try the next model
+    }
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content;
+    try {
+      return JSON.parse(text);
+    } catch {
+      lastError = Object.assign(new Error("groq_bad_json"), { code: "groq_bad_json" });
+    }
+  }
+  throw lastError;
+}
+
+async function askClaude(payload) {
+  const client = new Anthropic({ timeout: 25_000, maxRetries: 1 });
   try {
-    const client = new Anthropic({ timeout: 25_000, maxRetries: 1 });
     const message = await client.beta.messages.create({
-      model: MODEL,
+      model: CLAUDE_MODEL,
       max_tokens: 4000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
@@ -152,26 +218,14 @@ export default async function handler(req, res) {
       system: SYSTEM,
       messages: [{ role: "user", content: `Site and engine output:\n${JSON.stringify(payload)}` }],
     });
-    if (message.stop_reason === "refusal" || message.stop_reason === "max_tokens") return fallback(message.stop_reason);
-    const text = message.content.filter((b) => b.type === "text").map((b) => b.text).join("");
-    const advice = JSON.parse(text);
-    if (!valid(advice)) return fallback("invalid_output");
-    const response = {
-      source: "ai",
-      headline: advice.headline,
-      summary: advice.summary,
-      reasons: advice.reasons.slice(0, 5),
-      upgrades: advice.upgrades.slice(0, 3),
-      questions: advice.questions.slice(0, 3),
-    };
-    if (cache.size > 200) cache.clear();
-    cache.set(key, response);
-    return res.status(200).json(response);
+    if (message.stop_reason === "refusal" || message.stop_reason === "max_tokens") throw Object.assign(new Error(message.stop_reason), { code: `claude_${message.stop_reason}` });
+    return JSON.parse(message.content.filter((b) => b.type === "text").map((b) => b.text).join(""));
   } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) return fallback("auth");
-    if (error instanceof Anthropic.RateLimitError) return fallback("upstream_rate_limit");
-    if (error instanceof Anthropic.APIConnectionTimeoutError) return fallback("timeout");
-    if (error instanceof Anthropic.APIError) return fallback(`upstream_${error.status ?? "error"}`);
-    return fallback("error");
+    if (error.code) throw error;
+    const code = error instanceof Anthropic.AuthenticationError ? "claude_auth"
+      : error instanceof Anthropic.RateLimitError ? "claude_rate_limit"
+        : error instanceof Anthropic.APIConnectionTimeoutError ? "claude_timeout"
+          : error instanceof Anthropic.APIError ? `claude_${error.status ?? "error"}` : "claude_error";
+    throw Object.assign(new Error(code), { code });
   }
 }

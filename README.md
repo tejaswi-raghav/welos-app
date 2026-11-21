@@ -32,8 +32,8 @@ See [hardware/bom.json](hardware/bom.json) for the structured concept BOM and [d
 
 - `src/site/sizing.js` is the deterministic sizing and pricing engine. Tiers (S villa, M residential, L commercial), climate thresholds and AED rates are all in that file; `RATES` holds every price and tariff assumption.
 - `src/site/presets.js` holds built-in reference climates so the demo works instantly and offline; live values come from NASA POWER via `/api/climate`.
-- `api/advisor.js` asks Claude to explain the engine's build for the site. It never changes the numbers. Without a key, or on any error, it returns the rule-based advice, and the page labels which one is showing.
-- To enable the AI advisor on Vercel: Project → Settings → Environment Variables → add `ANTHROPIC_API_KEY`, then redeploy. For local dev, export `ANTHROPIC_API_KEY` before `npm run dev`; the Vite dev server serves `/api/*` too.
+- `api/advisor.js` asks an LLM to explain the engine's build for the site. It never changes the numbers. Provider order: Groq (free tier) → Claude (optional) → rule-based advice. On any error it falls through, and the page labels which one is showing.
+- To enable the AI advisor on Vercel: create a free key at console.groq.com → Vercel Project → Settings → Environment Variables → add `GROQ_API_KEY` (optionally `GROQ_MODEL` to pin a model), then redeploy. `ANTHROPIC_API_KEY` is optional. For local dev, export the key before `npm run dev`; the Vite dev server serves `/api/*` too.
 
 ## Verify
 
