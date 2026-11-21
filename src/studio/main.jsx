@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Box, Columns2, SlidersHorizontal } from "lucide-react";
 import { ModelView } from "../model/main.jsx";
 import SiteConfigurator from "../site/SiteConfigurator.jsx";
 import { sizeSystem, TIERS } from "../site/sizing.js";
@@ -11,9 +10,9 @@ import "./studio.css";
 import "./config-light.css";
 
 const VIEWS = [
-  { id: "both", label: "Side by side", short: "Both", Icon: Columns2 },
-  { id: "model", label: "3D model", short: "3D", Icon: Box },
-  { id: "configure", label: "Configure", short: "Configure", Icon: SlidersHorizontal },
+  { id: "both", label: "Side by side", short: "Both" },
+  { id: "model", label: "3D model", short: "3D" },
+  { id: "configure", label: "Configure", short: "Configure" },
 ];
 const fromHash = () => {
   const h = location.hash.replace("#", "");
@@ -52,9 +51,9 @@ function Studio() {
       <header className="studio-head">
         <a className="page-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header-ink.png" alt="welos" width="111" height="24" /></a>
         <div className="seg" role="tablist" aria-label="Studio view">
-          {VIEWS.map(({ id, label, short, Icon }) => (
+          {VIEWS.map(({ id, label, short }) => (
             <button key={id} type="button" role="tab" aria-selected={view === id} className={`${view === id ? "on" : ""} v-${id}`} onClick={() => choose(id)}>
-              <Icon size={15} aria-hidden="true" /><span className="l">{label}</span><span className="s">{short}</span>
+              <span className="l">{label}</span><span className="s">{short}</span>
             </button>
           ))}
         </div>
@@ -67,7 +66,6 @@ function Studio() {
       <div className="studio-body">
         <section className="pane pane-model" aria-label="3D model">
           <ModelView modules={modules} />
-          <p className="pane-note">Showing your configured modules · WELOS {build.tier}</p>
         </section>
         <section className="pane pane-config studio-cfg" aria-label="Configurator">
           <SiteConfigurator />
