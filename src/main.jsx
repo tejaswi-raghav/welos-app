@@ -22,6 +22,12 @@ const TIER_CARDS = [
   { id: "L", img: "/explore/ref-power.jpg", line: "Offices, malls and campuses with commercial-scale storage." },
 ];
 
+const TILES = [
+  { href: "/model.html", img: "/tiles/model.jpg", alt: "The WELOS 3D model in the browser", badge: "Live 3D", title: "3D model", text: "Orbit the assembled unit, click any part and switch between hardware and software layers.", facts: ["27 components", "6 subsystems", "Hardware + OS stack"], cta: "Open model" },
+  { href: "/explore.html", img: "/tiles/exploded.jpg", alt: "WELOS exploded view with every component separated", badge: "Scroll story", title: "Exploded view", text: "Watch the unit come apart and rebuild, with each part's capacity for your site and the rule that sized it.", facts: ["17 scenes", "174 meshes", "Sized to your site"], cta: "Take it apart" },
+  { href: "/configure.html", img: "/tiles/configurator.jpg", alt: "WELOS 3D configurator with add-on switches", badge: "Interactive", title: "3D configurator", text: "Switch solar, wind, rain recovery and micro-hydro on and off and see the unit change live.", facts: ["4 add-ons", "NASA climate data", "Live 3D preview"], cta: "Open configurator" },
+];
+
 const EVIDENCE = [
   ["2,285", "kWh/m²/yr", "Solar irradiation in the UAE concept study"],
   ["1.1–4.5", "m/s", "Variable wind, measured onshore"],
@@ -120,7 +126,7 @@ function App() {
             <ul className="os-loop" aria-label="Control loop"><li>Sense</li><li>Compare</li><li>Decide</li><li>Act</li></ul>
             <div className="ctas"><a className="btn btn-dark" href="/control.html">Open the OS simulator</a><a className="btn btn-light" href="#ai">Ask WELOS AI</a></div>
           </div>
-          <div className="os-media"><img src="/explore/ref-chassis.jpg" alt="WELOS controller and power cabinet" loading="lazy" /></div>
+          <a className="os-media" href="/control.html" aria-label="Open the WELOS OS simulator"><img src="/tiles/os.jpg" alt="The WELOS OS simulator dashboard: operating state, live resource bus and battery protection" loading="lazy" /><em>Live simulation · 60× speed</em></a>
         </div>
       </section>
 
@@ -136,9 +142,15 @@ function App() {
       <section className="wrap explore reveal" id="explore" aria-labelledby="explore-title">
         <h2 id="explore-title" className="h2">See how it's <Grad>built.</Grad></h2>
         <div className="tiles">
-          <a className="tile" href="/model.html"><img src="/explore/ref-wind.jpg" alt="" loading="lazy" /><span className="tile-copy"><strong>3D model</strong><span>Orbit the assembled unit and inspect each layer.</span><span className="btn btn-light">Open model</span></span></a>
-          <a className="tile" href="/explore.html"><img src="/explore/ref-tank.jpg" alt="" loading="lazy" /><span className="tile-copy"><strong>Exploded view</strong><span>Every part, its capacity for your site, and why.</span><span className="btn btn-light">Take it apart</span></span></a>
-          <a className="tile" href="/configure.html"><img src="/explore/ref-filter.jpg" alt="" loading="lazy" /><span className="tile-copy"><strong>3D configurator</strong><span>Add and remove modules on a live 3D unit.</span><span className="btn btn-light">Open configurator</span></span></a>
+          {TILES.map((tile) => <a className="tile" href={tile.href} key={tile.href}>
+            <span className="tile-shot"><img src={tile.img} alt={tile.alt} loading="lazy" /><em>{tile.badge}</em></span>
+            <span className="tile-copy">
+              <strong>{tile.title}</strong>
+              <span>{tile.text}</span>
+              <ul className="tile-facts">{tile.facts.map((f) => <li key={f}>{f}</li>)}</ul>
+              <span className="btn btn-light">{tile.cta}</span>
+            </span>
+          </a>)}
         </div>
       </section>
     </main>
