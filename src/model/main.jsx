@@ -4,7 +4,6 @@ import { partById, parts, systems } from "./parts.js";
 import { softwareLayers } from "./software.js";
 import { createWelosScene } from "./scene.js";
 import "./model.css";
-import "../page-brand.css";
 
 const DEFAULT_PART = "controller-pcb";
 
@@ -30,6 +29,7 @@ export function ModelView({ header, modules }) {
   useEffect(() => {
     if (!viewportRef.current) return undefined;
     sceneRef.current = createWelosScene(viewportRef.current, {
+      theme: "light",
       onReady: () => setReady(true),
       onSelect: (id) => {
         setSelectedId(id);
@@ -131,7 +131,7 @@ export function ModelView({ header, modules }) {
                   <button key={part.id} className={part.id === selectedId ? "part-tab active" : "part-tab"} onClick={() => choosePart(part.id)}><span>{part.code}</span>{part.name}</button>
                 ))}
               </div>
-              <article className="part-detail">
+              <article className="part-detail" tabIndex={0}>
                 <div className="detail-code">{selected.code} / {selected.category}</div>
                 <h2>{selected.name}</h2>
                 <p className="detail-role">{selected.role}</p>
@@ -152,7 +152,7 @@ export function ModelView({ header, modules }) {
                   <button key={layer.id} className={layer.id === softwareId ? "part-tab active" : "part-tab"} onClick={() => setSoftwareId(layer.id)}><span>{layer.code}</span>{layer.name}</button>
                 ))}
               </div>
-              <article className="part-detail">
+              <article className="part-detail" tabIndex={0}>
                 <div className="detail-code">{selectedLayer.code} / {selectedLayer.category}</div>
                 <h2>{selectedLayer.name}</h2>
                 <p className="detail-role">{selectedLayer.role}</p>

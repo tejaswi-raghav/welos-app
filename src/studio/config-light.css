@@ -1,0 +1,55 @@
+/* The configurator inside the Studio, on the shared light WELOS system (src/design/tokens.css).
+   site.css keeps the layout; this file sets its variables and removes decoration. */
+.studio-cfg{
+  --line:var(--rule); --surface:var(--paper); --field:#fff;
+  --sun-1:var(--sun); --sun-2:var(--ember); --sun-deep:var(--energy-ink);
+  --grad:var(--sun-gradient);
+  --font:var(--f); --font-display:var(--f);
+  --max:1228px;
+  --tds-size-4x:32px; --tds-size-5x:40px; --tds-size-6x:48px; --tds-size-12x:96px;
+  --tds-animation-bezier-base:cubic-bezier(.2,.7,.1,1); --tds-ui-max-paragraph-width:75ch;
+  color:var(--ink); font-family:var(--f); font-size:15px; line-height:1.5;
+}
+.studio-cfg *{box-sizing:border-box}
+.studio-cfg .wrap{width:100%;margin:0 auto}
+.studio-cfg .h2{margin:0;font:660 clamp(32px,3.2vw,48px)/1.04 var(--f);letter-spacing:-.026em;color:var(--ink)}
+.studio-cfg .grad{color:var(--ink);background:none}
+.studio-cfg .lede{font-size:16.5px;line-height:1.55;color:var(--ink-2);max-width:60ch;margin:0}
+.studio-cfg .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:4px 20px;border-radius:var(--radius);border:1px solid transparent;font:600 14.5px/20px var(--f);cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
+.studio-cfg .btn-dark{background:var(--sun);color:var(--ink)}
+.studio-cfg .btn-dark:hover{background:#FFC633}
+.studio-cfg .btn-light{background:transparent;color:var(--ink);border-color:var(--rule-strong)}
+.studio-cfg .btn-light:hover{border-color:var(--ink)}
+.studio-cfg .glass-card{background:var(--card);color:var(--ink-2);border:1px solid var(--rule);border-radius:8px;padding:16px 20px}
+.studio-cfg .fine{font-size:12.5px;line-height:1.5;color:var(--ink-3);margin:6px 0 0}
+.studio-cfg .cfg-search input,.studio-cfg .cfg-input,.studio-cfg .ask-form input{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule-strong);border-radius:var(--radius)}
+.studio-cfg .cfg-search input:focus,.studio-cfg .cfg-input:focus-within{background:#fff;box-shadow:inset 0 0 0 2px var(--ink)}
+.studio-cfg .cfg-input input{color:var(--ink)}
+.studio-cfg .cfg-search .btn{min-width:150px}
+.studio-cfg .cfg-results{background:var(--card);border:1px solid var(--rule-strong);box-shadow:0 18px 40px -24px rgba(16,21,27,.35)}
+.studio-cfg .cfg-results button:hover,.studio-cfg .cfg-results button:focus-visible{background:var(--paper-2)}
+.studio-cfg .cfg-chips button{min-height:36px;background:transparent;color:var(--ink);border-radius:var(--radius);box-shadow:inset 0 0 0 1px var(--rule-strong);font-size:14px}
+.studio-cfg .cfg-chips button:hover{box-shadow:inset 0 0 0 1px var(--ink)}
+.studio-cfg .cfg-chips button.on{background:var(--ink);color:var(--paper);box-shadow:none}
+.studio-cfg .cfg-visual{background:var(--card);border-radius:8px}
+.studio-cfg .cfg-visual img{mix-blend-mode:multiply}
+.studio-cfg .cfg-specs dd{color:var(--ink)}
+.studio-cfg .metric{background:transparent;border:0;border-top:1px solid var(--ink);border-radius:0}
+.studio-cfg .opt{border-radius:var(--radius);box-shadow:inset 0 0 0 1px var(--rule-strong);background:transparent}
+.studio-cfg .opt:hover{box-shadow:inset 0 0 0 1px var(--ink)}
+.studio-cfg .opt.on{box-shadow:inset 0 0 0 2px var(--ink);background:var(--card)}
+.studio-cfg .ai-peek{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--radius);background:var(--card);border:1px solid var(--rule-strong);color:var(--ink-2);font-size:14.5px}
+.studio-cfg .ai-peek:hover{border-color:var(--ink)}
+.studio-cfg .ai-peek b{display:block;font:600 13px/1.4 var(--f);color:var(--ink)}
+.studio-cfg .ai-peek i{margin-left:auto;font-style:normal;color:var(--ink)}
+.studio-cfg .ai-peek:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.studio-cfg .dot{background:var(--sun);box-shadow:none}
+.studio-cfg .switch input{background:var(--rule-strong)}
+.studio-cfg .switch input::after{background:#fff}
+.studio-cfg .switch input:checked{background:var(--ink)}
+.studio-cfg .switch input:checked::after{background:var(--sun)}
+.studio-cfg .why{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius)}
+.studio-cfg .summary{background:var(--card);border:1px solid var(--rule);border-radius:8px}
+.studio-cfg .sum-kpis div{background:var(--paper);border:1px solid var(--rule)}
+.studio-cfg .summary .btn-light{background:transparent}
+.studio-cfg .cfg-status{color:var(--ink-3)}

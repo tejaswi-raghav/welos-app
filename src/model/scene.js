@@ -332,7 +332,7 @@ function addHydro(root) {
 export function createWelosScene(container, { onSelect, onReady, onError, modules: initialModules, transparent = false, controlsEnabled = true, theme = "dark" } = {}) {
   // Stage colours only; the model itself is identical in both themes.
   const stage = theme === "light"
-    ? { bg: 0xf4f4f4, floor: 0xe4e5e6, floorOpacity: 0.9, gridA: 0xbfc1c4, gridB: 0xd6d7d9, gridOpacity: 0.55, exposure: 1.35 }
+    ? { bg: 0xf4f1ea, floor: 0xe8e3d8, floorOpacity: 0.9, gridA: 0xc9c3b6, gridB: 0xdcd7cc, gridOpacity: 0.55, exposure: 1.3 }
     : { bg: 0x090d12, floor: 0x111a24, floorOpacity: 0.6, gridA: 0x2a3a4a, gridB: 0x162130, gridOpacity: 0.3, exposure: 1.6 };
   const registry = new Map();
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

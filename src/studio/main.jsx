@@ -6,9 +6,9 @@ import SiteConfigurator from "../site/SiteConfigurator.jsx";
 import { sizeSystem, TIERS } from "../site/sizing.js";
 import { loadBuild, DEFAULT_PRESET } from "../site/presets.js";
 import "../ai/mount.jsx";
-import "../page-brand.css";
+import "../design/tokens.css";
 import "./studio.css";
-import "./config-dark.css";
+import "./config-light.css";
 
 const VIEWS = [
   { id: "both", label: "Side by side", short: "Both", Icon: Columns2 },
@@ -50,7 +50,7 @@ function Studio() {
   return (
     <div className={`studio mode-${view}`}>
       <header className="studio-head">
-        <a className="page-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header.png" alt="welos" /></a>
+        <a className="page-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header-ink.png" alt="welos" width="111" height="24" /></a>
         <div className="seg" role="tablist" aria-label="Studio view">
           {VIEWS.map(({ id, label, short, Icon }) => (
             <button key={id} type="button" role="tab" aria-selected={view === id} className={`${view === id ? "on" : ""} v-${id}`} onClick={() => choose(id)}>
@@ -59,9 +59,9 @@ function Studio() {
           ))}
         </div>
         <nav className="studio-links" aria-label="Site">
-          <a href="/">System</a>
+          <a href="/">Overview</a>
           <a href="/control.html">Control OS</a>
-          <button type="button" className="ai-btn" data-ai-open><i />WELOS AI</button>
+          <button type="button" className="ai-btn" data-ai-open>Ask WELOS</button>
         </nav>
       </header>
       <div className="studio-body">
