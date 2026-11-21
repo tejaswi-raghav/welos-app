@@ -5,9 +5,9 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 
 // Dimensions are visual proportions for an integrated rooftop concept, not fabrication CAD.
 const C = {
-  shell: 0xdbe3dd, frame: 0x687d79, dark: 0x172622, black: 0x101a1b,
-  glass: 0x143b52, cell: 0x1b5574, solar: 0xf7ba4e, water: 0x48bdd1,
-  wind: 0x94d7dd, energy: 0xf38c5c, green: 0x42be92, safety: 0xe76250,
+  shell: 0xdfe4e9, frame: 0x5e6a76, dark: 0x141b23, black: 0x0d1218,
+  glass: 0x0b1a2b, cell: 0x13263f, solar: 0xffb800, water: 0x00a9d4,
+  wind: 0xf5f3ed, energy: 0xffb800, green: 0x00bfea, safety: 0xff5d4f,
 };
 const VIEWS = {
   overview: { eye: [9.5, 6.8, 11.5], look: [0, 0.65, 0] },
@@ -66,10 +66,10 @@ function register(parent, registry, id, object, at, separated = [0, 0, 0]) {
 }
 
 function addPlatform(root) {
-  place(root, block([8.9, 0.24, 6.2], 0x53645f, 0.12, 0.65), 0, -2.07, 0);
-  place(root, block([8.6, 0.07, 5.9], 0x273b37, 0.04, 0.4), 0, -1.91, 0);
+  place(root, block([8.9, 0.24, 6.2], 0x2a323c, 0.12, 0.65), 0, -2.07, 0);
+  place(root, block([8.6, 0.07, 5.9], 0x1a2129, 0.04, 0.4), 0, -1.91, 0);
   [-3.75, 3.75].forEach((x) => [-2.3, 2.3].forEach((z) => {
-    place(root, block([0.52, 0.2, 0.52], 0x879891, 0.04, 0.7), x, -2.28, z);
+    place(root, block([0.52, 0.2, 0.52], 0x7d8893, 0.04, 0.7), x, -2.28, z);
     place(root, cyl(0.085, 0.045, C.black, 0.8, 16), x, -2.16, z);
   }));
   place(root, block([7.6, 0.05, 0.08], C.green, 0.015, 0.3), 0, -1.95, 3.1);
@@ -78,10 +78,10 @@ function addPlatform(root) {
 function addSolar(root, registry) {
   [-3.7, 1.85].forEach((x) => [-2, 1.6].forEach((z) => {
     beam(root, [x, -1.89, z], [x, 1.35, z], 0.065, C.frame, 0.72);
-    place(root, block([0.25, 0.11, 0.25], 0x9cad9f, 0.02, 0.72), x, 1.34, z);
+    place(root, block([0.25, 0.11, 0.25], 0x9aa6b2, 0.02, 0.72), x, 1.34, z);
   }));
   const canopy = new THREE.Group();
-  place(canopy, block([6.05, 0.045, 3.7], 0x879b94, 0.025, 0.65), 0, -0.21, 0);
+  place(canopy, block([6.05, 0.045, 3.7], 0x7f8a95, 0.025, 0.65), 0, -0.21, 0);
   const rack = new THREE.Group();
   [-1.65, 1.65].forEach((z) => {
     place(rack, block([5.95, 0.13, 0.1], C.frame, 0.025, 0.72), 0, -0.13, z);
@@ -110,9 +110,9 @@ function addSolar(root, registry) {
   register(canopy, registry, "pv-array", panels, [0, 0.05, 0], [0, 0.85, 0]);
 
   const gutter = new THREE.Group();
-  place(gutter, block([6.1, 0.16, 0.23], 0x5da9ae, 0.06, 0.6), 0, -0.08, 1.82);
-  place(gutter, block([0.2, 0.15, 3.78], 0x5da9ae, 0.045, 0.6), -3, -0.08, 0);
-  place(gutter, block([0.2, 0.15, 3.78], 0x5da9ae, 0.045, 0.6), 3, -0.08, 0);
+  place(gutter, block([6.1, 0.16, 0.23], 0xd99a00, 0.06, 0.6), 0, -0.08, 1.82);
+  place(gutter, block([0.2, 0.15, 3.78], 0xd99a00, 0.045, 0.6), -3, -0.08, 0);
+  place(gutter, block([0.2, 0.15, 3.78], 0xd99a00, 0.045, 0.6), 3, -0.08, 0);
   register(canopy, registry, "rain-gutter", gutter, [0, 0, 0], [-0.3, 0.12, 0.75]);
 
   const soiling = new THREE.Group();
@@ -163,8 +163,8 @@ function helixBlade(phase) {
 function addWind(root, registry) {
   const support = new THREE.Group();
   beam(support, [0, -2.05, 0], [0, 0.33, 0], 0.13, C.frame, 0.8);
-  place(support, cyl(0.4, 0.12, 0x7f9692, 0.68), 0, -2.04, 0);
-  place(support, cyl(0.1, 2.25, 0x8b9d98, 0.7), 0, 1.44, 0);
+  place(support, cyl(0.4, 0.12, 0x707c88, 0.68), 0, -2.04, 0);
+  place(support, cyl(0.1, 2.25, 0x808c98, 0.7), 0, 1.44, 0);
   support.position.set(3.25, 0, -0.9);
   root.add(support);
 
@@ -194,10 +194,10 @@ function addWind(root, registry) {
 
 function addWater(root, registry) {
   const tank = new THREE.Group();
-  place(tank, cyl(0.67, 1.55, 0x357983, 0.22), 0, 0, 0);
-  place(tank, cyl(0.69, 0.13, 0x4aa7b1, 0.4), 0, 0.79, 0);
+  place(tank, cyl(0.67, 1.55, 0xd2d9e0, 0.22), 0, 0, 0);
+  place(tank, cyl(0.69, 0.13, 0xffb800, 0.4), 0, 0.79, 0);
   place(tank, cyl(0.17, 0.13, C.dark, 0.4), 0, 0.9, 0);
-  for (const y of [-0.52, 0.5]) place(tank, new THREE.Mesh(new THREE.TorusGeometry(0.675, 0.024, 8, 40), mat(0xa7cac8, 0.64)), 0, y, 0).rotation.x = Math.PI / 2;
+  for (const y of [-0.52, 0.5]) place(tank, new THREE.Mesh(new THREE.TorusGeometry(0.675, 0.024, 8, 40), mat(0xd9a000, 0.64)), 0, y, 0).rotation.x = Math.PI / 2;
   register(root, registry, "water-tank", tank, [-2.8, -1.03, 1.0], [-0.6, 0, 0.4]);
 
   const flush = new THREE.Group();
@@ -206,7 +206,7 @@ function addWater(root, registry) {
   register(root, registry, "first-flush", flush, [-3.94, -1.25, 1.0], [-0.7, -0.15, 0.2]);
 
   const filters = new THREE.Group();
-  [C.shell, 0xa8c9c9, C.dark].forEach((color, i) => {
+  [C.shell, 0xbcc6cf, C.dark].forEach((color, i) => {
     place(filters, cyl(0.17, 0.78, color, 0.32), (i - 1) * 0.41, 0, 0);
     place(filters, cyl(0.19, 0.08, C.frame, 0.7), (i - 1) * 0.41, 0.43, 0);
   });
@@ -251,9 +251,9 @@ function addController(root, registry) {
   place(enclosure, cyl(0.055, 0.025, C.green, 0.2, 16), -0.63, 0.73, 0.44).rotation.x = Math.PI / 2;
   register(root, registry, "enclosure", enclosure, [-0.02, -0.75, 1.45], [0, 0, 0.45]);
 
-  register(root, registry, "backplate", block([1.48, 1.54, 0.08], 0x304c48, 0.02, 0.76), [-0.02, -0.75, 1.1], [0, 0, -0.45]);
+  register(root, registry, "backplate", block([1.48, 1.54, 0.08], 0x1f2630, 0.02, 0.76), [-0.02, -0.75, 1.1], [0, 0, -0.45]);
   const pcb = new THREE.Group();
-  place(pcb, block([0.88, 0.54, 0.1], 0x188060, 0.02, 0.12), 0, 0, 0);
+  place(pcb, block([0.88, 0.54, 0.1], 0x123a4a, 0.02, 0.12), 0, 0, 0);
   place(pcb, block([0.24, 0.21, 0.07], C.black, 0.015, 0.25), -0.14, 0.04, 0.08);
   for (let i = 0; i < 7; i += 1) place(pcb, block([0.045, 0.1, 0.025], C.solar, 0.004, 0.7), -0.3 + i * 0.1, -0.2, 0.08);
   register(root, registry, "controller-pcb", pcb, [-0.37, -0.37, 1.57], [-0.32, 0.4, 0.8]);
@@ -301,7 +301,7 @@ function addStorage(root, registry) {
     register(root, registry, id, group, pos, offset);
     return group;
   };
-  const battery = unit("lifepo4-battery", [1.2, 0.52, 0.63], [1.75, -1.36, 1.65], [0x233d39][0], [0.2, -0.65, 0.8]);
+  const battery = unit("lifepo4-battery", [1.2, 0.52, 0.63], [1.75, -1.36, 1.65], [0x1d242d][0], [0.2, -0.65, 0.8]);
   for (let i = 0; i < 4; i += 1) place(battery, block([0.19, 0.04, 0.012], C.green, 0.004, 0.1), -0.38 + i * 0.22, 0.13, 0.33);
   const inverter = unit("hybrid-inverter", [1.18, 0.55, 0.62], [1.75, -0.55, 1.65], C.shell, [0.2, 0.45, 0.9]);
   place(inverter, block([0.44, 0.13, 0.013], C.black, 0.01, 0.1), 0, 0.09, 0.32);
@@ -329,11 +329,11 @@ function addHydro(root) {
   return assembly;
 }
 
-export function createWelosScene(container, { onSelect, onReady, onError, modules: initialModules, theme = "dark" } = {}) {
+export function createWelosScene(container, { onSelect, onReady, onError, modules: initialModules, transparent = false, controlsEnabled = true, theme = "dark" } = {}) {
   // Stage colours only; the model itself is identical in both themes.
   const stage = theme === "light"
-    ? { bg: 0xf4f4f4, fog: 0.012, floor: 0xe4e5e6, floorOpacity: 0.9, gridA: 0xbfc1c4, gridB: 0xd6d7d9, gridOpacity: 0.55, exposure: 1.35 }
-    : { bg: 0x101714, fog: 0.02, floor: 0x1b2a25, floorOpacity: 0.55, gridA: 0x657970, gridB: 0x30463c, gridOpacity: 0.22, exposure: 1.6 };
+    ? { bg: 0xf4f4f4, floor: 0xe4e5e6, floorOpacity: 0.9, gridA: 0xbfc1c4, gridB: 0xd6d7d9, gridOpacity: 0.55, exposure: 1.35 }
+    : { bg: 0x090d12, floor: 0x111a24, floorOpacity: 0.6, gridA: 0x2a3a4a, gridB: 0x162130, gridOpacity: 0.3, exposure: 1.6 };
   const registry = new Map();
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let renderer;
@@ -351,8 +351,10 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(stage.bg);
-  scene.fog = new THREE.FogExp2(stage.bg, stage.fog);
+  if (!transparent) {
+    scene.background = new THREE.Color(stage.bg);
+    scene.fog = new THREE.FogExp2(stage.bg, 0.02);
+  }
   const camera = new THREE.PerspectiveCamera(37, 1, 0.1, 100);
   const targetEye = new THREE.Vector3(...VIEWS.overview.eye);
   const targetLook = new THREE.Vector3(...VIEWS.overview.look);
@@ -364,17 +366,19 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
   controls.maxDistance = 27;
   controls.maxPolarAngle = Math.PI * 0.81;
   controls.target.copy(targetLook);
+  // embedded (e.g. landing page): never capture wheel/touch scrolling
+  controls.enabled = controlsEnabled;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   const environment = pmrem.fromScene(new RoomEnvironment(), 0.04);
   scene.environment = environment.texture;
   pmrem.dispose();
-  const key = new THREE.DirectionalLight(0xffe5b7, 4.1);
+  const key = new THREE.DirectionalLight(0xfff1d6, 4.1);
   key.position.set(-4, 9, 7);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0x8ac8e9, 2.2);
+  const rim = new THREE.DirectionalLight(0xffb800, 2.2);
   rim.position.set(6, 5, -5);
-  scene.add(rim, new THREE.HemisphereLight(0xc4e7df, 0x273b34, 1.7));
+  scene.add(rim, new THREE.HemisphereLight(0xe9eef5, 0x101820, 1.7));
 
   const root = new THREE.Group();
   scene.add(root);

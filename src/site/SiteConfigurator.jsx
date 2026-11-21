@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { sizeSystem, ruleAdvice, ruleAnswer, TIERS, PACKAGES, PRESET_QUESTIONS, hubWind, CURRENCY, RATES } from "./sizing.js";
+import { sizeSystem, ruleAdvice, TIERS, PACKAGES, hubWind, CURRENCY, RATES } from "./sizing.js";
 import { PRESETS, DEFAULT_PRESET, saveBuild, loadBuild } from "./presets.js";
 import "./site.css";
 
@@ -26,11 +26,6 @@ export default function SiteConfigurator() {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState({});
-  const [advice, setAdvice] = useState(null);
-  const [adviceState, setAdviceState] = useState("idle");
-  const [question, setQuestion] = useState("");
-  const [thread, setThread] = useState([]);
-  const [asking, setAsking] = useState(false);
   const lookup = useRef(0);
 
   const { tier, climate, inputs, choices } = state;
@@ -38,11 +33,10 @@ export default function SiteConfigurator() {
   const result = useMemo(() => sizeSystem(climate, tier, inputs, choices, pkg), [climate, tier, inputs, choices, pkg]);
   const packagePrices = useMemo(() => Object.fromEntries(Object.keys(PACKAGES).map((id) => [id, sizeSystem(climate, tier, inputs, choices, id).totals])), [climate, tier, inputs, choices]);
   const instantAdvice = useMemo(() => ruleAdvice(result, shortPlace(state.place)), [result, state.place]);
-  const shown = advice || instantAdvice;
+  const shown = instantAdvice;
   const update = (patch) => setState((s) => ({ ...s, ...patch }));
   const by = Object.fromEntries(result.components.map((p) => [p.id, p]));
   const t = result.totals;
-  const body = { place: shortPlace(state.place), tier, package: pkg, climate, inputs, choices };
 
   useEffect(() => { saveBuild(state); }, [state]);
   useEffect(() => {
@@ -50,46 +44,6 @@ export default function SiteConfigurator() {
     window.addEventListener("welos:tier", onTier);
     return () => window.removeEventListener("welos:tier", onTier);
   }, []);
-
-  // Ask the AI advisor after the build settles; show rule advice meanwhile.
-  useEffect(() => {
-    const controller = new AbortController();
-    setAdvice(null);
-    setAdviceState("thinking");
-    setThread([]);
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch("/api/advisor", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: controller.signal });
-        const data = await response.json();
-        if (!response.ok || !data.headline) throw new Error("advisor");
-        setAdvice(data);
-        setAdviceState(data.source === "ai" ? "ai" : "rules");
-      } catch (error) {
-        if (error.name !== "AbortError") setAdviceState("rules");
-      }
-    }, 650);
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, [state.place, tier, pkg, climate, inputs, choices]);
-
-  async function ask(text, preset) {
-    const q = (preset ? PRESET_QUESTIONS.find((p) => p.id === preset)?.text : text || "").trim();
-    if (!q || asking) return;
-    setQuestion("");
-    setAsking(true);
-    setThread((th) => [...th, { q, a: null }]);
-    let answer = null;
-    let source = "rules";
-    try {
-      const response = await fetch("/api/advisor", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, question: q, preset }) });
-      const data = await response.json();
-      answer = data.answer;
-      source = data.source;
-    } catch { /* offline: fall back below */ }
-    if (!answer && preset) answer = ruleAnswer(result, preset);
-    if (!answer) answer = "WELOS AI isn't connected right now, so I can only answer the suggested questions. The build, the prices and every “Why this size” rule above still work offline.";
-    setThread((th) => th.map((item, i) => (i === th.length - 1 ? { q, a: answer, source } : item)));
-    setAsking(false);
-  }
 
   async function choosePlace(place) {
     const id = ++lookup.current;
@@ -141,7 +95,6 @@ export default function SiteConfigurator() {
   const setInput = (id, value) => update({ inputs: { ...inputs, [id]: value === "" ? undefined : Number(value) } });
   const toggle = (id, value) => update({ choices: { ...choices, [id]: value } });
   const vHub = hubWind(climate.windMs, result.tier.hubHeightM);
-  const pill = adviceState === "thinking" ? "Analysing your site…" : adviceState === "ai" ? "Live AI analysis" : "Rule-based analysis";
 
   return <>
     <section className="cfg wrap" id="configure" aria-labelledby="cfg-title">
@@ -204,7 +157,7 @@ export default function SiteConfigurator() {
             </button>)}
           </fieldset>
 
-          <a className="ai-peek" href="#ai"><span className={`dot ${adviceState}`} aria-hidden="true" /><span><b>WELOS AI</b>{shown.headline}</span><i aria-hidden="true">→</i></a>
+          <button type="button" className="ai-peek" data-ai-open><span className="dot rules" aria-hidden="true" /><span><b>WELOS AI</b>{shown.headline}</span><i aria-hidden="true">→</i></button>
 
           <fieldset className="opt-group">
             <legend>Your building</legend>
@@ -242,39 +195,14 @@ export default function SiteConfigurator() {
               <div><b>{fmt(Math.min(t.waterCoveragePct, 100))}%</b><span>water</span></div>
               <div><b>{fmt(t.co2TonnesYear, 1)} t</b><span>CO₂/yr avoided</span></div>
             </div>
-            <a className="btn btn-dark" href="/explore.html">See your build taken apart</a>
-            <a className="btn btn-light" href="#ai">Ask WELOS AI about it</a>
+            <a className="btn btn-dark" href="/">See your build taken apart</a>
+            <button type="button" className="btn btn-light" data-ai-open>Ask WELOS AI about it</button>
             <p className="fine">Indicative UAE market prices and tariffs (AED {RATES.tariffPerKwh}/kWh). Finance figures are illustrative. Final design needs a site survey, structural review and local approvals.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section className="wrap ai" id="ai" aria-labelledby="ai-title">
-      <div className="ai-card">
-        <div className="ai-top">
-          <h2 id="ai-title" className="h2">WELOS <span className="grad">AI.</span></h2>
-          <span className={`ai-pill ${adviceState}`}>{pill}</span>
-        </div>
-        <p className="ai-for">For WELOS {result.tier.id} {result.package.name} · {shortPlace(state.place)}</p>
-        <h3 className="ai-head">{shown.headline}</h3>
-        <p className="ai-sum">{shown.summary}</p>
-        <div className="ai-cols">
-          <div><h4>Why it's built this way</h4><ul>{shown.reasons.map((r, i) => <li key={i}><b>{r.component}</b>{r.text}</li>)}</ul></div>
-          <div><h4>Make it better</h4><ul>{shown.upgrades.map((u, i) => <li key={i}><b>{u.title}</b>{u.text}</li>)}</ul><h4>Verify on site</h4><ul className="ai-q">{shown.questions.map((q, i) => <li key={i}>{q}</li>)}</ul></div>
-        </div>
-
-        <div className="ask">
-          <h4>Ask about your build</h4>
-          {thread.length > 0 && <ol className="thread">{thread.map((m, i) => <li key={i}><p className="you">{m.q}</p><p className={`bot ${m.a ? "" : "wait"}`}>{m.a || "Thinking…"}</p></li>)}</ol>}
-          <div className="ask-chips">{PRESET_QUESTIONS.map((p) => <button type="button" key={p.id} disabled={asking} onClick={() => ask(null, p.id)}>{p.text}</button>)}</div>
-          <form className="ask-form" onSubmit={(e) => { e.preventDefault(); ask(question); }}>
-            <input value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={300} placeholder="e.g. What if I double the water demand?" aria-label="Ask WELOS AI" />
-            <button type="submit" className="btn btn-dark" disabled={asking || !question.trim()}>{asking ? "…" : "Ask"}</button>
-          </form>
-        </div>
-      </div>
-    </section>
   </>;
 }
 

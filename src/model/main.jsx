@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { ArrowLeft, Box, ChevronRight, Crosshair, Layers3, RotateCcw } from "lucide-react";
+import { Box, ChevronRight, Crosshair, Layers3, RotateCcw } from "lucide-react";
 import { partById, parts, systems } from "./parts.js";
 import { softwareLayers } from "./software.js";
 import { createWelosScene } from "./scene.js";
@@ -9,7 +8,7 @@ import "../page-brand.css";
 
 const DEFAULT_PART = "controller-pcb";
 
-function ModelApp() {
+export function ModelView({ header, modules }) {
   const initiallyExploded = new URLSearchParams(window.location.search).get("exploded") === "1";
   const viewportRef = useRef(null);
   const sceneRef = useRef(null);
@@ -31,7 +30,6 @@ function ModelApp() {
   useEffect(() => {
     if (!viewportRef.current) return undefined;
     sceneRef.current = createWelosScene(viewportRef.current, {
-      theme: "light",
       onReady: () => setReady(true),
       onSelect: (id) => {
         setSelectedId(id);
@@ -48,6 +46,11 @@ function ModelApp() {
     if (initiallyExploded) sceneRef.current?.setExploded(0.72);
     return () => sceneRef.current?.dispose();
   }, []);
+
+  useEffect(() => {
+    if (!modules) return;
+    sceneRef.current?.setModules?.(modules);
+  }, [modules?.solar, modules?.wind, modules?.water, modules?.hydro, ready]);
 
   function choosePart(id) {
     setSelectedId(id);
@@ -77,11 +80,7 @@ function ModelApp() {
 
   return (
     <div className="model-app">
-      <header className="model-header">
-        <a className="page-brand" href="/" aria-label="WELOS home"><img src="/welos-brand-transparent.png" alt="" /><span><strong>WELOS</strong><small>URBAN RESOURCE SYSTEM</small></span></a>
-        <div className="page-header-title">{initiallyExploded ? "Exploded view" : "3D model"}</div>
-        <a className="page-back" href="/"><ArrowLeft size={15} aria-hidden="true" /> Home</a>
-      </header>
+      {header}
 
       <main className="model-shell">
         <aside className="system-rail" aria-label="Model systems">
@@ -174,6 +173,3 @@ function ModelApp() {
   );
 }
 
-const appRoot = createRoot(document.getElementById("model-root"));
-appRoot.render(<ModelApp />);
-if (import.meta.hot) import.meta.hot.dispose(() => appRoot.unmount());

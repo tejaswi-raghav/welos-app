@@ -437,10 +437,10 @@ SCN.forEach((name, i) => {
   rail.appendChild(b);
 });
 const railBtns = [...rail.children];
-function scrollable() { return document.documentElement.scrollHeight - innerHeight; }
+// the exhibit is driven by #track only; the page continues below it
+const trackEl = $('#track');
+function scrollable() { return Math.max(1, trackEl.offsetHeight - innerHeight); }
 function goTo(t) { window.scrollTo({ top: (t / T_MAX) * scrollable(), behavior: reduce ? 'auto' : 'smooth' }); }
-$('#ctaExplore').addEventListener('click', () => { location.href = '/model.html'; });
-$('#ctaTech').addEventListener('click', () => { location.href = '/control.html'; });
 const stepEls = [...document.querySelectorAll('#steps li')];
 const STEP_T = [15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.72];
 
@@ -449,47 +449,47 @@ const STEP_T = [15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.72];
 // Supplied product reference visuals, cropped per subsystem (public/explore/).
 const REF_IMG = {
  "full": {
-  "src": "/explore/ref-full.jpg",
+  "src": "explore/ref-full.jpg",
   "w": 900,
   "h": 644
  },
  "wind": {
-  "src": "/explore/ref-wind.jpg",
+  "src": "explore/ref-wind.jpg",
   "w": 225,
   "h": 700
  },
  "canopy": {
-  "src": "/explore/ref-canopy.jpg",
+  "src": "explore/ref-canopy.jpg",
   "w": 900,
   "h": 496
  },
  "chassis": {
-  "src": "/explore/ref-chassis.jpg",
+  "src": "explore/ref-chassis.jpg",
   "w": 535,
   "h": 370
  },
  "power": {
-  "src": "/explore/ref-power.jpg",
+  "src": "explore/ref-power.jpg",
   "w": 420,
   "h": 350
  },
  "catch": {
-  "src": "/explore/ref-catch.jpg",
+  "src": "explore/ref-catch.jpg",
   "w": 250,
   "h": 570
  },
  "tank": {
-  "src": "/explore/ref-tank.jpg",
+  "src": "explore/ref-tank.jpg",
   "w": 250,
   "h": 320
  },
  "filter": {
-  "src": "/explore/ref-filter.jpg",
+  "src": "explore/ref-filter.jpg",
   "w": 240,
   "h": 290
  },
  "base": {
-  "src": "/explore/ref-base.jpg",
+  "src": "explore/ref-base.jpg",
   "w": 900,
   "h": 227
  }
@@ -653,12 +653,19 @@ addEventListener('resize', resize); resize();
 
 /* ============ FRAME ============ */
 let tTarget = 0, tNow = 0, last = performance.now(), start = last, first = true;
-const onScroll = () => { tTarget = clamp(window.scrollY / Math.max(1, scrollable())) * T_MAX; };
+let past = false, hidden = false;
+const onScroll = () => {
+  const y = window.scrollY, r = scrollable();
+  tTarget = clamp(y / r) * T_MAX;
+  const p = y > r + innerHeight * 0.3; if (p !== past) { past = p; document.body.classList.toggle('past', p); }
+  hidden = y > r + innerHeight * 1.05;
+};
 addEventListener('scroll', onScroll, { passive: true }); onScroll(); tNow = tTarget;
 const dimTarget = {};
 const _p = new THREE.Vector3(), _q = new THREE.Vector3(), _c = new THREE.Color();
 
 function frame(now) {
+  if (hidden && !first) { last = now; requestAnimationFrame(frame); return; }
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   const time = (now - start) / 1000;
   tNow = reduce ? tTarget : tNow + (tTarget - tNow) * (1 - Math.exp(-dt * 7));

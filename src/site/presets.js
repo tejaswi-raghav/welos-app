@@ -18,6 +18,8 @@ export const STORAGE_KEY = "welos.build.v1";
 /** Persist the visitor's build so other pages (exploded view) can show their numbers. */
 export function saveBuild(build) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(build)); } catch { /* storage unavailable */ }
+  // let the 3D model and the WELOS AI sidebar follow the configurator live
+  try { window.dispatchEvent(new CustomEvent("welos:build", { detail: build })); } catch { /* non-browser */ }
 }
 
 export function loadBuild() {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import SiteConfigurator from "./site/SiteConfigurator.jsx";
+import "./ai/mount.jsx";
 import { sizeSystem, TIERS } from "./site/sizing.js";
 import { DEFAULT_PRESET } from "./site/presets.js";
 

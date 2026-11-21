@@ -52,7 +52,7 @@ function block(e) {
   return `<div class="why-item"><span class="why-t">${esc(e.title)}</span><strong>${esc(e.capacity)}</strong>${e.why ? `<p>${esc(e.why)}</p>` : ""}${rules}</div>`;
 }
 
-const tag = `<a class="why-site" href="/#configure" title="Change site">For your site · WELOS ${tier.id} ${esc(tier.name)} ${esc(result.package.name)} · ${esc(place)}${saved ? "" : " (example)"} ↗</a>`;
+const tag = `<a class="why-site" href="/studio.html#configure" title="Change site">For your site · WELOS ${tier.id} ${esc(tier.name)} ${esc(result.package.name)} · ${esc(place)}${saved ? "" : " (example)"} ↗</a>`;
 
 for (const [scene, entries] of Object.entries(ENTRIES)) {
   const panel = document.querySelector(`.panel[data-s="${scene}"]`);
@@ -68,6 +68,6 @@ const intro = document.querySelector('.panel[data-s="1"]');
 if (intro) {
   const box = document.createElement("section");
   box.className = "why-box";
-  box.innerHTML = `${tag}<div class="why-item"><span class="why-t">Configured build</span><strong>AED ${fmt(result.totals.totalAed)} · ${fmt(Math.min(result.totals.energyCoveragePct, 100))}% power · ${fmt(Math.min(result.totals.waterCoveragePct, 100))}% water</strong><p>Each subsystem panel shows its capacity for this site and the rule that sized it.${saved ? "" : " Configure your own site on the home page to replace this example."}</p></div>`;
+  box.innerHTML = `${tag}<div class="why-item"><span class="why-t">Configured build</span><strong>AED ${fmt(result.totals.totalAed)} · ${fmt(Math.min(result.totals.energyCoveragePct, 100))}% power · ${fmt(Math.min(result.totals.waterCoveragePct, 100))}% water</strong><p>Each subsystem panel shows its capacity for this site and the rule that sized it.${saved ? "" : " Configure your own site in the Studio to replace this example."}</p></div>`;
   intro.append(box);
 }
