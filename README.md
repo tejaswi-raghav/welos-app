@@ -10,7 +10,8 @@ npm run dev
 
 Open the local URL shown by Vite. The product tools are separate entry points:
 
-- `/` — Tesla-style landing: hero, WELOS S/M/L, **Design yours** (location → NASA climate → build sized to the site with Essential/Recommended/Max packages, instant AED price and monthly estimate, per-part “why this size” rules), **WELOS AI** (site analysis + ask-a-question), WELOS OS, the problem, and links to the 3D tools
+- `/` — glass landing: layered illustrated landscape hero (WELOS watermark occluded by the mountains, frosted glass nav and stat cards, parallax), products, **Design yours** configurator with packages, **WELOS AI**, how it works, and links to the 3D tools
+- `/classic.html` — the previous Tesla-style landing, kept as a fallback
 - `/model.html` — integrated rooftop 3D appliance with selectable hardware, software stack and full-system separation
 - `/explore.html` — scroll-driven exploded-view story of the same appliance, with supplied reference visuals tied to each subsystem, plus each subsystem's capacity and sizing rules for the visitor's configured site
 - `/model.html?exploded=1` — opens the 3D assembly with its components separated

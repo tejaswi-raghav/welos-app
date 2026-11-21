@@ -39,6 +39,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         landing: resolve(__dirname, "index.html"),
+        classic: resolve(__dirname, "classic.html"),
         control: resolve(__dirname, "control.html"),
         model: resolve(__dirname, "model.html"),
         configure: resolve(__dirname, "configure.html"),
