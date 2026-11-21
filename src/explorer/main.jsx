@@ -86,7 +86,7 @@ function Explorer() {
     } else if (layer) {
       const L = LAYERS.find((l) => l.id === layer);
       stage.setFocus(L.keys);
-      stage.frameKeys(L.keys, 1300, { distance: 1.9 });
+      stage.frameKeys(L.keys, 1300, { distance: 2.7 });
     } else {
       stage.setFocus(null);
       history.replaceState(null, "", location.pathname);
@@ -163,7 +163,12 @@ function Explorer() {
             <div><dt className="t-label">Concept basis</dt><dd>{p.evidence}</dd></div>
             <div><dt className="t-label">Still to engineer</dt><dd className="muted">{p.status}</dd></div>
           </dl>
-        </> : <div className="ex-empty">
+        </> : layer ? (() => { const L = LAYERS.find((l) => l.id === layer); return <div className="ex-empty">
+          <p className="t-label">{L.code} · Layer</p>
+          <h2 className="t-h2">{L.name}</h2>
+          <p>{L.blurb}</p>
+          <ul className="ex-layer-parts">{L.keys.filter((k) => partById[k]).map((k) => <li key={k}><button type="button" onClick={() => { setSel(k); setLayer(null); }}><span className="t-num">{partById[k].code}</span>{partById[k].name}</button></li>)}</ul>
+        </div>; })() : <div className="ex-empty">
           <p className="t-label">System Explorer</p>
           <h2 className="t-h2">Select any part.</h2>
           <p>Click the model or the list. The camera moves to it, its subsystem stays lit, and its power and water connections are traced upstream and downstream.</p>

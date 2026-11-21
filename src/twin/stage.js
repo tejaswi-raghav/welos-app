@@ -246,13 +246,41 @@ export class Stage {
     const S = 10 * 26;
     const sp = new Float32Array(S * 3);
     const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
-    this.spray = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0x8fd3f2, size: 0.045, transparent: true, opacity: 0, depthWrite: false }));
+    this.spray = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0x6cc4ea, size: 0.07, transparent: true, opacity: 0, depthWrite: false }));
     this.spray.frustumCulled = false;
     manifold.add(this.spray);
     this.sprayCount = S;
   }
 
+  #rinseSheet() {
+    // a thin moving water film down the canopy slope, driven by the rinse state
+    const mat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      uniforms: { uT: { value: 0 }, uA: { value: 0 } },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+      fragmentShader: `uniform float uT, uA; varying vec2 vUv;
+        float h(float x){ return fract(sin(x*91.7)*43758.5); }
+        void main(){
+          float lane = floor(vUv.x*60.);
+          float speed = .55 + h(lane)*.5;
+          float y = fract(vUv.y*3. + uT*speed + h(lane+3.));
+          float streak = smoothstep(.0,.08,y)*smoothstep(.45,.08,y);
+          float front = smoothstep(uA*1.15 - .15, uA*1.15, 1. - vUv.y);
+          float a = (0.18 + streak*.55) * (1. - front) * min(1., uA*3.);
+          gl_FragColor = vec4(mix(vec3(.62,.84,.95), vec3(1.), streak*.6), a);
+          #include <colorspace_fragment>
+        }`,
+    });
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(5.75, 3.45), mat);
+    sheet.rotation.x = -Math.PI / 2;
+    sheet.position.set(0, 0.13, 0.05);
+    sheet.renderOrder = 8;
+    this.KEY["pv-array"][0].add(sheet);
+    this.rinseMat = mat;
+  }
+
   #overlays() {
+    this.#rinseSheet();
     // dust film on each PV module, and a selection halo material
     this.dustMats = this.modules.map((g, i) => {
       const mat = new THREE.ShaderMaterial({
@@ -402,7 +430,7 @@ export class Stage {
     const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
     const dir = this.camera.position.clone().sub(this.camTarget || new THREE.Vector3()).normalize();
     dir.y = Math.max(dir.y, lift); dir.normalize();
-    const pos = c.clone().add(dir.multiplyScalar(clamp(size * distance, 5, 30)));
+    const pos = c.clone().add(dir.multiplyScalar(clamp(size * distance, 9, 30)));
     this.setPose({ pos: pos.toArray(), target: c.toArray() }, ms);
   }
   focusPart(key, ms = 1100) {
@@ -615,7 +643,9 @@ export class Stage {
     this.dustMats.forEach((m) => { m.uniforms.uAmount.value = amount; m.uniforms.uWet.value = Math.max(w.clean, w.rain * 0.6); });
 
     // rinse spray along the manifold, falling down-slope over the canopy
-    this.spray.material.opacity = w.clean * 0.85;
+    this.spray.material.opacity = w.clean * 0.9;
+    this.rinseMat.uniforms.uA.value = w.clean;
+    if (!this.reduce) this.rinseMat.uniforms.uT.value = this.time * 0.9;
     if (w.clean > 0.01) {
       const a = this.spray.geometry.attributes.position.array;
       for (let i = 0; i < this.sprayCount; i++) {
@@ -662,7 +692,7 @@ export class Stage {
       mat.color.copy(m.userData.baseColor).lerp(COLORS.ghost, m.userData.dim * 0.86).lerp(COLORS.paper, s * 0.92);
       mat.emissive.copy(m.userData.baseEmissive).multiplyScalar(1 - m.userData.dim).lerp(COLORS.amber, m.userData.sel * (0.55 + 0.25 * pulse));
       mat.emissiveIntensity = m.userData.baseEI * (1 - m.userData.dim) + m.userData.sel * 0.5;
-      const fade = m.userData.dim * 0.55 + s * 0.35;
+      const fade = m.userData.dim * 0.55 + s * 0.22;
       const transparent = fade > 0.01;
       if (mat.transparent !== transparent) { mat.transparent = transparent; mat.needsUpdate = true; }
       mat.opacity = 1 - fade;
@@ -670,7 +700,7 @@ export class Stage {
       m.castShadow = fade < 0.3;
     }
     if (this.edges) {
-      this.edgeMat.opacity = s * 0.55;
+      this.edgeMat.opacity = s * 0.85;
       const vis = s > 0.01;
       if (this.edgesVisible !== vis) { this.edges.forEach((l) => { l.visible = vis; }); this.edgesVisible = vis; }
     }

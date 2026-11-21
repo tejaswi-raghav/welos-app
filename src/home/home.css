@@ -190,7 +190,7 @@ body[data-scene="pressure"] .story-rail span { opacity: 0; }
 @media (max-width: 860px) {
   .story-rail { display: none; }
   .scene { min-height: 150vh; padding: 0 12px; }
-  .scene .panel { width: auto; top: auto; bottom: 12px; position: sticky; margin-top: 52vh; padding: 18px; gap: 10px; }
+  .scene .panel { width: auto; position: sticky; top: 54svh; margin-top: 54svh; max-height: calc(46svh - 12px); overflow: auto; padding: 18px; gap: 10px; }
   .hero .hero-panel { margin-top: 0; top: calc(var(--head-h) + 3vh); width: auto; padding: 0 4px; }
   .hero-title { font-size: clamp(2.6rem, 12vw, 3.6rem); }
   .hero-lede { font-size: 15.5px; }
@@ -227,4 +227,20 @@ body[data-scene="pressure"] .story-rail span { opacity: 0; }
   .hud-bars > div { grid-template-columns: 54px 1fr 40px; }
   .press-steps { padding-top: 4vh; }
   .pclock .t-num { font-size: 2rem; }
+}
+@media (max-width: 860px) {
+  .hero .hero-panel { padding: 0 4px 16px; background: linear-gradient(var(--paper) 70%, color-mix(in srgb, var(--paper) 0%, transparent)); border-radius: 0; margin: 0 -12px; padding: 0 16px 28px; }
+  .hero .readout { display: none; }
+}
+@media (max-width: 860px) {
+  .hero-title { font-size: clamp(2.3rem, 10.5vw, 3rem); }
+  .hero .hero-panel { gap: 14px; }
+  .hero-lede { font-size: 14.5px; }
+  .hero-cta .btn { height: 40px; padding: 0 14px; font-size: 13.5px; }
+  .hero .kick { font-size: 10px; }
+}
+@media (max-width: 860px) {
+  .hero .hero-panel { max-height: none; overflow: visible; }
+  .coord .panel { position: relative; top: auto; margin-top: 36svh; max-height: none; overflow: visible; }
+  .os .os-panel { max-height: none; }
 }

@@ -86,3 +86,7 @@
   .ex-explode .range { width: 80px; }
   .ex-tools .seg[aria-label="Resource flows"] button:not([aria-pressed="true"]) { display: none; }
 }
+.ex-layer-parts { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
+.ex-layer-parts button { width: 100%; display: grid; grid-template-columns: 34px 1fr; gap: 6px; text-align: left; border: 0; background: transparent; padding: 6px 8px; border-radius: 8px; font-size: 13.5px; }
+.ex-layer-parts button:hover { background: var(--paper); }
+.ex-layer-parts .t-num { font-size: 11px; color: var(--faint); }

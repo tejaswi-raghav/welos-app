@@ -27,7 +27,7 @@ const days = {
 };
 const at = (day, hour) => days[day].frames[Math.round(hour * 4)];
 const FR = {
-  hero: at("clear", 16.5), sun: at("clear", 12.5), wind: at("windy", 17.5), rain: at("rain", 16),
+  hero: at("clear", 17.25), sun: at("clear", 12.5), wind: at("windy", 17.5), rain: at("rain", 16),
   network: at("clear", 15), exploded: at("clear", 14), os: at("clear", 15),
 };
 
@@ -335,8 +335,9 @@ function poseFor(id) {
   const p = SCENES[id].pose;
   if (!isMobile()) return p;
   // mobile: pull back and centre
-  const k = 1.38;
-  return { pos: p.pos.map((v, i) => p.target[i] + (v - p.target[i]) * k), target: [p.target[0], p.target[1] - 0.6, p.target[2]], fov: (p.fov || 30) + 4 };
+  // mobile: pull back; text sits at the top of the hero and at the bottom elsewhere
+  const k = 1.38, dy = id === "hero" ? 2.3 : id === "pressure" ? 1.2 : -1.4;
+  return { pos: p.pos.map((v, i) => p.target[i] + (v - p.target[i]) * k), target: [p.target[0], p.target[1] + dy, p.target[2]], fov: (p.fov || 30) + 4 };
 }
 function applyScene(id) {
   if (id === currentScene) return;
