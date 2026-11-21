@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { headerHtml, footerHtml, headTags } from "./src/ui/chrome-html.js";
 
 // Serves the Vercel functions in /api during `npm run dev`, so location search,
 // climate lookup and the AI advisor work locally exactly as they do on Vercel.
@@ -34,14 +35,29 @@ function vercelApi() {
   };
 }
 
+// Injects the shared head tags, header and footer into every page: <html data-page="…">.
+function welosChrome() {
+  return {
+    name: "welos-chrome",
+    transformIndexHtml(html) {
+      const page = html.match(/<html[^>]*data-page="([a-z]+)"/)?.[1] || "";
+      return html.replace("<!--head-->", headTags).replace("<!--header-->", headerHtml(page)).replace("<!--footer-->", footerHtml());
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), vercelApi()],
+  plugins: [react(), vercelApi(), welosChrome()],
   build: {
+    chunkSizeWarningLimit: 900,
     rollupOptions: {
+      output: { manualChunks: { three: ["three"], react: ["react", "react-dom"] } },
       input: {
         landing: resolve(__dirname, "index.html"),
-        studio: resolve(__dirname, "studio.html"),
+        explorer: resolve(__dirname, "explorer.html"),
+        lab: resolve(__dirname, "lab.html"),
         control: resolve(__dirname, "control.html"),
+        studio: resolve(__dirname, "studio.html"),
       },
     },
   },

@@ -1,5 +1,5 @@
 {
-  "name": "sunwindrain-landing",
+  "name": "welos-app",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -9,9 +9,10 @@
     "preview": "vite preview",
     "test:control": "node --test src/control/engine.test.js",
     "test:model": "node --test src/model/parts.test.js",
-    "check": "npm run test:control && npm run test:model && npm run test:site && npm run build",
+    "check": "npm run test:control && npm run test:model && npm run test:site && npm run test:twin && npm run build",
     "firmware:build": "pio run -d firmware",
-    "test:site": "node --test src/site/sizing.test.js"
+    "test:site": "node --test src/site/sizing.test.js",
+    "test:twin": "node --test src/twin/sim.test.js src/twin/topology.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",
