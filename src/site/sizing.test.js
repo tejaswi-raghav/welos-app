@@ -81,3 +81,31 @@ test("rule advice has the same shape as the AI advisor", () => {
   assert.ok(advice.headline && advice.summary);
   assert.ok(advice.reasons.length && advice.upgrades.length && advice.questions.length);
 });
+
+test("Essential is much cheaper than Recommended, Max costs the most", () => {
+  for (const tier of ["S", "M", "L"]) {
+    const [e, r, m] = ["essential", "recommended", "max"].map((p) => sizeSystem(climate("dubai"), tier, {}, {}, p).totals.totalAed);
+    assert.ok(e < r * 0.65, `${tier}: essential ${e} vs recommended ${r}`);
+    assert.ok(m > r, `${tier}: max ${m} vs recommended ${r}`);
+  }
+});
+
+test("Essential drops optional modules and cleaning hardware but keeps core parts", () => {
+  const e = sizeSystem(climate("dubai"), "S", {}, {}, "essential");
+  assert.equal(part(e, "condensate").included, false);
+  assert.equal(part(e, "cleaning").costAed, 0);
+  assert.match(part(e, "water").spec, /sediment filter → pump/);
+  for (const id of ["solar", "battery", "inverter", "water", "controller"]) assert.equal(part(e, id).included, true);
+  // user can still add an optional module back
+  assert.equal(part(sizeSystem(climate("dubai"), "S", {}, { condensate: true }, "essential"), "condensate").included, true);
+});
+
+test("monthly estimate is a positive amortised payment", () => {
+  const r = sizeSystem(climate("dubai"), "S");
+  assert.ok(r.totals.monthlyAed > r.totals.totalAed / 120 && r.totals.monthlyAed < r.totals.totalAed / 60);
+});
+
+test("rule advice offers the cheaper package when not already on it", () => {
+  const advice = ruleAdvice(sizeSystem(climate("dubai"), "S"), "Dubai");
+  assert.match(advice.upgrades[0].title, /Essential/);
+});

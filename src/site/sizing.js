@@ -28,6 +28,21 @@ export const TIERS = Object.freeze({
   },
 });
 
+export const PACKAGES = Object.freeze({
+  essential: {
+    id: "essential", name: "Essential", blurb: "Lowest upfront cost. Covers the essentials, upgrade later.",
+    coverage: 0.6, batteryShareFactor: 0.25, modules: "standard", cleaning: "alerts", waterLite: true, optionalDefault: "off",
+  },
+  recommended: {
+    id: "recommended", name: "Recommended", blurb: "Sized to your load and climate. Best value over its life.",
+    coverage: 1, batteryShareFactor: 1, modules: "climate", cleaning: "auto", waterLite: false, optionalDefault: "recommended",
+  },
+  max: {
+    id: "max", name: "Max", blurb: "Fills the roof, deeper storage, every viable module.",
+    coverage: Infinity, batteryShareFactor: 1.5, modules: "premium", cleaning: "auto", waterLite: false, optionalDefault: "viable",
+  },
+});
+
 export const RATES = Object.freeze({
   moduleStandardPerW: 0.8,      // mono PERC module, AED/W
   modulePremiumPerW: 1.05,      // N-type bifacial glass-glass, AED/W
@@ -41,6 +56,7 @@ export const RATES = Object.freeze({
   stormRatedFactor: 1.1,
   tankPerL: 0.9,
   treatment: { S: 3800, M: 12000, L: 38000 },  // first flush, filters, UV, pump
+  treatmentLite: { S: 1500, M: 5000, L: 16000 }, // first flush, sediment filter, pump
   condensate: { S: 1800, M: 6500, L: 22000 },
   robotPerKwp: 260, robotMin: 4500,             // waterless dry-brush robot
   rinsePerKwp: 90, rinseMin: 1500,              // rain-fed rinse rail
@@ -49,6 +65,8 @@ export const RATES = Object.freeze({
   tariffPerKwh: 0.38,           // UAE upper-slab electricity incl. fuel surcharge
   waterPerL: 0.0095,            // UAE water + sewerage, AED per litre
   gridKgCo2PerKwh: 0.41,
+  financeApr: 0.0499,           // illustrative green-finance rate
+  financeYears: 10,
 });
 
 const MODULE_W = 550;
@@ -102,9 +120,11 @@ export function resolveInputs(tierId, inputs = {}) {
  * @param {"S"|"M"|"L"} tierId
  * @param {object} inputs optional { roofM2, loadKwhDay, waterLDay }
  * @param {object} choices optional { [componentId]: boolean } user include/exclude overrides
+ * @param {"essential"|"recommended"|"max"} packageId
  */
-export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
+export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, packageId = "recommended") {
   const tier = TIERS[tierId] || TIERS.S;
+  const pkg = PACKAGES[packageId] || PACKAGES.recommended;
   const t = tier.id;
   const site = resolveInputs(t, inputs);
   const c = {
@@ -124,27 +144,35 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   const cellTemp = c.temp + 22;
   const thermalDerate = 1 - tempCoef * Math.max(0, cellTemp - 25);
   const soilingRaw = dusty ? 0.08 : 0.03;
-  const soilingManaged = dusty ? 0.025 : 0.01;
+  const autoClean = pkg.cleaning === "auto";
+  const soilingManaged = autoClean ? (dusty ? 0.025 : 0.01) : (dusty ? 0.045 : 0.018);
   const pr = BOS_EFFICIENCY * thermalDerate * (1 - soilingManaged);
   const maxModules = Math.max(1, Math.floor((site.roofM2 * ROOF_PACKING) / MODULE_M2));
   const neededKwp = site.loadKwhDay / Math.max(0.1, c.solar * pr);
-  const loadModules = Math.max(1, Math.ceil((neededKwp * 1000) / MODULE_W));
+  const fullModules = Math.max(1, Math.ceil((neededKwp * 1000) / MODULE_W));
+  const loadModules = pkg.coverage === Infinity ? maxModules : Math.max(1, Math.ceil(fullModules * pkg.coverage));
   const modules = Math.min(maxModules, loadModules);
   const roofLimited = loadModules > maxModules;
+  const premium = pkg.modules === "premium" || (pkg.modules === "climate" && hot);
   const pvKwp = (modules * MODULE_W) / 1000;
   const pvKwhYear = pvKwp * c.solar * pr * 365;
-  const moduleRate = hot ? RATES.modulePremiumPerW : RATES.moduleStandardPerW;
+  const moduleRate = premium ? RATES.modulePremiumPerW : RATES.moduleStandardPerW;
   const canopyRate = RATES.canopyPerW * (windy ? RATES.reinforcedCanopyFactor : 1);
   components.push({
     id: "solar", group: "energy", name: "Solar canopy + rain catchment", core: true, recommended: true,
     capacity: { value: pvKwp, unit: "kWp", text: `${fmt(pvKwp, 1)} kWp · ${modules} × ${MODULE_W} W` },
-    spec: `${hot ? "Heat-tolerant N-type bifacial glass-glass" : "Mono PERC"} modules${windy ? " on a reinforced canopy" : ""}`,
+    spec: `${premium ? "Heat-tolerant N-type bifacial glass-glass" : "Mono PERC"} modules${windy ? " on a reinforced canopy" : ""}`,
     output: `${fmt(pvKwhYear)} kWh/yr`,
-    why: roofLimited
+    why: pkg.id === "essential"
+      ? `Essential sizes the array to about ${Math.round(pkg.coverage * 100)}% of your ${fmt(site.loadKwhDay)} kWh/day (${modules} of the ${fullModules} modules a full system needs) with standard modules, to keep the upfront cost low. The canopy is designed to take the rest later.${hot ? " Heat-tolerant modules would yield a few percent more here." : ""}`
+      : pkg.id === "max"
+      ? `Max fills the usable roof with ${modules} heat-tolerant modules, so surplus can be exported or stored.`
+      : roofLimited
       ? `Your roof fits ${maxModules} modules, fewer than the ${loadModules} needed to cover ${fmt(site.loadKwhDay)} kWh/day, so the array fills the roof. ${c.solar >= 5 ? "Strong sun makes every square metre count." : ""}`.trim()
       : `${modules} modules cover your ${fmt(site.loadKwhDay)} kWh/day at ${fmt(c.solar, 1)} kWh/m²/day of sun without oversizing the roof.`,
     rules: [
-      rule(`Sun ≥ 5.5 kWh/m²/day or temperature ≥ 25 °C (site: ${fmt(c.solar, 1)}, ${fmt(c.temp, 1)} °C)`, hot, hot ? "Premium heat-tolerant modules: −0.29 %/°C instead of −0.35 %/°C" : "Standard modules are enough in this climate"),
+      rule(`Sun ≥ 5.5 kWh/m²/day or temperature ≥ 25 °C (site: ${fmt(c.solar, 1)}, ${fmt(c.temp, 1)} °C)`, hot, premium ? "Premium heat-tolerant modules: −0.29 %/°C instead of −0.35 %/°C" : hot ? `Premium modules advised, but ${pkg.name} uses standard ones` : "Standard modules are enough in this climate"),
+      rule(`${pkg.name} package array target`, true, pkg.coverage === Infinity ? "Fill the usable roof" : `${Math.round(pkg.coverage * 100)}% of daily load`),
       rule(`Load-sized array (${loadModules} modules) > roof capacity (${maxModules})`, roofLimited, roofLimited ? "Array is roof-limited" : "Array is sized to the load"),
       rule(`Mean wind ≥ 6 m/s (site: ${fmt(c.wind, 1)} m/s)`, windy, windy ? "Reinforced canopy, +15% structure cost" : "Standard canopy structure"),
     ],
@@ -155,11 +183,13 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   // ---------- Panel cleaning ----------
   const recovered = pvKwp * c.solar * BOS_EFFICIENCY * thermalDerate * (soilingRaw - soilingManaged) * 365;
   components.push({
-    id: "cleaning", group: "energy", name: dusty ? "Waterless robotic cleaning" : "Rain-fed rinse rail", core: true, recommended: true,
+    id: "cleaning", group: "energy", name: !autoClean ? "Soiling alerts + manual cleaning" : dusty ? "Waterless robotic cleaning" : "Rain-fed rinse rail", core: true, recommended: true,
     capacity: { value: recovered, unit: "kWh/yr", text: `Recovers ~${fmt(recovered)} kWh/yr` },
-    spec: dusty ? "Dry microfibre brush robot, triggered by the soiling reference cell" : "Low-flow spray rail fed from the rain tank",
+    spec: !autoClean ? "Soiling reference cell tells you when a manual clean pays off" : dusty ? "Dry microfibre brush robot, triggered by the soiling reference cell" : "Low-flow spray rail fed from the rain tank",
     output: `Soiling loss ${Math.round(soilingRaw * 100)}% → ${(soilingManaged * 100).toFixed(1)}%`,
-    why: dusty
+    why: !autoClean
+      ? `Essential skips the cleaning hardware. The controller still measures soiling and alerts you when output has dropped enough that a manual wash is worth it, recovering most of the loss.`
+      : dusty
       ? `Low rain (${fmt(c.rain)} mm/yr) means dust builds up and is rarely washed off, and water is too scarce to spend on rinsing. A waterless robot keeps the array clean without using the tank.`
       : `Enough rain (${fmt(c.rain)} mm/yr) to refill the tank, so harvested water can rinse the panels whenever the soiling sensor crosses its threshold.`,
     rules: [
@@ -167,7 +197,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
       rule("Soiling loss ≥ 15% on the reference cell", true, "Controller starts a cleaning cycle (18% forces one)"),
     ],
     metrics: { recoveredKwhYear: recovered, soilingRaw, soilingManaged },
-    costAed: dusty ? Math.max(RATES.robotMin, pvKwp * RATES.robotPerKwp) : Math.max(RATES.rinseMin, pvKwp * RATES.rinsePerKwp),
+    costAed: !autoClean ? 0 : dusty ? Math.max(RATES.robotMin, pvKwp * RATES.robotPerKwp) : Math.max(RATES.rinseMin, pvKwp * RATES.rinsePerKwp),
   });
 
   // ---------- Wind ----------
@@ -179,6 +209,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   const windKwhYear = turbineYield(vHub, tier.turbineKw) * turbines;
   components.push({
     id: "wind", group: "energy", name: "Vertical-axis wind turbine", core: false, recommended: windViable,
+    defaultOn: pkg.optionalDefault === "off" ? false : pkg.optionalDefault === "viable" ? windViable || windMarginal : windViable,
     capacity: { value: turbines * tier.turbineKw, unit: "kW", text: `${turbines} × ${tier.turbineKw} kW VAWT` },
     spec: `Helical hybrid rotor at ~${tier.hubHeightM} m${stormRated ? ", storm-rated" : ""}, independent brake`,
     output: `${fmt(windKwhYear)} kWh/yr`,
@@ -198,7 +229,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
 
   // ---------- Battery ----------
   const pvKwhDay = pvKwhYear / 365;
-  const share = tier.batteryShare;
+  const share = tier.batteryShare * pkg.batteryShareFactor;
   const nightKwh = Math.min(site.loadKwhDay * share, pvKwhDay * 0.6);
   const batteryKwh = Math.max(tier.batteryModuleKwh, ceilTo(nightKwh, tier.batteryModuleKwh));
   const coolBattery = c.temp >= 27;
@@ -239,6 +270,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   const condensateLYear = condensateLDay * 365 * 0.75; // cooling season share
   components.push({
     id: "condensate", group: "water", name: "AC condensate recovery", core: false, recommended: condensateViable,
+    defaultOn: pkg.optionalDefault === "off" ? false : condensateViable,
     capacity: { value: condensateLDay, unit: "L/day", text: condensateViable ? `~${fmt(condensateLDay)} L/day` : "Not viable here" },
     spec: "Collects air-conditioning condensate into the WELOS tank",
     output: `${fmt(condensateLYear)} L/yr`,
@@ -253,7 +285,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   // ---------- Rain storage + treatment ----------
   const designEventMm = clamp(c.rain * 0.06, 6, 40);
   const eventCaptureL = site.roofM2 * designEventMm * RUNOFF * FIRST_FLUSH_KEEP;
-  const condensateIncluded = choices.condensate ?? condensateViable;
+  const condensateIncluded = choices.condensate ?? (pkg.optionalDefault === "off" ? false : condensateViable);
   const condensateBufferL = condensateIncluded ? condensateLDay * 3 : 0;
   const tankTarget = Math.min(Math.max(eventCaptureL, condensateBufferL), Math.max(site.waterLDay * 7, 300));
   const tankL = tankSize(Math.max(300, tankTarget));
@@ -263,7 +295,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   components.push({
     id: "water", group: "water", name: "Rain storage + treatment", core: true, recommended: true,
     capacity: { value: tankL, unit: "L", text: `${fmt(tankL)} L tank · ${tier.treatmentLpm} L/min treatment` },
-    spec: "First flush → sediment + carbon filters → UV-C → variable-speed pump (non-potable)",
+    spec: pkg.waterLite ? "First flush → sediment filter → pump (irrigation and flushing only)" : "First flush → sediment + carbon filters → UV-C → variable-speed pump (non-potable)",
     output: `${fmt(rainLYear)} L/yr of rain${condensateIncluded ? ` + ${fmt(condensateLYear)} L/yr condensate` : ""}`,
     why: lowRain
       ? `Only ${fmt(c.rain)} mm/yr of rain, arriving in a few short storms. The tank is kept small (${fmt(tankL)} L) to catch one design storm${condensateIncluded ? " and buffer three days of AC condensate" : ""}, instead of paying for a large tank that would sit empty.`
@@ -277,7 +309,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
       rule("Condensate recovery included", condensateIncluded, condensateIncluded ? `Tank also buffers 3 days of condensate (${fmt(condensateBufferL)} L)` : "Rain only"),
     ],
     metrics: { tankL, rainLYear, designEventMm, eventCaptureL },
-    costAed: RATES.treatment[t] + tankL * RATES.tankPerL,
+    costAed: (pkg.waterLite ? RATES.treatmentLite[t] : RATES.treatment[t]) + tankL * RATES.tankPerL,
   });
 
   // ---------- Control core ----------
@@ -295,8 +327,9 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   // ---------- Apply user choices ----------
   for (const part of components) {
     const choice = choices[part.id];
-    part.included = part.core ? true : typeof choice === "boolean" ? choice : part.recommended;
-    part.overridden = !part.core && typeof choice === "boolean" && choice !== part.recommended;
+    const byDefault = part.defaultOn ?? part.recommended;
+    part.included = part.core ? true : typeof choice === "boolean" ? choice : byDefault;
+    part.overridden = !part.core && typeof choice === "boolean" && choice !== byDefault;
     part.costAed = roundTo(part.costAed, 10);
   }
 
@@ -308,8 +341,14 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
   const waterLYear = rainLYear + (included("condensate") ? condensateLYear : 0);
   const annualSavingsAed = energyKwhYear * RATES.tariffPerKwh + Math.min(waterLYear, site.waterLDay * 365) * RATES.waterPerL;
 
+  const monthlyRate = RATES.financeApr / 12;
+  const months = RATES.financeYears * 12;
+  const monthlyAed = (totalAed * monthlyRate) / (1 - (1 + monthlyRate) ** -months);
+
   return {
     tier,
+    package: pkg,
+    request: { climate, tierId: t, inputs, choices, packageId: pkg.id },
     site,
     climate: c,
     components,
@@ -321,6 +360,8 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}) {
       waterLYear,
       annualSavingsAed,
       paybackYears: annualSavingsAed > 0 ? totalAed / annualSavingsAed : null,
+      monthlyAed,
+      monthlySavingsAed: annualSavingsAed / 12,
       energyCoveragePct: (energyKwhYear / Math.max(1, site.loadKwhDay * 365)) * 100,
       waterCoveragePct: (waterLYear / Math.max(1, site.waterLDay * 365)) * 100,
       co2TonnesYear: (energyKwhYear * RATES.gridKgCo2PerKwh) / 1000,
@@ -358,6 +399,11 @@ export function ruleAdvice(result, placeName = "your site") {
   if (by.wind.recommended && !by.wind.included) upgrades.push({ title: "Turn the wind turbine back on", text: `Your hub-height wind supports ${fmt(by.wind.metrics.windKwhYear)} kWh/yr of night-time generation.`, impact: "energy" });
   if (by.solar.metrics.modules >= by.solar.metrics.maxModules && totals.energyCoveragePct < 95) upgrades.push({ title: "Extend the canopy over parking or terraces", text: "The array already fills the roof. Each extra 10 m² adds about 2.2 kWp of capacity.", impact: "energy" });
   if (totals.energyCoveragePct < 60) upgrades.push({ title: "Cut the load before adding hardware", text: "Efficient cooling and smart scheduling through WELOS OS are usually cheaper per kWh than more panels.", impact: "cost" });
+  if (result.package.id !== "essential") {
+    const r = result.request;
+    const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential");
+    upgrades.unshift({ title: `Start with Essential at ${CURRENCY} ${fmt(lean.totals.totalAed)}`, text: `Same site, ${CURRENCY} ${fmt(totals.totalAed - lean.totals.totalAed)} less upfront: about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity now, with the canopy and controller ready to expand later.`, impact: "cost" });
+  }
   if (upgrades.length < 2) upgrades.push({ title: "Enable demand-aware scheduling", text: "Let WELOS OS run pumps, water heating and EV charging at solar peak to raise self-consumption.", impact: "cost" });
   const questions = [
     "Measure rooftop wind for three months before committing to a turbine.",
@@ -372,4 +418,33 @@ export function ruleAdvice(result, placeName = "your site") {
     upgrades: upgrades.slice(0, 3),
     questions,
   };
+}
+
+/** Suggested questions with deterministic answers, used when the AI is unavailable. */
+export const PRESET_QUESTIONS = [
+  { id: "cheaper", text: "How can I bring the price down?" },
+  { id: "water", text: "Why is the water tank this size?" },
+  { id: "wind", text: "Should I add the wind turbine?" },
+  { id: "payback", text: "How fast does it pay back?" },
+];
+
+export function ruleAnswer(result, presetId) {
+  const by = Object.fromEntries(result.components.map((p) => [p.id, p]));
+  const t = result.totals;
+  const r = result.request;
+  switch (presetId) {
+    case "cheaper": {
+      if (result.package.id === "essential") return `You're already on Essential at ${CURRENCY} ${fmt(t.totalAed)}. To go lower, reduce the daily electricity target or roof area. The array and battery scale down with them, and the canopy stays ready to expand.`;
+      const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential");
+      return `Switch to Essential: ${CURRENCY} ${fmt(lean.totals.totalAed)} instead of ${CURRENCY} ${fmt(t.totalAed)}. It sizes solar to about 60% of your load with standard modules, keeps one battery module, replaces the cleaning robot with soiling alerts and uses a lighter water kit. That covers about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity, at roughly ${CURRENCY} ${fmt(lean.totals.monthlyAed)}/month financed against ${CURRENCY} ${fmt(lean.totals.monthlySavingsAed)}/month saved.`;
+    }
+    case "water":
+      return by.water.why;
+    case "wind":
+      return `${by.wind.why} ${by.wind.included ? `It adds ${by.wind.output} for ${CURRENCY} ${fmt(by.wind.costAed)}.` : `If you add it anyway it costs ${CURRENCY} ${fmt(by.wind.costAed)} for about ${by.wind.output}.`}`;
+    case "payback":
+      return `About ${t.paybackYears ? fmt(t.paybackYears, 1) : "—"} years: ${CURRENCY} ${fmt(t.totalAed)} installed against ${CURRENCY} ${fmt(t.annualSavingsAed)} a year in electricity and water at UAE tariffs. Financed over ${RATES.financeYears} years at ${(RATES.financeApr * 100).toFixed(2)}% that is roughly ${CURRENCY} ${fmt(t.monthlyAed)}/month, against ${CURRENCY} ${fmt(t.monthlySavingsAed)}/month saved.`;
+    default:
+      return null;
+  }
 }
