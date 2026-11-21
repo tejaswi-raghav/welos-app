@@ -1,0 +1,64 @@
+/* The landing-page configurator, re-skinned for the dark WELOS palette inside the Studio.
+   Scoped to .studio-cfg so the glass and classic pages keep their own look. */
+.studio-cfg{
+  --ink:#F5F3ED; --ink-2:#C7D0D9; --ink-3:rgba(199,208,217,.66); --line:rgba(199,208,217,.16);
+  --surface:#090D12; --card:#111A24; --field:#0C131B;
+  --sun-1:#FFB800; --sun-2:#FFD36B; --sun-deep:#FFB800;
+  --grad:linear-gradient(90deg,#FFB800,#FFD36B);
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --font-display:"Satoshi","Inter",system-ui,sans-serif;
+  --max:1228px;
+  --tds-size-4x:32px; --tds-size-5x:40px; --tds-size-6x:48px; --tds-size-12x:96px;
+  --tds-animation-bezier-base:cubic-bezier(0.5,0,0,0.75); --tds-ui-max-paragraph-width:75ch;
+  color:var(--ink); font-family:var(--font); font-size:14px; line-height:1.45;
+}
+.studio-cfg *{box-sizing:border-box}
+.studio-cfg .wrap{width:100%;margin:0 auto}
+.studio-cfg .h2{margin:0;font:800 clamp(34px,3.4vw,52px)/1.02 var(--font-display);letter-spacing:-.03em;color:var(--ink)}
+.studio-cfg .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.studio-cfg .lede{font-size:15.5px;line-height:1.6;color:var(--ink-2);max-width:60ch;margin:0}
+.studio-cfg .btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:4px 22px;border-radius:999px;border:1px solid transparent;font:600 13.5px/20px var(--font);cursor:pointer;text-decoration:none;transition:background .2s,border-color .2s}
+.studio-cfg .btn-dark{background:var(--sun-1);color:#090D12}
+.studio-cfg .btn-dark:hover{background:#ffc733}
+.studio-cfg .btn-light{background:transparent;color:var(--ink);border-color:rgba(199,208,217,.3)}
+.studio-cfg .btn-light:hover{border-color:var(--ink)}
+.studio-cfg .glass-card{background:rgba(9,13,18,.86);color:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:16px 20px;backdrop-filter:blur(6px)}
+.studio-cfg .fine{font-size:11.5px;line-height:1.5;color:var(--ink-3);margin:6px 0 0}
+
+/* fields and chips */
+.studio-cfg .cfg-search input,.studio-cfg .cfg-input,.studio-cfg .ask-form input{background:var(--field);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);border-radius:8px}
+.studio-cfg .cfg-search input:focus,.studio-cfg .cfg-input:focus-within{background:var(--field);box-shadow:inset 0 0 0 2px var(--sun-1)}
+.studio-cfg .cfg-input input{color:var(--ink)}
+.studio-cfg .cfg-search .btn{min-width:150px}
+.studio-cfg .cfg-results{background:#111A24;border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.studio-cfg .cfg-results button:hover,.studio-cfg .cfg-results button:focus-visible{background:#16222f}
+.studio-cfg .cfg-chips button{background:var(--card);color:var(--ink-2);border-radius:999px;box-shadow:inset 0 0 0 1px var(--line)}
+.studio-cfg .cfg-chips button:hover{background:#16222f}
+.studio-cfg .cfg-chips button.on{background:var(--sun-1);color:#090D12;box-shadow:none}
+
+/* stage */
+.studio-cfg .cfg-visual{background:#F5F3ED;border-radius:10px}
+.studio-cfg .cfg-visual img{mix-blend-mode:multiply}
+.studio-cfg .cfg-specs dd{color:var(--ink)}
+.studio-cfg .metric{background:var(--card);border:1px solid var(--line);border-radius:8px}
+
+/* options */
+.studio-cfg .opt{border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);background:rgba(17,26,36,.5)}
+.studio-cfg .opt:hover{box-shadow:inset 0 0 0 1px var(--ink-3)}
+.studio-cfg .opt.on{box-shadow:inset 0 0 0 2px var(--sun-1);background:rgba(255,184,0,.06)}
+.studio-cfg .ai-peek{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;background:linear-gradient(90deg,rgba(0,191,234,.12),rgba(17,26,36,.6) 70%);border:1px solid rgba(0,191,234,.3);color:var(--ink-2);font-size:14px}
+.studio-cfg .ai-peek:hover{background:linear-gradient(90deg,rgba(0,191,234,.2),rgba(17,26,36,.7) 70%)}
+.studio-cfg .ai-peek b{display:block;font:500 11px/1.4 "DM Mono",monospace;letter-spacing:.12em;color:#00BFEA}
+.studio-cfg .ai-peek i{margin-left:auto;font-style:normal;color:var(--ink)}
+.studio-cfg .ai-peek:focus-visible{outline:2px solid #00BFEA;outline-offset:2px}
+.studio-cfg .dot{background:#00BFEA;box-shadow:0 0 10px #00BFEA}
+.studio-cfg .switch input{background:rgba(199,208,217,.25)}
+.studio-cfg .switch input::after{background:#F5F3ED}
+.studio-cfg .switch input:checked{background:var(--sun-1)}
+.studio-cfg .switch input:checked::after{background:#090D12}
+.studio-cfg .why-btn{box-shadow:rgba(199,208,217,.5) 0 2px 0 -1px}
+.studio-cfg .why{background:var(--card);border:1px solid var(--line);border-radius:8px}
+.studio-cfg .summary{background:var(--card);border:1px solid var(--line);border-radius:12px}
+.studio-cfg .sum-kpis div{background:var(--field);border:1px solid var(--line)}
+.studio-cfg .summary .btn-light{background:transparent}
+.studio-cfg .cfg-status{color:var(--ink-3)}

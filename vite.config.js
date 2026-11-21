@@ -11,7 +11,8 @@ function vercelApi() {
     name: "welos-vercel-api",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        const url = new URL(req.url, "http://localhost");
+        let url;
+        try { url = new URL(req.url, "http://localhost"); } catch { return next(); }
         const match = url.pathname.match(/^\/api\/([a-z-]+)$/);
         const file = match && resolve(__dirname, "api", `${match[1]}.js`);
         if (!file || !existsSync(file)) return next();
@@ -39,11 +40,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         landing: resolve(__dirname, "index.html"),
-        classic: resolve(__dirname, "classic.html"),
+        studio: resolve(__dirname, "studio.html"),
         control: resolve(__dirname, "control.html"),
-        model: resolve(__dirname, "model.html"),
-        configure: resolve(__dirname, "configure.html"),
-        explore: resolve(__dirname, "explore.html"),
       },
     },
   },

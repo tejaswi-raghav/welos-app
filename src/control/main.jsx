@@ -4,7 +4,7 @@ import { createControllerState, DEFAULT_CONFIG, evaluateController, MODES } from
 import { advanceSimulation, createInitialSensors, SCENARIOS } from "./simulator.js";
 import "./control.css";
 import "../page-brand.css";
-import "./control-light.css";
+import "../ai/mount.jsx";
 
 const TICK_SECONDS = 60;
 const MAX_HISTORY = 48;
@@ -106,10 +106,11 @@ function App() {
   return (
     <div className="control-app">
       <header className="topbar">
-        <a className="control-brand page-brand" href="/" aria-label="WELOS home"><img src="/welos-brand-transparent.png" alt="" /><span><strong>WELOS</strong><small>URBAN RESOURCE SYSTEM</small></span></a>
+        <a className="control-brand page-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header.png" alt="welos" /></a>
         <div className="topbar-site"><span>Rooftop node</span><b>DXB–WLS–001</b></div>
         <div className="topbar-clock"><span>Simulation time</span><b>{new Date(sensors.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</b></div>
         <div className={`connection ${connectionHealthy ? "online" : "offline"}`}><i />{connectionHealthy ? "Link healthy" : "Safety lock"}</div>
+        <nav className="control-links" aria-label="Site"><a href="/">System</a><a href="/studio.html">Studio</a><button type="button" className="ai-btn" data-ai-open><i />WELOS AI</button></nav>
       </header>
 
       <aside className="rail" aria-label="Control sections">

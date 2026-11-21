@@ -8,15 +8,15 @@ npm install
 npm run dev
 ```
 
-Open the local URL shown by Vite. The product tools are separate entry points:
+Open the local URL shown by Vite. Entry points:
 
-- `/` — glass landing: layered illustrated landscape hero (WELOS watermark occluded by the mountains, frosted glass nav and stat cards, parallax), products, **Design yours** configurator with packages, **WELOS AI**, how it works, and links to the 3D tools
-- `/classic.html` — the previous Tesla-style landing, kept as a fallback
-- `/model.html` — integrated rooftop 3D appliance with selectable hardware, software stack and full-system separation
-- `/explore.html` — scroll-driven exploded-view story of the same appliance, with supplied reference visuals tied to each subsystem, plus each subsystem's capacity and sizing rules for the visitor's configured site
-- `/model.html?exploded=1` — opens the 3D assembly with its components separated
-- `/configure.html` — climate-informed or manual site configurator with a live 3D add-on preview
+- `/` — **exploded view landing**: scroll the appliance apart; each part says what it does, how it works and what energy or resource it captures, with UAE notes and its capacity sized for the visitor's configured site. Below: what each module captures, the three product scales (priced by the sizing engine), what comes next, and links into the tools.
+- `/studio.html` — **Studio**: the 3D model and the **Design yours** configurator side by side, with buttons for *Side by side*, *3D model* and *Configure* (`#both`, `#model`, `#configure`; `?tier=M` opens a scale). Modules switched on or off in the configurator appear on the model.
 - `/control.html` — live WELOS OS simulator
+- **WELOS AI** — the site advisor lives in a slide-out sidebar (`src/ai/`) opened from every page's header, so it never interrupts the page. It follows the build saved by the configurator.
+- `/model.html`, `/configure.html` and `/explore.html` redirect to the new pages.
+
+Brand: the amber ring logo with the `welos™` wordmark (`public/brand/`) and the palette Night `#090D12`, Deep `#111A24`, Paper `#F5F3ED`, Sun `#FFB800`, Steel `#C7D0D9`, Sky `#00BFEA`.
 
 ## Product foundation
 
