@@ -11,7 +11,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const saved = loadBuild();
 const build = saved || { place: DEFAULT_PRESET.name, climate: DEFAULT_PRESET.climate, tier: "S", inputs: {}, choices: {} };
 const place = String(build.place).split(",").slice(0, 2).join(",");
-const result = sizeSystem(build.climate, build.tier, build.inputs || {}, build.choices || {});
+const result = sizeSystem(build.climate, build.tier, build.inputs || {}, build.choices || {}, build.package);
 const part = Object.fromEntries(result.components.map((p) => [p.id, p]));
 const { tier, site } = result;
 const water = part.water.metrics;
@@ -52,7 +52,7 @@ function block(e) {
   return `<div class="why-item"><span class="why-t">${esc(e.title)}</span><strong>${esc(e.capacity)}</strong>${e.why ? `<p>${esc(e.why)}</p>` : ""}${rules}</div>`;
 }
 
-const tag = `<a class="why-site" href="/#configure" title="Change site">For your site · WELOS ${tier.id} ${esc(tier.name)} · ${esc(place)}${saved ? "" : " (example)"} ↗</a>`;
+const tag = `<a class="why-site" href="/#configure" title="Change site">For your site · WELOS ${tier.id} ${esc(tier.name)} ${esc(result.package.name)} · ${esc(place)}${saved ? "" : " (example)"} ↗</a>`;
 
 for (const [scene, entries] of Object.entries(ENTRIES)) {
   const panel = document.querySelector(`.panel[data-s="${scene}"]`);

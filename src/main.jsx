@@ -1,47 +1,151 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import SiteConfigurator from "./site/SiteConfigurator.jsx";
+import { sizeSystem, TIERS } from "./site/sizing.js";
+import { DEFAULT_PRESET } from "./site/presets.js";
 
-const evidence = [
-  { value: "2,285", unit: "kWh/m²/yr", label: "Solar irradiation", detail: "Annual reference used in the WELOS UAE concept study." },
-  { value: "1.1–4.5", unit: "m/s", label: "Variable wind", detail: "Onshore wind-speed range considered in the study." },
-  { value: "94.7–130", unit: "mm/yr", label: "Limited rainfall", detail: "Annual precipitation range used for concept sizing." },
-  { value: "0.29–12.7", unit: "%", label: "Solar soiling loss", detail: "Modeled loss range that motivates condition-based cleaning." },
+const aed = (x) => `AED ${Number(x).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+const priceFrom = (tier, pkg = "essential") => sizeSystem(DEFAULT_PRESET.climate, tier, {}, {}, pkg).totals.totalAed;
+
+const NAV = [
+  ["Design yours", "#configure"],
+  ["WELOS AI", "#ai"],
+  ["WELOS OS", "#os"],
+  ["Why WELOS", "#problem"],
+  ["Explore", "#explore"],
 ];
 
-const ideas = [
-  { number: "01", title: "Make one surface do more", text: "The solar canopy is designed to produce electricity and act as a rain catchment, sharing the same limited rooftop footprint." },
-  { number: "02", title: "Use local resources selectively", text: "Wind and water modules are added only when site conditions support them. A sunny roof should not be forced into the same design as a windy one." },
-  { number: "03", title: "Put intelligence between them", text: "The edge controller compares expected and measured performance, protects battery reserves, and coordinates energy, water, and cleaning decisions." },
+const TIER_CARDS = [
+  { id: "S", img: "/explore/ref-full.jpg", line: "One villa. Power, water and storage in a single canopy." },
+  { id: "M", img: "/explore/ref-canopy.jpg", line: "Apartment blocks and villa clusters sharing one system." },
+  { id: "L", img: "/explore/ref-power.jpg", line: "Offices, malls and campuses with commercial-scale storage." },
 ];
 
-const destinations = [
-  { number: "01", name: "3D model", description: "Orbit the assembled machine and inspect its hardware and software layers.", href: "/model.html", action: "Open model" },
-  { number: "02", name: "Exploded view", description: "See the machine separate and rebuild in the dedicated engineering exhibit.", href: "/explore.html", action: "Explore components" },
-  { number: "03", name: "Configure a site", description: "Enter a location or your own requirements to preview a tailored system.", href: "/configure.html", action: "Start configuring" },
+const EVIDENCE = [
+  ["2,285", "kWh/m²/yr", "Solar irradiation in the UAE concept study"],
+  ["1.1–4.5", "m/s", "Variable wind, measured onshore"],
+  ["94.7–130", "mm/yr", "Scarce rain, arriving in short storms"],
+  ["0.29–12.7", "%", "Solar output lost to dust"],
 ];
 
-function Brand({ label = "WELOS home" }) {
-  return <a className="site-brand" href="/" aria-label={label}><img src="/welos-brand-transparent.png" alt="" /><span><strong>WELOS</strong><small>URBAN RESOURCE SYSTEM</small></span></a>;
+function Brand() {
+  return <a className="nav-brand" href="#top" aria-label="WELOS home"><img src="/welos-brand-transparent.png" alt="" /><span>WELOS</span></a>;
+}
+
+function Header() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const close = (event) => event.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+  return <>
+  <header className="nav">
+    <Brand />
+    <nav className="nav-links" aria-label="Main">{NAV.map(([label, href]) => <a key={href} href={href}>{label}</a>)}</nav>
+    <div className="nav-right">
+      <a className="nav-btn" href="/model.html">3D model</a>
+      <button type="button" className="nav-btn nav-menu" aria-expanded={open} aria-controls="menu" onClick={() => setOpen(true)}>Menu</button>
+    </div>
+  </header>
+    <div id="menu" className={`menu ${open ? "on" : ""}`} role="dialog" aria-modal="true" aria-label="Menu" onClick={(e) => e.target === e.currentTarget && setOpen(false)}>
+      <div className="menu-panel">
+        <button type="button" className="menu-close" aria-label="Close menu" onClick={() => setOpen(false)}>✕</button>
+        {NAV.map(([label, href]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
+        <a href="/model.html">3D model</a><a href="/explore.html">Exploded view</a><a href="/control.html">Control OS</a>
+      </div>
+    </div>
+  </>;
+}
+
+function Grad({ children }) {
+  return <span className="grad">{children}</span>;
+}
+
+function chooseTier(id) {
+  window.dispatchEvent(new CustomEvent("welos:tier", { detail: id }));
+  document.getElementById("configure")?.scrollIntoView({ behavior: "smooth" });
 }
 
 function App() {
-  return <div className="site-shell">
-    <header className="site-header"><Brand /><nav aria-label="Page sections"><a href="#configure">Design yours</a><a href="#problem">The problem</a><a href="#innovation">The innovation</a><a href="#explore">Explore</a></nav><a className="header-guide" href="#configure">Configure for your site <span>↓</span></a></header>
-    <main>
-      <section className="hero" aria-labelledby="hero-title"><div className="hero-inner"><div className="eyebrow"><span /> WELOS / A NEW RESOURCE SYSTEM</div><h1 id="hero-title">Energy and water<br />should work <em>together.</em></h1><p>Urban rooftops face a complicated resource problem: abundant sun, uneven wind, scarce but intense rain, and solar panels that lose output when dust builds up. WELOS is exploring how one coordinated system can respond to all of it.</p><a className="hero-link" href="#configure">Enter your location <span>↓</span></a></div><div className="hero-index" aria-hidden="true"><span>SUN</span><i /> <span>WIND</span><i /> <span>RAIN</span><i /> <span>INTELLIGENCE</span></div></section>
+  useEffect(() => {
+    const items = document.querySelectorAll(".reveal");
+    if (!("IntersectionObserver" in window)) return items.forEach((el) => el.classList.add("in"));
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("in"), io.unobserve(e.target))), { threshold: 0.12 });
+    items.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  return <>
+    <Header />
+    <main id="top">
+      <section className="hero" aria-labelledby="hero-title">
+        <div className="hero-copy">
+          <h1 id="hero-title">Power and water<br />from <Grad>one roof.</Grad></h1>
+          <p>Solar, wind and rain, sized to your climate and run by WELOS OS.</p>
+        </div>
+        <img className="hero-img" src="/explore/ref-base.jpg" alt="The WELOS rooftop unit: solar canopy, wind turbine, water treatment and power cabinet on one chassis" />
+        <div className="hero-foot">
+          <div className="hero-ctas"><a className="btn btn-dark" href="#configure">Design yours</a><a className="btn btn-light" href="/explore.html">Explore the system</a></div>
+          <p className="hero-note">From {aed(priceFrom("S"))} for a villa in Dubai · Essential package, installed</p>
+        </div>
+      </section>
+
+      <section className="wrap tiers reveal" aria-labelledby="tiers-title">
+        <h2 id="tiers-title" className="h2">One platform, <Grad>three scales.</Grad></h2>
+        <div className="tier-grid">
+          {TIER_CARDS.map((card) => {
+            const tier = TIERS[card.id];
+            return <article className="tier-card" key={card.id}>
+              <div className="tier-media"><img src={card.img} alt="" loading="lazy" /></div>
+              <div className="tier-body">
+                <h3>WELOS {card.id} <small>{tier.name}</small></h3>
+                <p>{card.line}</p>
+                <p className="tier-price">From {aed(priceFrom(card.id))}</p>
+                <div className="tier-ctas"><button type="button" className="btn btn-dark" onClick={() => chooseTier(card.id)}>Configure</button><a className="btn btn-light" href="/model.html">See it in 3D</a></div>
+              </div>
+            </article>;
+          })}
+        </div>
+      </section>
 
       <SiteConfigurator />
 
-      <section className="problem section-wrap" id="problem"><div className="section-top"><span className="section-label">02 / THE PROBLEM</span><span className="section-rule" /></div><div className="problem-intro"><h2>Resources exist.<br /><em>Coordination is missing.</em></h2><div><p>Solar energy, wind, and rain do not arrive at the same time or in equal amounts. Standalone systems can miss opportunities, compete for roof space, and require separate monitoring and maintenance.</p><p>In the UAE context studied for WELOS, strong solar potential sits alongside variable wind, low annual rainfall, and dust-related PV losses. The engineering question is not whether to use every resource everywhere; it is how to select and coordinate the right ones for each site.</p></div></div><div className="evidence-grid">{evidence.map((item) => <article className="evidence-card" key={item.label}><span>{item.label}</span><strong>{item.value}<small>{item.unit}</small></strong><p>{item.detail}</p></article>)}</div><p className="evidence-note">These are reference ranges and model inputs from the WELOS concept study, not guaranteed performance at a particular address. Site design requires local measurements.</p></section>
+      <section className="wrap os reveal" id="os" aria-labelledby="os-title">
+        <div className="os-card">
+          <div className="os-copy">
+            <h2 id="os-title" className="h2">Runs itself. <Grad>Even offline.</Grad></h2>
+            <p>WELOS OS decides every 250 ms when to charge, export, clean the panels, divert the first flush or hold a storm reserve. Safety interlocks stay hard-wired and independent.</p>
+            <ul className="os-loop" aria-label="Control loop"><li>Sense</li><li>Compare</li><li>Decide</li><li>Act</li></ul>
+            <div className="ctas"><a className="btn btn-dark" href="/control.html">Open the OS simulator</a><a className="btn btn-light" href="#ai">Ask WELOS AI</a></div>
+          </div>
+          <div className="os-media"><img src="/explore/ref-chassis.jpg" alt="WELOS controller and power cabinet" loading="lazy" /></div>
+        </div>
+      </section>
 
-      <section className="innovation" id="innovation"><div className="section-wrap"><div className="section-top"><span className="section-label">03 / THE INNOVATION</span><span className="section-rule" /></div><div className="innovation-head"><h2>One platform.<br /><em>Built around conditions.</em></h2><p>WELOS combines a shared physical footprint with an internal operating layer. Solar is the primary resource in the current concept; wind and water can complement it where local evidence supports them.</p></div><div className="idea-grid">{ideas.map((idea) => <article className="idea-card" key={idea.number}><span>{idea.number} / INNOVATION</span><h3>{idea.title}</h3><p>{idea.text}</p></article>)}</div><div className="logic-band"><span>THE CONTROL LOOP</span><strong>Sense <i>→</i> Compare <i>→</i> Decide <i>→</i> Act</strong><p>From sunlight and wind to battery state, water level, and panel soiling.</p></div></div></section>
+      <section className="wrap problem reveal" id="problem" aria-labelledby="problem-title">
+        <div className="split">
+          <h2 id="problem-title" className="h2">The resources exist.<br /><Grad>Coordination doesn't.</Grad></h2>
+          <p className="lede">Sun, wind and rain don't arrive together or in equal amounts. Standalone systems compete for roof space and miss each other's opportunities. WELOS selects the right resources for each site and coordinates them as one.</p>
+        </div>
+        <div className="evidence">{EVIDENCE.map(([value, unit, label]) => <div className="glass-card stat" key={label}><strong>{value}<small>{unit}</small></strong><span>{label}</span></div>)}</div>
+        <p className="fine">Reference ranges from the WELOS UAE concept study, not guaranteed performance at a particular address.</p>
+      </section>
 
-      <section className="explore section-wrap" id="explore"><div className="section-top"><span className="section-label">04 / EXPLORE THE WORK</span><span className="section-rule" /></div><div className="explore-head"><h2>Go deeper,<br /><em>in one place.</em></h2><p>Choose the view that answers your question. The model and configurator are interactive concepts; they are not fabrication-ready engineering documents.</p></div><div className="destination-grid">{destinations.map((item) => <a className="destination-card" key={item.name} href={item.href}><span className="destination-number">{item.number} / EXPLORE</span><span className="destination-arrow" aria-hidden="true">↗</span><h3>{item.name}</h3><p>{item.description}</p><span className="destination-action">{item.action} <b>↗</b></span></a>)}</div></section>
+      <section className="wrap explore reveal" id="explore" aria-labelledby="explore-title">
+        <h2 id="explore-title" className="h2">See how it's <Grad>built.</Grad></h2>
+        <div className="tiles">
+          <a className="tile" href="/model.html"><img src="/explore/ref-wind.jpg" alt="" loading="lazy" /><span className="tile-copy"><strong>3D model</strong><span>Orbit the assembled unit and inspect each layer.</span><span className="btn btn-light">Open model</span></span></a>
+          <a className="tile" href="/explore.html"><img src="/explore/ref-tank.jpg" alt="" loading="lazy" /><span className="tile-copy"><strong>Exploded view</strong><span>Every part, its capacity for your site, and why.</span><span className="btn btn-light">Take it apart</span></span></a>
+          <a className="tile" href="/configure.html"><img src="/explore/ref-filter.jpg" alt="" loading="lazy" /><span className="tile-copy"><strong>3D configurator</strong><span>Add and remove modules on a live 3D unit.</span><span className="btn btn-light">Open configurator</span></span></a>
+        </div>
+      </section>
     </main>
-    <footer className="site-footer"><Brand label="Back to WELOS home" /><span>ENERGY · WATER · INTELLIGENCE</span><span>CONCEPT DEVELOPMENT / 2026</span></footer>
-  </div>;
+    <footer className="foot">
+      <span>WELOS © 2026</span><a href="#configure">Design yours</a><a href="/model.html">3D model</a><a href="/explore.html">Exploded view</a><a href="/control.html">Control OS</a><span>Concept development. Prices are indicative.</span>
+    </footer>
+  </>;
 }
 
 createRoot(document.getElementById("root")).render(<App />);
