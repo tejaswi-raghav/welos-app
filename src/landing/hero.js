@@ -2,7 +2,7 @@
 // One shared state: choosing a condition runs the control engine once and
 // updates the 3D model (via the welos:condition event), the dock and the trace.
 import { CONDITIONS, MODE_LABEL, runCondition } from "../os/scenarios.js";
-import { MODES } from "../control/engine.js";
+import { modeReason as explainMode } from "../os/explain.js";
 
 const $ = (s) => document.querySelector(s);
 const f1 = (x) => (Math.abs(x) < 0.05 ? "0" : x.toFixed(1));
@@ -37,18 +37,7 @@ function flowsFor(run) {
   ];
 }
 
-function modeReason(run) {
-  const { result: r, sensors: x, config: c } = run;
-  switch (r.mode) {
-    case MODES.STORM: return x.windSpeedMs >= c.windStormMs
-      ? `Wind ${x.windSpeedMs.toFixed(1)} m/s is above the ${c.windStormMs} m/s storm threshold${x.rainfallMmHr >= c.rainStormMmHr ? `, and rain ${x.rainfallMmHr} mm/h is above ${c.rainStormMmHr}` : ""}.`
-      : `Rain ${x.rainfallMmHr} mm/h is above the ${c.rainStormMmHr} mm/h storm threshold.`;
-    case MODES.CLEANING: return `Dust loss ${Math.round(x.soilingIndex * 100)}% passed the ${Math.round(c.cleaningAutoThreshold * 100)}% trigger, and wind, sun, panel temperature and tank level are all inside the safe envelope.`;
-    case MODES.CONSERVE: return !x.gridAvailable ? "The grid is unavailable, so the battery reserve rises to 35% and only the home is supplied." : `Battery at ${Math.round(x.batterySoc)}% is close to its reserve.`;
-    case MODES.FAULT: return "A critical interlock tripped.";
-    default: return "No storm, fault, dust or outage condition is active, so the normal routing order applies.";
-  }
-}
+const modeReason = (run) => explainMode(run.result, run.sensors, run.config);
 
 function routeLines(run) {
   const { result: r } = run;
