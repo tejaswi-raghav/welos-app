@@ -143,7 +143,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 .os-media { position: relative; display: block; border-radius: 4px; overflow: hidden; box-shadow: #00000029 0px 8px 16px 0px; background: #fff; }
 .os-media img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; transition: transform .8s var(--tds-animation-bezier-base); }
 .os-media:hover img { transform: scale(1.03); }
-.os-media em { top: auto; bottom: 12px; }
+.os .os-media em { top: auto; bottom: 12px; height: auto; background: #ffffff; box-shadow: #00000029 0 2px 8px 0, var(--sun-1) 0px 2px 0px -1px; }
 
 /* problem + evidence */
 .problem { padding-top: var(--tds-size-12x); }
