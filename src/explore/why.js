@@ -17,13 +17,12 @@ const water = part.water.metrics;
 
 const entry = (p) => ({ title: p.name, capacity: p.included ? p.capacity.text : `Not fitted here · ${p.capacity.text}`, why: p.why, rules: p.rules });
 const ENTRIES = {
-  2: [entry(part.wind)],
-  3: [entry(part.solar), entry(part.cleaning)],
-  5: [entry(part.battery), entry(part.inverter)],
+  2: [entry(part.solar), entry(part.wind), entry(part.cleaning)],
+  4: [entry(part.battery), entry(part.inverter)],
   6: [{ title: "Catchment", capacity: `${fmt(water.eventCaptureL)} L per ${fmt(water.designEventMm)} mm storm · ${fmt(water.rainLYear)} L/yr`, why: `The ${fmt(site.roofM2)} m² canopy is the catchment. 80% runoff and 90% kept after first flush are assumed.`, rules: part.water.rules.slice(0, 2) }],
-  7: [entry(part.water), entry(part.condensate)],
-  8: [{ title: "Treatment rate", capacity: `${tier.treatmentLpm} L/min · non-potable`, why: `Treats a full day's ${fmt(site.waterLDay)} L in about ${fmt(site.waterLDay / tier.treatmentLpm)} minutes.`, rules: [] }],
-  9: [{ title: "Pump duty", capacity: part.cleaning.name === "Rain-fed rinse rail" ? "Supplies loads and the panel rinse" : "Supplies loads; panels cleaned by a dry robot here", why: part.cleaning.why, rules: part.cleaning.rules }],
+  6.1: [entry(part.water), entry(part.condensate)],
+  6.2: [{ title: "Treatment rate", capacity: `${tier.treatmentLpm} L/min · non-potable`, why: `Treats a full day's ${fmt(site.waterLDay)} L in about ${fmt(site.waterLDay / tier.treatmentLpm)} minutes.`, rules: [] }],
+  6.3: [{ title: "Pump duty", capacity: part.cleaning.name === "Rain-fed rinse rail" ? "Supplies loads and the panel rinse" : "Supplies loads; panels cleaned by a dry robot here", why: part.cleaning.why, rules: part.cleaning.rules }],
 };
 
 function block(e) {
@@ -34,11 +33,13 @@ function block(e) {
 }
 
 const tag = `<p class="why-site"><span class="w-src engine">Engine output</span> Sized for ${esc(place)} · WELOS ${tier.id} ${esc(tier.name)}${saved ? "" : " (reference)"}</p>`;
+const seen = new Set();
 for (const [scene, entries] of Object.entries(ENTRIES)) {
-  const more = document.querySelector(`.panel[data-s="${scene}"] .more`);
+  const more = document.querySelector(`.panel[data-s="${Math.floor(scene)}"] .more`);
   if (!more) continue;
   const box = document.createElement("div");
   box.className = "why-box";
-  box.innerHTML = tag + entries.map(block).join("");
+  box.innerHTML = (seen.has(more) ? "" : tag) + entries.map(block).join("");
+  seen.add(more);
   more.append(box);
 }

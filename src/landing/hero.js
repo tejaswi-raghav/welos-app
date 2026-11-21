@@ -3,6 +3,8 @@
 // updates the 3D model (via the welos:condition event), the dock and the trace.
 import { CONDITIONS, MODE_LABEL, runCondition } from "../os/scenarios.js";
 import { modeReason as explainMode } from "../os/explain.js";
+import { simulateDay, clock as clk } from "../os/day.js";
+import { referenceBuild } from "../os/reference.js";
 
 const $ = (s) => document.querySelector(s);
 const f1 = (x) => (Math.abs(x) < 0.05 ? "0" : x.toFixed(1));
@@ -72,7 +74,10 @@ const listeners = [];
 export function onCondition(fn) { listeners.push(fn); if (current) fn(current); }
 
 export function setCondition(id) {
+  if (!$("#tabDay").hidden) { stopPlay(); $("#tabCond").hidden = false; $("#tabDay").hidden = true; $("#tabBtnCond").setAttribute("aria-selected", true); $("#tabBtnDay").setAttribute("aria-selected", false); }
   const run = runCondition(id);
+  const [hh, mm] = run.cond.clock.split(":").map(Number);
+  sky(hh + mm / 60, run.sensors.solarIrradianceWm2);
   run.tags = tagsFor(run);
   current = run;
   window.__welosCondition = run;
@@ -102,10 +107,10 @@ function chipRow(container, name) {
 function mountDock() {
   chipRow($("#condChips"), "Operating condition");
   onCondition((run) => {
-    $("#cClock").textContent = run.cond.clock;
+    $("#cClock").textContent = run.cond?.clock || "";
     $("#cMode").textContent = MODE_LABEL[run.result.mode];
     $("#cMode").dataset.mode = run.result.mode;
-    $("#cDec").textContent = run.result.nextState.lastDecision;
+    $("#cDec").textContent = run.phase || run.result.nextState.lastDecision;
     $("#cFlows").innerHTML = flowsFor(run).map(([k, v, c]) => `<div class="${c}"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
   });
 }
@@ -121,12 +126,12 @@ function startTour() {
     i = (CONDITIONS.findIndex((c) => c.id === current.cond.id) + 1) % CONDITIONS.length;
     setCondition(CONDITIONS[i].id);
   }, 6500);
-  pauseBtn().textContent = "Pause tour"; pauseBtn().setAttribute("aria-pressed", "false");
+  pauseBtn().textContent = "❚❚"; pauseBtn().setAttribute("aria-label", "Pause the tour"); pauseBtn().setAttribute("aria-pressed", "false");
 }
 function stopTour() {
   if (!tour) return;
   clearInterval(tour); tour = null;
-  pauseBtn().textContent = "Resume tour"; pauseBtn().setAttribute("aria-pressed", "true");
+  pauseBtn().textContent = "▶"; pauseBtn().setAttribute("aria-label", "Resume the tour"); pauseBtn().setAttribute("aria-pressed", "true");
 }
 
 /* ---------- trace ---------- */
@@ -156,8 +161,90 @@ function mountTrace() {
   });
 }
 
+/* ---------- 24 hours: the reference villa's simulated day, replayed on the 3D rooftop ---------- */
+let day = null, playing = null;
+function phaseOf(s, prev) {
+  const sun = s.pv + s.wind;
+  if (s.pv < 0.05) return s.fromBattery > 0.05 ? "Night: the battery is running the home." : s.fromGrid > 0.05 ? (prev && prev.fromBattery > 0.05 ? "Battery reached its reserve: the grid takes over." : "Night: battery at reserve, the grid is supplying the home.") : "Night.";
+  if (sun < s.load - 0.05) return s.h > 12 ? (s.fromBattery > 0.05 ? "The sun is fading: the battery takes over." : "The sun is fading: the grid tops up.") : (s.fromBattery > 0.05 ? "Sunrise: not enough sun yet, the battery tops up." : "Sunrise: not enough sun yet, the grid tops up.");
+  if (s.toBattery > 0.05) return "The sun covers the home and charges the battery with the surplus.";
+  if (s.toGrid > 0.05) return "Battery full: surplus solar is exported to the grid.";
+  return "The sun covers the home on its own.";
+}
+function sky(hour, irr) {
+  // warm haze by day, a deep orange at the edges of the day, a cool dusk blue at night
+  const r = document.documentElement.style, h = hour;
+  const night = irr > 30 ? 0 : 1, edge = Math.max(0, 1 - Math.abs(Math.min(Math.abs(h - 6.6), Math.abs(h - 18.3))) / 1.6);
+  const c1 = night ? "rgba(52, 92, 168, .22)" : edge > 0.05 ? `rgba(248, 120, 20, ${0.16 + 0.18 * edge})` : `rgba(255, 196, 0, ${0.1 + 0.12 * Math.min(1, irr / 700)})`;
+  const c2 = night ? "rgba(40, 58, 92, .14)" : edge > 0.05 ? "rgba(248, 106, 0, .08)" : "rgba(248, 106, 0, .05)";
+  r.setProperty("--haze1", c1); r.setProperty("--haze2", c2); r.setProperty("--night", String(night));
+}
+function stepRun(i) {
+  const s = day.steps[i];
+  const run = { ...s.run, cond: { id: "day", clock: clk(s.h) }, hour: s.h, phase: phaseOf(s, day.steps[i - 1]) };
+  run.tags = tagsFor(run);
+  return run;
+}
+function showStep(i) {
+  const run = stepRun(i);
+  current = run; window.__welosCondition = run;
+  dispatchEvent(new CustomEvent("welos:condition", { detail: run }));
+  listeners.forEach((fn) => fn(run));
+  sky(run.hour, run.sensors.solarIrradianceWm2);
+  drawMini(i);
+  $("#dayT").setAttribute("aria-valuetext", `${clk(run.hour)}. ${run.phase}`);
+}
+function drawMini(i) {
+  const svg = $("#dayMini"), W = svg.clientWidth || 300, H = 30, n = day.steps.length;
+  const max = Math.max(...day.steps.map((s) => Math.max(s.pv + s.wind, s.load))) * 1.05;
+  const x = (k) => (k / (n - 1)) * W, y = (v) => H - (v / max) * H;
+  if (!svg.dataset.drawn || svg.dataset.w != W) {
+    const area = day.steps.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)} ${y(s.pv + s.wind).toFixed(1)}`).join("") + `L${W} ${H}L0 ${H}Z`;
+    const load = day.steps.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)} ${y(s.load).toFixed(1)}`).join("");
+    const soc = day.steps.map((s, k) => `${k ? "L" : "M"}${x(k).toFixed(1)} ${(H - (s.soc / 100) * H).toFixed(1)}`).join("");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.innerHTML = `<path d="${area}" fill="rgba(255,184,0,.45)"/><path d="${load}" fill="none" stroke="var(--ink)" stroke-width="1.2"/><path d="${soc}" fill="none" stroke="var(--ember)" stroke-width="1.2" stroke-dasharray="3 2"/><line class="cur" y1="0" y2="${H}" stroke="var(--ink)" stroke-width="1.5"/>`;
+    svg.dataset.drawn = 1; svg.dataset.w = W;
+  }
+  const cx = x(i); const cur = svg.querySelector(".cur"); cur.setAttribute("x1", cx); cur.setAttribute("x2", cx);
+}
+function setTab(which) {
+  const isDay = which === "day";
+  $("#tabBtnCond").setAttribute("aria-selected", !isDay); $("#tabBtnDay").setAttribute("aria-selected", isDay);
+  $("#tabCond").hidden = isDay; $("#tabDay").hidden = !isDay;
+  if (isDay) {
+    stopTour();
+    day ||= simulateDay(referenceBuild({ withWind: true }));
+    showStep(+$("#dayT").value);
+  } else {
+    stopPlay();
+    sky(12, 900);
+    setCondition(current?.cond?.id && current.cond.id !== "day" ? current.cond.id : "noon");
+  }
+}
+function stopPlay() { if (playing) { clearInterval(playing); playing = null; } $("#dayPlay").textContent = "▶"; $("#dayPlay").setAttribute("aria-label", "Play the day"); }
+function mountDay() {
+  [$("#tabBtnCond"), $("#tabBtnDay")].forEach((b) => b.addEventListener("click", () => setTab(b.id === "tabBtnDay" ? "day" : "cond")));
+  $("#cond .cond-tabs").addEventListener("keydown", (e) => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const d = $("#tabBtnDay").getAttribute("aria-selected") !== "true"; setTab(d ? "day" : "cond"); (d ? $("#tabBtnDay") : $("#tabBtnCond")).focus(); } });
+  $("#dayT").addEventListener("input", (e) => { stopPlay(); showStep(+e.target.value); });
+  $("#dayPlay").addEventListener("click", () => {
+    if (playing) return stopPlay();
+    const t = $("#dayT"); if (+t.value >= 143) t.value = 0;
+    $("#dayPlay").textContent = "❚❚"; $("#dayPlay").setAttribute("aria-label", "Pause the day");
+    playing = setInterval(() => { const v = +t.value + 1; if (v > 143) return stopPlay(); t.value = v; showStep(v); }, RM.matches ? 400 : 110);
+  });
+  addEventListener("resize", () => { if (day && !$("#tabDay").hidden) { $("#dayMini").dataset.drawn = ""; drawMini(+$("#dayT").value); } });
+  // flow isolation
+  const fbtns = [...document.querySelectorAll(".flowsel button")];
+  fbtns.forEach((b) => b.addEventListener("click", () => {
+    fbtns.forEach((x) => x.setAttribute("aria-pressed", x === b));
+    dispatchEvent(new CustomEvent("welos:flows", { detail: b.dataset.f }));
+  }));
+}
+
 export function mountHero() {
   mountDock();
+  mountDay();
   mountTrace();
   pauseBtn().addEventListener("click", () => (tour ? stopTour() : startTour()));
   setCondition("noon");

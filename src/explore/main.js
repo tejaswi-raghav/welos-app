@@ -8,7 +8,7 @@ import { partById } from '../model/parts.js';
 
 const T_MAX = 17;
 /* scroll weight per scene: key chapters get a full screen, connective ones less */
-const WEIGHT = [1, 1, 1, 1, 0.45, 1, 0.8, 0.55, 0.7, 0.6, 0.4, 0.6, 0.9, 0.9, 1, 0.5, 0.8];
+const WEIGHT = [1, 0.9, 0.7, 0.8, 0.35, 0.8, 0.55, 0.45, 0.5, 0.45, 0.3, 0.5, 0.75, 0.75, 0.9, 0.5, 0.8];
 const W_SUM = WEIGHT.reduce((a, b) => a + b, 0);
 const CUM = WEIGHT.reduce((acc, w) => (acc.push(acc[acc.length - 1] + w / W_SUM), acc), [0]);
 function tFromP(p) { let i = 0; while (i < WEIGHT.length - 1 && p >= CUM[i + 1]) i++; return i + Math.min(1, (p - CUM[i]) / (WEIGHT[i] / W_SUM)); }
@@ -51,7 +51,7 @@ const hemi = new THREE.HemisphereLight(0xffffff, 0xd8d6d0, 0.55); scene.add(hemi
 const key = new THREE.DirectionalLight(0xffffff, 2.1);
 key.position.set(6, 12, 8); key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
-Object.assign(key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 40 });
+Object.assign(key.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 44 });
 key.shadow.bias = -0.0005; key.shadow.normalBias = 0.025;
 scene.add(key);
 const fill = new THREE.DirectionalLight(0xffffff, 0.55); fill.position.set(-8, 5, -4); scene.add(fill);
@@ -154,6 +154,35 @@ const gridMat = new THREE.ShaderMaterial({
 });
 const grid = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), gridMat);
 grid.rotation.x = -Math.PI / 2; grid.position.y = GROUND_Y + 0.002; scene.add(grid);
+
+/* the roof it stands on: an architectural section model of a UAE villa roof.
+   Context only: light concrete, no detail that competes with the unit. */
+const ROOF = new THREE.Group(); scene.add(ROOF);
+const concrete = new THREE.MeshStandardMaterial({ color: 0xE6E0D4, roughness: 0.92, metalness: 0 });
+const concreteDark = new THREE.MeshStandardMaterial({ color: 0xD6CFC1, roughness: 0.95, metalness: 0 });
+const cutFace = new THREE.MeshStandardMaterial({ color: 0xC9C1B2, roughness: 1, metalness: 0 });
+const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; ROOF.add(o); return o; };
+const RX0 = -7.4, RX1 = 7.6, RZ0 = -5.2, RZ1 = 4.6, SLAB = 0.34;
+{
+  const slab = box(RX1 - RX0, SLAB, RZ1 - RZ0, [cutFace, cutFace, concrete, cutFace, cutFace, cutFace], (RX0 + RX1) / 2, GROUND_Y - SLAB / 2 - 0.004, (RZ0 + RZ1) / 2);
+  slab.castShadow = false;
+  // parapets on the two far edges, with a coping line
+  box(RX1 - RX0, 0.9, 0.22, concrete, (RX0 + RX1) / 2, GROUND_Y + 0.45, RZ0 + 0.11);
+  box(0.22, 0.9, RZ1 - RZ0, concrete, RX0 + 0.11, GROUND_Y + 0.45, (RZ0 + RZ1) / 2);
+  box(RX1 - RX0 + 0.06, 0.05, 0.3, concreteDark, (RX0 + RX1) / 2, GROUND_Y + 0.925, RZ0 + 0.11);
+  box(0.3, 0.05, RZ1 - RZ0 + 0.06, concreteDark, RX0 + 0.11, GROUND_Y + 0.925, (RZ0 + RZ1) / 2);
+  // two split-AC condensers, the load WELOS feeds, back-right
+  for (let i = 0; i < 2; i++) {
+    const cx = 4.2 + i * 1.25, cz = RZ0 + 0.75;
+    box(1.05, 0.75, 0.42, new THREE.MeshStandardMaterial({ color: 0xF2F0EA, roughness: 0.6 }), cx, GROUND_Y + 0.42, cz);
+    const fan = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.02, 32), concreteDark); fan.rotation.x = Math.PI / 2; fan.position.set(cx - 0.12, GROUND_Y + 0.43, cz + 0.22); ROOF.add(fan);
+    box(0.06, 0.05, 0.42, concreteDark, cx - 0.45, GROUND_Y + 0.025, cz); box(0.06, 0.05, 0.42, concreteDark, cx + 0.45, GROUND_Y + 0.025, cz);
+  }
+  // drain the rain goes to today, front-left
+  const drain = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.01, 24), new THREE.MeshStandardMaterial({ color: 0x8C949C, roughness: 0.5, metalness: 0.4 }));
+  drain.position.set(RX0 + 0.8, GROUND_Y + 0.006, RZ1 - 0.8); ROOF.add(drain);
+}
+ground.visible = false; // the roof now catches the shadows
 
 /* ============ EXPLODE CHOREOGRAPHY ============
    [key, offset in parent space, explode start (scene t), reassembly start]
@@ -263,7 +292,9 @@ function anchor(k, p, out) {
 }
 
 /* ============ HERO CONDITION (set by src/landing/hero.js from the control engine) ============ */
-const HERO = { omega: 1.2, sun: 0.9, dark: 0, level: {}, dir: {}, tags: {} };
+const HERO = { omega: 1.2, sun: 0.9, dark: 0, level: {}, dir: {}, tags: {}, hour: 12.5, filter: 'all', az: 0, azT: 0 };
+const FLOW_KIND = { pv: 'energy', wind: 'energy', bat: 'energy', load: 'energy', pump: 'energy', air: 'energy', rain: 'water', treat: 'water', rinse: 'water' };
+const TAG_KIND = { pv: 'energy', wind: 'energy', bat: 'energy', home: 'energy', water: 'water' };
 function applyCondition(run) {
   if (!run) return;
   const { result: r, sensors: x } = run, p = r.power, o = r.outputs;
@@ -280,15 +311,17 @@ function applyCondition(run) {
   };
   HERO.dir = { bat: batKw >= 0 ? 1 : -1 };
   HERO.tags = run.tags || {};
+  HERO.hour = run.hour ?? (parseInt(run.cond?.clock, 10) + (parseInt(run.cond?.clock?.slice(3), 10) || 0) / 60 || 12.5);
   for (const c of CALLOUTS) if (c.hero) {
     const tg = HERO.tags[c.hero];
-    c.show = !!tg; if (!tg) continue;
+    c.show = !!tg && (HERO.filter === 'all' || TAG_KIND[c.hero] === HERO.filter); if (!tg) continue;
     c.el.querySelector('.code').textContent = tg.code; c.el.querySelector('.t').textContent = tg.value;
     const sEl = c.el.querySelector('.s'); sEl.textContent = tg.note || ''; sEl.hidden = !tg.note;
     c.hh = 0;
   }
 }
 addEventListener('welos:condition', e => applyCondition(e.detail));
+addEventListener('welos:flows', e => { HERO.filter = e.detail; applyCondition(window.__welosCondition); });
 
 /* ============ FLOWS (energy / water / air), routed through the model's own conduits ============ */
 const flowVS = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
@@ -321,7 +354,7 @@ class Flow {
     }
     // hero: the live condition decides which conduits carry energy or water, which way, and how fast
     let speed = 0.55, dir = 1;
-    const lv = this.hero ? (HERO.level[this.hero] || 0) : 0;
+    const lv = this.hero && (HERO.filter === 'all' || FLOW_KIND[this.hero] === HERO.filter) ? (HERO.level[this.hero] || 0) : 0;
     if (lv > 0 && heroA * lv > al) { al = heroA * lv; rv = 1; speed = 0.25 + 0.6 * lv; dir = HERO.dir[this.hero] || 1; }
     this.lvl = (this.lvl ?? al) + (al - (this.lvl ?? al)) * 0.12; al = this.lvl;
     this.phase += (reduce ? 0 : 1) * speed * dir * frameDt;
@@ -483,11 +516,14 @@ CALLOUTS.forEach(c => {
 /* ============ UI: rail, panels ============ */
 const panels = [...document.querySelectorAll('.panel')];
 const rail = $('#rail');
-SCN.forEach((name, i) => {
+// eight chapters over the seventeen choreographed scenes
+const CHAPTERS = [[0, 0, 'The rooftop'], [1, 1, 'Take it apart'], [2, 3, 'Sun and wind'], [4, 5, 'Power and control'], [6, 10, 'Rain to water'], [11, 13, 'Follow the flows'], [14, 14, 'The loop'], [15, 16, 'Back together']];
+const chapterAlpha = (t, a, b) => (a === 0 ? 1 : ramp(t, a - 0.02, a + 0.16)) * (1 - (b === 16 ? 0 : ramp(t, b + 0.8, b + 0.96)));
+CHAPTERS.forEach(([a, , name], i) => {
   const b = document.createElement('button'); b.type = 'button';
   b.innerHTML = `<span class="lbl">${name}</span><span class="tick"></span>`;
-  b.setAttribute('aria-label', `Chapter ${i + 1} of ${SCN.length}: ${name}`);
-  b.addEventListener('click', () => goTo(i + (i === 0 ? 0 : 0.5)));
+  b.setAttribute('aria-label', `Chapter ${i + 1} of ${CHAPTERS.length}: ${name}`);
+  b.addEventListener('click', () => goTo(a + (a === 0 ? 0 : 0.5)));
   rail.appendChild(b);
 });
 const railBtns = [...rail.children];
@@ -497,7 +533,7 @@ function scrollable() { return Math.max(1, trackEl.offsetHeight - innerHeight); 
 function goTo(t) { window.scrollTo({ top: pFromT(t) * scrollable(), behavior: reduce ? 'auto' : 'smooth' }); }
 document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); closeCard(); goTo(+el.dataset.goto + 0.5); }));
 // track length follows the scene weights
-if (Math.abs(W_SUM - 13.1) > 0.001) trackEl.style.height = `calc(${W_SUM.toFixed(2)} * var(--scene-h, 84vh) + 100vh)`; // keep landing.css in step
+if (Math.abs(W_SUM - 11.0) > 0.001) trackEl.style.height = `calc(${W_SUM.toFixed(2)} * var(--scene-h, 84vh) + 100vh)`; // keep landing.css in step
 const stepEls = [...document.querySelectorAll('#steps li')];
 const STEP_T = [15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.72];
 
@@ -512,7 +548,7 @@ function readTheme() {
   inkCss = g('--ink');
   isDark = paperColor.getHSL({ h: 0, s: 0, l: 0 }).l < 0.5;
   shadowMat.opacity = parseFloat(g('--shadow')) || .17;
-  gridMat.uniforms.uColor.value.set(inkCss); gridMat.uniforms.uAlpha.value = isDark ? .12 : .09;
+  gridMat.uniforms.uColor.value.set(inkCss); gridMat.uniforms.uAlpha.value = isDark ? .12 : .045;
   hemi.groundColor.copy(paperColor);
   guides.forEach(({ l }) => l.material.color.set(inkCss)); axes.forEach(({ l }) => l.material.color.set(inkCss));
   svg.querySelectorAll('path').forEach(p => p.setAttribute('stroke', inkCss));
@@ -546,6 +582,7 @@ addEventListener('resize', resize); resize();
 
 /* ============ FRAME ============ */
 let tTarget = 0, tNow = 0, last = performance.now(), start = last, first = true;
+const _sun = new THREE.Vector3();
 let past = false, hidden = false, heroA = 1, rotorOmega = 0, rotorAngle = 0, frameDt = 1 / 60;
 const onScroll = () => {
   const y = window.scrollY, r = scrollable();
@@ -603,13 +640,23 @@ function frame(now) {
   if (!reduce) k *= 1 + 0.12 * (1 - ease(clamp((time - 0.2) / 2.6)));
   _d.multiplyScalar(k * (1 + (mobile ? 0.04 : 0.16) * heroA));
   setView(heroA);
+  HERO.az += (HERO.azT - HERO.az) * (1 - Math.exp(-dt * 6));
+  if (Math.abs(HERO.az) > 1e-4) _d.applyAxisAngle(THREE.Object3D.DEFAULT_UP, HERO.az * heroA);
   if (!reduce) { const orbit = THREE.MathUtils.degToRad(3.5) * Math.sin(time * 0.22) * ramp(t, 15.95, 16.4); _d.applyAxisAngle(THREE.Object3D.DEFAULT_UP, orbit); }
   camera.position.copy(camTgt).add(_d); camera.lookAt(camTgt);
   camera.updateMatrixWorld();
 
   // lights
   sunLight.intensity = 1.5 * sceneAlpha(t, 3) + 0.6 * sceneAlpha(t, 12) + heroA * HERO.sun;
-  key.intensity = 2.1 - heroA * HERO.dark * 0.9;
+  key.intensity = 2.1 - heroA * HERO.dark * 1.05;
+  {
+    const a = ((HERO.hour - 6) / 12.6) * Math.PI, el = Math.max(0.12, Math.sin(a));
+    _sun.set(-Math.cos(a) * 12, 3 + el * 11, 5 - Math.cos(a) * 2);
+    sunLight.position.lerp(_sun, heroA > 0.5 ? 0.08 : 1);
+    const night = heroA * HERO.dark;
+    hemi.intensity = 0.55 - night * 0.2; hemi.color.setRGB(1 - night * 0.3, 1 - night * 0.2, 1);
+    key.color.setRGB(1, 1 - night * 0.08, 1 - night * 0.02 + 0);
+  }
   sunLight.target = KEY['pv-array'][0];
 
   // flows + guides
@@ -635,7 +682,7 @@ function frame(now) {
   // ---- DOM overlays ----
   let cur = 0, best = -1;
   panels.forEach((p, i) => {
-    const a = sceneAlpha(t, i);
+    const a = chapterAlpha(t, +p.dataset.s, +p.dataset.e);
     if (a > best) { best = a; cur = i; }
     p.style.opacity = a.toFixed(3);
     const vis = a > 0.02; p.style.visibility = vis ? 'visible' : 'hidden';
@@ -689,7 +736,10 @@ function frame(now) {
     c.g.style.opacity = a.toFixed(3);
     c.el.classList.toggle('l', side === 'l');
     c.el.style.opacity = a.toFixed(3);
-    c.el.style.transform = `translate(${(lx + sg * 8).toFixed(1)}px, ${ly.toFixed(1)}px) translate(${side === 'l' ? '-100%' : '0'}, -50%)`;
+    // keep every label fully on screen
+    const w0 = c.el.offsetWidth || 120; let tx = lx + sg * 8;
+    if (side === 'l') tx = Math.max(8 + w0, tx); else tx = Math.min(W - 8 - w0, tx);
+    c.el.style.transform = `translate(${tx.toFixed(1)}px, ${ly.toFixed(1)}px) translate(${side === 'l' ? '-100%' : '0'}, -50%)`;
   }
 
 
@@ -749,7 +799,10 @@ function closeCard() {
   if (lastFocus && document.contains(lastFocus)) lastFocus.focus?.({ preventScroll: true });
 }
 let downAt = null;
-canvas.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; dragAz = e.pointerType !== 'touch' && heroA > 0.5 ? [e.clientX, HERO.azT] : null; if (dragAz) canvas.setPointerCapture?.(e.pointerId); });
+let dragAz = null;
+canvas.addEventListener('pointermove', e => { if (!dragAz || !(e.buttons & 1)) return; HERO.azT = clamp((dragAz[1] - (e.clientX - dragAz[0]) * 0.006 + 0.49) / 0.98) * 0.98 - 0.49; canvas.style.cursor = 'grabbing'; });
+canvas.addEventListener('pointerup', () => { dragAz = null; canvas.style.cursor = ''; });
 canvas.addEventListener('pointerup', e => {
   if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
   const k = pickAt(e.clientX, e.clientY);

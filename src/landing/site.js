@@ -3,6 +3,10 @@ import "../design/tokens.css";
 import "./landing.css";
 import { mountHero } from "./hero.js";
 import { mountSections } from "./sections.js";
+import { icon } from "../design/icons.js";
+
+// static markup marks icons with data-ico; draw them once
+document.querySelectorAll("[data-ico]").forEach((el) => { el.innerHTML = icon(el.dataset.ico); });
 import "../explore/why.js";
 
 mountHero();

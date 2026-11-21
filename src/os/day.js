@@ -77,6 +77,8 @@ export function simulateDay(build, { stepMin = 10, startSoc = 60 } = {}) {
         fromBattery: p.batteryDischargeKw, fromGrid: p.gridImportKw,
         toBattery: p.batteryChargeKw, toGrid: p.gridExportKw, curtailed: p.curtailedKw,
         decision: state.lastDecision,
+        // the engine's full decision at this step, so a 3D scene can replay it
+        run: { result: { mode: r.mode, power: r.power, outputs: r.outputs, water: r.water, alarms: r.alarms, cleaning: r.cleaning, nextState: { lastDecision: state.lastDecision } }, sensors: { ...sensors }, config },
       });
     }
     sensors = { ...sensors, batterySoc: projectBatterySoc(sensors.batterySoc, r.power, dt, config) };
