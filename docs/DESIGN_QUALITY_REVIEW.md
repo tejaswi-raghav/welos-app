@@ -52,7 +52,26 @@ A first-time visitor sees, without scrolling or reading anything else:
 - The day chart closes the loop between sizing and control; switching city or scale re-runs both engines.
 - Honest labelling throughout; the fake "Link healthy" indicator and conflicting prototype specs are gone.
 
-## Remaining weaknesses (not fixed in this pass)
+
+## Round 2: the living rooftop
+
+Changes after review feedback ("keep the landing mostly the exploded view", "explain the numbers visually", "the Studio 3D section doesn't work") and the Phase 14 brief.
+
+| Experience | What was built | Driven by |
+|---|---|---|
+| Living rooftop (hero) | The unit now stands on an architectural section of a UAE villa roof (slab, parapets, AC condensers). Drag to turn (±28°, damped, mouse/pen only so touch still scrolls). Five conditions, plus an All / Energy / Water switch that isolates flows and labels. | `evaluateController()` per condition |
+| 24 hours | A scrubber and play button replay one simulated day on the 3D scene: the sun travels east to west, the sky warms at sunrise and sunset and cools at night, the rotor follows the wind, flows reverse when the battery discharges, and a plain sentence names each transition. Includes a mini timeline of generation, demand and battery level. | `simulateDay()`: every step stores the engine's full decision |
+| Product film | 17 choreographed scenes now read as 8 chapters (rooftop, take it apart, sun and wind, power and control, rain to water, follow the flows, the loop, back together). Each chapter is a headline plus icon rows; engineering detail sits behind "Details". Scroll length cut from about 21 screens to about 11. | Existing choreography |
+| Self-cleaning | A standalone demo: dust, wind, sunlight and tank sliders, four presets including three blocked states, the controller's five checks with live values and limits, a rinse that runs only when every check passes, then the recovery and the 12 L it cost. | `evaluateController()` cleaning eligibility |
+| Inside the controller | The decision trace (inputs → protect → mode → route) stays. Control OS nodes now open a "Why" card with the measurements and limits behind each node's behaviour. | Engine config and result |
+| Studio | The 3D view was rebuilt: the model fills the stage, views fit any panel shape, the chosen system stays solid while the rest fades, controls sit in one dock, and part details appear in a card that collapses on small screens. The summary numbers and climate strip are now pictures. | Sizing engine |
+| Numbers as pictures | Waffle (share of power), water cube beside a person (annual litres), dust before and after cleaning, battery with its reserve, hours dial, panel grid (module count), bathtubs (tank size), payback timeline. | Sizing engine |
+
+Checks this round: axe 0 violations on all three pages; 16 scripted interactions pass (conditions, 24 h scrub and play, flow filter, part picking, chapter jump, cleaning blocked and completed, trace, demo re-run, AI sidebar, Studio system and part select, configurator update, Control OS node "why", outage scenario); no horizontal overflow at 1440, 1280, 820 or 390 px; no console errors; `npm run check` passes.
+
+Still open: the Studio configurator column keeps its form structure; real-GPU performance on low-end phones is unmeasured; the essentials load used for "hours of outage cover" (0.6 kW) is an assumption and labelled as one.
+
+## Remaining weaknesses (first pass)
 
 1. **Studio** keeps its previous information architecture (configurator + component index). It is restyled, not redesigned; three.js is not yet lazy-loaded there.
 2. **Story callouts** at a few camera angles (solar, power chapters) still sit close to each other on desktop.

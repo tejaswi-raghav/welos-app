@@ -210,7 +210,7 @@ function EnergyFlow({ result, sensors, inspect, setInspect }) {
   ];
   return <figure className="c-flow">
     <ul className="c-flow-list">{rows.map(([a, d, b, v, c]) => { const n = a === "Bus" ? b : a; return <li key={b + a} className={c}><button type="button" aria-pressed={inspect === n} onClick={() => setInspect(n)}><span>{a} <i>{d}</i> {b}</span><b>{v}</b></button></li>; })}</ul>
-    <svg viewBox="0 0 640 330" role="img" aria-label={`Sun ${fmt(p.pvKw, " kW", 1)}, wind ${fmt(p.windKw, " kW", 1)}, home ${fmt(p.servedLoadKw, " kW", 1)}, battery ${bat >= 0 ? "charging" : "discharging"} ${fmt(Math.abs(bat), " kW", 1)}, grid ${sensors.gridAvailable ? (grid >= 0 ? "export" : "import") + " " + fmt(Math.abs(grid), " kW", 1) : "unavailable"}`}>
+    <svg viewBox="0 0 640 330" role="group" aria-label={`Sun ${fmt(p.pvKw, " kW", 1)}, wind ${fmt(p.windKw, " kW", 1)}, home ${fmt(p.servedLoadKw, " kW", 1)}, battery ${bat >= 0 ? "charging" : "discharging"} ${fmt(Math.abs(bat), " kW", 1)}, grid ${sensors.gridAvailable ? (grid >= 0 ? "export" : "import") + " " + fmt(Math.abs(grid), " kW", 1) : "unavailable"}`}>
       {link("pv", "M150 70 C 230 70 250 165 290 165", p.pvKw, 1, "var(--sun)")}
       {link("wind", "M150 260 C 230 260 250 165 290 165", p.windKw, 1, "var(--ember)")}
       {link("home", "M350 165 C 400 165 420 70 490 70", p.servedLoadKw, 1, "var(--ink)")}

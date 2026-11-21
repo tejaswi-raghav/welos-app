@@ -71,3 +71,4 @@
 .studio-cfg .cfg-metrics{grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:12px 18px}
 .studio-cfg .cfg-metrics .svgw{display:block}
 @media(max-width:760px){.studio-cfg .cfg-specs{grid-template-columns:1fr 1fr}.studio-cfg .cfg-specs>div:nth-child(3){padding-left:0}.studio-cfg .cfg-metrics{grid-template-columns:1fr 1fr}}
+.studio-cfg .cfg-vis{display:flex;flex-direction:column;gap:6px;margin:0;font:inherit}
