@@ -463,6 +463,9 @@ const CALLOUTS = [
   { s: 0, hero: 'home', k: 'load-panel', p: [3.3, -0.6, 1.88], c: 'HOME', t: '', d: ' ', side: 'r', dy: 70, dx: 40, mh: 1 },
   { s: 0, hero: 'water', k: 'rain-gutter', p: [-2.6, 1.76, 1.54], c: 'WATER', t: '', d: ' ', side: 'r', dy: -150, dx: 20, a: 'b', mh: 1 },
 ];
+// phones: at most two labels per chapter so they never stack
+const perScene = {};
+CALLOUTS.forEach(c => { if (c.hero) return; perScene[c.s] = (perScene[c.s] || 0) + 1; if (perScene[c.s] > 2) c.mh = 1; });
 const SVGNS = 'http://www.w3.org/2000/svg';
 const svg = $('#lines'), labelsEl = $('#labels');
 CALLOUTS.forEach(c => {
@@ -494,7 +497,7 @@ function scrollable() { return Math.max(1, trackEl.offsetHeight - innerHeight); 
 function goTo(t) { window.scrollTo({ top: pFromT(t) * scrollable(), behavior: reduce ? 'auto' : 'smooth' }); }
 document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); closeCard(); goTo(+el.dataset.goto + 0.5); }));
 // track length follows the scene weights
-trackEl.style.height = `calc(${W_SUM.toFixed(2)} * var(--scene-h, 84vh) + 100vh)`;
+if (Math.abs(W_SUM - 13.1) > 0.001) trackEl.style.height = `calc(${W_SUM.toFixed(2)} * var(--scene-h, 84vh) + 100vh)`; // keep landing.css in step
 const stepEls = [...document.querySelectorAll('#steps li')];
 const STEP_T = [15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.72];
 

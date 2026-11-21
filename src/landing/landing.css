@@ -64,7 +64,7 @@ body.scrolled .nav { background: rgba(244, 241, 234, .92); box-shadow: 0 1px 0 v
 .p-code .w-code.b { border-color: var(--water); color: var(--water-ink); }
 
 /* hero */
-.panel.hero { top: 6px; width: min(620px, 45vw); }
+.panel.hero { top: 6px; width: min(620px, 45vw); opacity: 1; visibility: visible; pointer-events: auto; } /* visible before the 3D module arrives */
 .eyebrow { font-size: 14px; font-weight: 560; color: var(--ink-3); }
 .hero h1 { margin: 16px 0 20px; font-size: clamp(40px, 4.4vw, 66px); line-height: .98; letter-spacing: -.032em; font-weight: 660; font-stretch: 106%; text-wrap: balance; }
 .lede { font-size: clamp(17px, 1.35vw, 20px); line-height: 1.5; color: var(--ink-2); max-width: 36ch; }
@@ -118,7 +118,7 @@ body.scrolled .nav { background: rgba(244, 241, 234, .92); box-shadow: 0 1px 0 v
   position: fixed; z-index: 5; left: 48px; bottom: 28px; width: min(600px, calc(100vw - 96px));
   padding: 14px 18px 12px; background: rgba(251, 250, 246, .86); border: 1px solid var(--rule);
   border-radius: 8px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  opacity: 0; visibility: hidden;
+  opacity: 1; visibility: visible;
 }
 .cond.live { pointer-events: auto; }
 .cond-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
@@ -198,8 +198,9 @@ body.past .scrim { opacity: 0; }
 .pc-go:hover { color: var(--energy-ink); }
 .pc-go:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-#track { position: relative; z-index: 0; }
-#veil { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; background: var(--paper); transition: opacity .6s var(--ease); pointer-events: none; }
+/* 13.1 = sum of the scene weights in src/explore/main.js (set here too so nothing shifts while the 3D loads) */
+#track { position: relative; z-index: 0; height: calc(13.1 * var(--scene-h) + 100vh); }
+#veil { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding-left: 40vw; background: var(--paper); transition: opacity .6s var(--ease); pointer-events: none; }
 #veil p { font-size: 14px; color: var(--ink-3); }
 #veil.gone { opacity: 0; }
 
@@ -378,7 +379,7 @@ body.no-gl #gl, body.no-gl #track, body.no-gl .rail, body.no-gl #veil, body.no-g
 body.no-gl .panels { position: relative; inset: auto; width: auto; max-width: var(--wrap); margin: 0 auto; padding: 110px 48px 40px; pointer-events: auto; }
 body.no-gl .panel { position: relative; opacity: 1 !important; visibility: visible !important; width: auto; max-width: 640px; padding: 40px 0; border-top: 1px solid var(--rule); }
 body.no-gl .panel.hero { border-top: 0; padding-top: 0; max-width: 760px; }
-body.no-gl .panel.hero::after { content: ""; display: block; margin-top: 36px; aspect-ratio: 16 / 10; background: url("/explore/poster.png") center / contain no-repeat; }
+body.no-gl .panel.hero::after { content: ""; display: block; margin-top: 36px; aspect-ratio: 16 / 10; background: url("/explore/poster.webp") center / contain no-repeat; }
 body.no-gl .cond { position: relative; inset: auto; opacity: 1 !important; visibility: visible !important; margin: 0 auto 40px; width: min(640px, calc(100% - 96px)); }
 
 /* ---------------- responsive ---------------- */
@@ -423,6 +424,7 @@ body.no-gl .cond { position: relative; inset: auto; opacity: 1 !important; visib
   .panels { left: 20px; right: 20px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
   .panel { top: auto; bottom: 0; }
   .panel.hero { width: 100%; top: auto; bottom: 0; }
+  #veil { padding: 0 0 40vh; }
   .hero h1 { font-size: 36px; margin: 10px 0 12px; }
   .eyebrow { font-size: 13px; }
   .lede { font-size: 16px; }

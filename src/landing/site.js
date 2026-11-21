@@ -1,13 +1,24 @@
 // Landing entry: design system, 3D story, hero conditions, sections, WELOS AI.
 import "../design/tokens.css";
 import "./landing.css";
-import "../ai/mount.jsx";
 import { mountHero } from "./hero.js";
 import { mountSections } from "./sections.js";
 import "../explore/why.js";
 
 mountHero();
 mountSections();
+
+// WELOS AI (React) loads when idle, or at once if someone asks for it first
+let ai = null;
+const loadAI = () => (ai ||= import("../ai/mount.jsx"));
+document.addEventListener("click", (e) => {
+  const t = e.target.closest?.("[data-ai-open]");
+  if (!t || document.getElementById("welos-ai-root")) return;
+  e.preventDefault(); e.stopPropagation();
+  loadAI().then(() => setTimeout(() => t.click(), 60));
+}, true);
+const idle = (fn, t) => ("requestIdleCallback" in window ? requestIdleCallback(fn, { timeout: t }) : setTimeout(fn, 200));
+idle(loadAI, 2500);
 
 // the 3D story loads after first paint; it is the heaviest part of the page
 const loadStory = () => import("../explore/main.js").catch((e) => {
