@@ -31,6 +31,7 @@ function ModelApp() {
   useEffect(() => {
     if (!viewportRef.current) return undefined;
     sceneRef.current = createWelosScene(viewportRef.current, {
+      theme: "light",
       onReady: () => setReady(true),
       onSelect: (id) => {
         setSelectedId(id);
@@ -78,8 +79,8 @@ function ModelApp() {
     <div className="model-app">
       <header className="model-header">
         <a className="page-brand" href="/" aria-label="WELOS home"><img src="/welos-brand-transparent.png" alt="" /><span><strong>WELOS</strong><small>URBAN RESOURCE SYSTEM</small></span></a>
-        <div className="page-header-title">{initiallyExploded ? "EXPLODED VIEW" : "3D MODEL"}</div>
-        <a className="page-back" href="/"><ArrowLeft size={15} aria-hidden="true" /> OVERVIEW</a>
+        <div className="page-header-title">{initiallyExploded ? "Exploded view" : "3D model"}</div>
+        <a className="page-back" href="/"><ArrowLeft size={15} aria-hidden="true" /> Home</a>
       </header>
 
       <main className="model-shell">

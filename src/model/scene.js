@@ -329,7 +329,11 @@ function addHydro(root) {
   return assembly;
 }
 
-export function createWelosScene(container, { onSelect, onReady, onError, modules: initialModules } = {}) {
+export function createWelosScene(container, { onSelect, onReady, onError, modules: initialModules, theme = "dark" } = {}) {
+  // Stage colours only; the model itself is identical in both themes.
+  const stage = theme === "light"
+    ? { bg: 0xf4f4f4, fog: 0.012, floor: 0xe4e5e6, floorOpacity: 0.9, gridA: 0xbfc1c4, gridB: 0xd6d7d9, gridOpacity: 0.55, exposure: 1.35 }
+    : { bg: 0x101714, fog: 0.02, floor: 0x1b2a25, floorOpacity: 0.55, gridA: 0x657970, gridB: 0x30463c, gridOpacity: 0.22, exposure: 1.6 };
   const registry = new Map();
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let renderer;
@@ -342,13 +346,13 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.6;
+  renderer.toneMappingExposure = stage.exposure;
   renderer.domElement.setAttribute("aria-label", "Interactive 3D WELOS rooftop appliance with configurable solar, wind, water and hydro add-ons");
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x101714);
-  scene.fog = new THREE.FogExp2(0x101714, 0.02);
+  scene.background = new THREE.Color(stage.bg);
+  scene.fog = new THREE.FogExp2(stage.bg, stage.fog);
   const camera = new THREE.PerspectiveCamera(37, 1, 0.1, 100);
   const targetEye = new THREE.Vector3(...VIEWS.overview.eye);
   const targetLook = new THREE.Vector3(...VIEWS.overview.look);
@@ -398,14 +402,14 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
     requestRender();
   }
 
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(9.7, 72), new THREE.MeshBasicMaterial({ color: 0x1b2a25, transparent: true, opacity: 0.55 }));
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(9.7, 72), new THREE.MeshBasicMaterial({ color: stage.floor, transparent: true, opacity: stage.floorOpacity }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -2.43;
   scene.add(floor);
-  const grid = new THREE.GridHelper(21, 21, 0x657970, 0x30463c);
+  const grid = new THREE.GridHelper(21, 21, stage.gridA, stage.gridB);
   grid.position.y = -2.42;
   grid.material.transparent = true;
-  grid.material.opacity = 0.22;
+  grid.material.opacity = stage.gridOpacity;
   scene.add(grid);
 
   const raycaster = new THREE.Raycaster();

@@ -4,6 +4,7 @@ import { createControllerState, DEFAULT_CONFIG, evaluateController, MODES } from
 import { advanceSimulation, createInitialSensors, SCENARIOS } from "./simulator.js";
 import "./control.css";
 import "../page-brand.css";
+import "./control-light.css";
 
 const TICK_SECONDS = 60;
 const MAX_HISTORY = 48;
@@ -106,25 +107,25 @@ function App() {
     <div className="control-app">
       <header className="topbar">
         <a className="control-brand page-brand" href="/" aria-label="WELOS home"><img src="/welos-brand-transparent.png" alt="" /><span><strong>WELOS</strong><small>URBAN RESOURCE SYSTEM</small></span></a>
-        <div className="topbar-site"><span>ROOFTOP NODE</span><b>DXB–WLS–001</b></div>
-        <div className="topbar-clock"><span>SIMULATION TIME</span><b>{new Date(sensors.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</b></div>
-        <div className={`connection ${connectionHealthy ? "online" : "offline"}`}><i />{connectionHealthy ? "LINK HEALTHY" : "SAFETY LOCK"}</div>
+        <div className="topbar-site"><span>Rooftop node</span><b>DXB–WLS–001</b></div>
+        <div className="topbar-clock"><span>Simulation time</span><b>{new Date(sensors.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</b></div>
+        <div className={`connection ${connectionHealthy ? "online" : "offline"}`}><i />{connectionHealthy ? "Link healthy" : "Safety lock"}</div>
       </header>
 
       <aside className="rail" aria-label="Control sections">
-        <span className="rail-label">OPERATIONS</span>
+        <span className="rail-label">Operations</span>
         {["Overview", "Energy", "Water", "Maintenance", "Events"].map((item, index) => <a key={item} href={`#${item.toLowerCase()}`} className={index === 0 ? "active" : ""}><i>{String(index + 1).padStart(2, "0")}</i><span>{item}</span></a>)}
-        <div className="rail-version"><span>ENGINE</span><b>v1.0.0</b><small>REFERENCE BUILD</small></div>
+        <div className="rail-version"><span>Engine</span><b>v1.0.0</b><small>Reference build</small></div>
       </aside>
 
       <main className="control-main" id="overview">
         <section className={`mode-banner mode-${result.mode.toLowerCase()}`}>
-          <div><span className="overline">CURRENT OPERATING STATE</span><h1>{modeLabels[result.mode]}</h1><p>{controller.lastDecision}</p></div>
-          <div className="mode-code"><span>MODE</span><b>{result.mode}</b><small>Transition {new Date(controller.lastTransitionAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></div>
+          <div><span className="overline">Current operating state</span><h1>{modeLabels[result.mode]}</h1><p>{controller.lastDecision}</p></div>
+          <div className="mode-code"><span>Mode</span><b>{result.mode}</b><small>Transition {new Date(controller.lastTransitionAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></div>
         </section>
 
         <section className="kpi-strip" aria-label="Key system measurements">
-          <Metric label="Renewable input" value={fmt(result.power.renewableKw, " kW", 2)} meta={`${fmt(result.power.pvKw, " PV", 2)} · ${fmt(result.power.windKw, " WIND", 2)}`} tone="amber" />
+          <Metric label="Renewable input" value={fmt(result.power.renewableKw, " kW", 2)} meta={`${fmt(result.power.pvKw, " PV", 2)} · ${fmt(result.power.windKw, " wind", 2)}`} tone="amber" />
           <Metric label="Active demand" value={fmt(result.power.demandKw, " kW", 2)} meta={`${fmt(result.power.servedLoadKw, " kW served", 2)}`} tone="neutral" />
           <Metric label="Battery reserve" value={fmt(sensors.batterySoc, "%", 1)} meta={`${fmt(sensors.batteryVoltageV, " V", 1)} · reserve ${result.power.reserveSoc}%`} tone="green" />
           <Metric label="Water storage" value={fmt(sensors.tankLevelPct, "%", 1)} meta={`${fmt(result.water.captureRateLpm, " L/min", 1)} capture`} tone="cyan" />
@@ -132,28 +133,28 @@ function App() {
         </section>
 
         <section className="dashboard-grid">
-          <Panel title="Live resource bus" code="ENERGY / 01" className="power-panel" id="energy">
+          <Panel title="Live resource bus" code="Energy / 01" className="power-panel" id="energy">
             <PowerFlow result={result} sensors={sensors} />
           </Panel>
-          <Panel title="Battery protection" code="STORAGE / 02" className="battery-panel">
+          <Panel title="Battery protection" code="Storage / 02" className="battery-panel">
             <BatteryPanel sensors={sensors} result={result} history={history} />
           </Panel>
-          <Panel title="Water routing" code="HYDRO / 03" className="water-panel" id="water">
+          <Panel title="Water routing" code="Hydro / 03" className="water-panel" id="water">
             <WaterPanel sensors={sensors} result={result} />
           </Panel>
-          <Panel title="Operating conditions" code="ENV / 04" className="conditions-panel">
+          <Panel title="Operating conditions" code="Environment / 04" className="conditions-panel">
             <Conditions sensors={sensors} />
           </Panel>
-          <Panel title="Soiling and cleaning" code="MAINT / 05" className="maintenance-panel" id="maintenance">
+          <Panel title="Soiling and cleaning" code="Maintenance / 05" className="maintenance-panel" id="maintenance">
             <Maintenance sensors={sensors} result={result} controller={controller} />
           </Panel>
-          <Panel title="Control authority" code="COMMAND / 06" className="control-panel">
+          <Panel title="Control authority" code="Command / 06" className="control-panel">
             <ControlAuthority manualEnabled={manualEnabled} setManualEnabled={setManualEnabled} manualMode={manualMode} setManualMode={setManualMode} paused={paused} setPaused={setPaused} result={result} />
           </Panel>
-          <Panel title="Scenario injection" code="SIM / 07" className="scenario-panel">
+          <Panel title="Scenario injection" code="Simulation / 07" className="scenario-panel">
             <div className="scenario-grid">{Object.values(SCENARIOS).map((item) => <button key={item} className={scenario === item ? "active" : ""} onClick={() => applyScenario(item)}><i /><span>{scenarioLabels[item]}</span><small>{scenarioDescription(item)}</small></button>)}</div>
           </Panel>
-          <Panel title="Alarms and event journal" code="EVENTS / 08" className="events-panel" id="events">
+          <Panel title="Alarms and event journal" code="Events / 08" className="events-panel" id="events">
             <EventJournal alarms={activeAlarms} events={events} onAcknowledge={(id) => setAcknowledged((items) => [...items, id])} />
           </Panel>
           <Panel title="Actuator states" code="I/O / 09" className="actuator-panel">
@@ -161,7 +162,7 @@ function App() {
           </Panel>
         </section>
 
-        <footer className="control-footer"><span>REFERENCE CONTROL SOFTWARE — HARDWARE CALIBRATION REQUIRED BEFORE FIELD ACTUATION</span><span>60× SIMULATION RATE · AUTO-SAVE OFF</span></footer>
+        <footer className="control-footer"><span>Reference control software. Hardware calibration required before field actuation.</span><span>60× simulation rate · Auto-save off</span></footer>
       </main>
     </div>
   );
@@ -179,13 +180,13 @@ function PowerFlow({ result, sensors }) {
   const charging = result.power.batteryChargeKw > 0;
   const batteryValue = charging ? result.power.batteryChargeKw : result.power.batteryDischargeKw;
   return <div className="power-flow">
-    <FlowNode label="PV ARRAY" value={fmt(result.power.pvKw, " kW", 2)} status={result.outputs.pvContactor ? "active" : "off"} />
-    <FlowNode label="WIND TURBINE" value={fmt(result.power.windKw, " kW", 2)} status={result.outputs.windBrake ? "off" : "active"} />
-    <div className="resource-bus"><span>DC RESOURCE BUS</span><b>{fmt(result.power.renewableKw, " kW", 2)}</b><i /></div>
-    <FlowNode label="SITE LOAD" value={fmt(result.power.servedLoadKw, " kW", 2)} status="load" />
-    <FlowNode label={`BATTERY ${charging ? "CHARGE" : "DISCHARGE"}`} value={fmt(batteryValue, " kW", 2)} status={batteryValue > 0 ? "battery" : "idle"} />
-    <FlowNode label={sensors.gridAvailable ? "GRID EXCHANGE" : "GRID ISOLATED"} value={fmt(result.power.gridImportKw || result.power.gridExportKw, " kW", 2)} status={sensors.gridAvailable ? "grid" : "off"} />
-    <div className="flow-note"><span>ROUTING DECISION</span><p>{result.nextState.lastDecision}</p></div>
+    <FlowNode label="PV array" value={fmt(result.power.pvKw, " kW", 2)} status={result.outputs.pvContactor ? "active" : "off"} />
+    <FlowNode label="Wind turbine" value={fmt(result.power.windKw, " kW", 2)} status={result.outputs.windBrake ? "off" : "active"} />
+    <div className="resource-bus"><span>DC resource bus</span><b>{fmt(result.power.renewableKw, " kW", 2)}</b><i /></div>
+    <FlowNode label="Site load" value={fmt(result.power.servedLoadKw, " kW", 2)} status="load" />
+    <FlowNode label={`Battery ${charging ? "charge" : "discharge"}`} value={fmt(batteryValue, " kW", 2)} status={batteryValue > 0 ? "battery" : "idle"} />
+    <FlowNode label={sensors.gridAvailable ? "Grid exchange" : "Grid isolated"} value={fmt(result.power.gridImportKw || result.power.gridExportKw, " kW", 2)} status={sensors.gridAvailable ? "grid" : "off"} />
+    <div className="flow-note"><span>Routing decision</span><p>{result.nextState.lastDecision}</p></div>
   </div>;
 }
 
@@ -196,28 +197,28 @@ function FlowNode({ label, value, status }) {
 function BatteryPanel({ sensors, result, history }) {
   const trend = history.map((item) => item.soc);
   return <div className="battery-wrap">
-    <div className="battery-main"><div className="battery-shell"><span style={{ height: `${sensors.batterySoc}%` }} /></div><div><strong>{fmt(sensors.batterySoc, "%", 1)}</strong><small>STATE OF CHARGE</small><em>Protected floor {result.power.reserveSoc}%</em></div></div>
+    <div className="battery-main"><div className="battery-shell"><span style={{ height: `${sensors.batterySoc}%` }} /></div><div><strong>{fmt(sensors.batterySoc, "%", 1)}</strong><small>State of charge</small><em>Protected floor {result.power.reserveSoc}%</em></div></div>
     <Sparkline values={trend} color="#F0A50E" />
     <div className="instrument-row"><Instrument label="Voltage" value={fmt(sensors.batteryVoltageV, " V", 1)} /><Instrument label="Current" value={fmt(sensors.batteryCurrentA, " A", 1)} /><Instrument label="Temperature" value={fmt(sensors.batteryTempC, "°C", 1)} /></div>
-    <div className="charge-state"><span>{result.power.batteryChargeKw > 0 ? "CHARGING" : result.power.batteryDischargeKw > 0 ? "SUPPLYING" : "RESERVE HOLD"}</span><b>{fmt(result.power.batteryChargeKw || result.power.batteryDischargeKw, " kW", 2)}</b></div>
+    <div className="charge-state"><span>{result.power.batteryChargeKw > 0 ? "Charging" : result.power.batteryDischargeKw > 0 ? "Supplying" : "Reserve hold"}</span><b>{fmt(result.power.batteryChargeKw || result.power.batteryDischargeKw, " kW", 2)}</b></div>
   </div>;
 }
 
 function WaterPanel({ sensors, result }) {
-  const route = result.water.firstFlushActive ? "FIRST FLUSH" : result.water.storageActive ? "FILTER TO STORAGE" : result.water.overflowActive ? "BYPASS / OVERFLOW" : "STANDBY";
-  return <div className="water-layout"><div className="tank"><div className="tank-fill" style={{ height: `${sensors.tankLevelPct}%` }} /><span>{fmt(sensors.tankLevelPct, "%", 0)}</span></div><div className="water-data"><Instrument label="Rainfall" value={fmt(sensors.rainfallMmHr, " mm/h", 1)} /><Instrument label="Capture" value={fmt(result.water.captureRateLpm, " L/min", 1)} /><Instrument label="Turbidity" value={fmt(sensors.waterTurbidityNtu, " NTU", 1)} /><div className="route-state"><span>ACTIVE ROUTE</span><b>{route}</b></div></div></div>;
+  const route = result.water.firstFlushActive ? "First flush" : result.water.storageActive ? "Filter to storage" : result.water.overflowActive ? "Bypass / overflow" : "Standby";
+  return <div className="water-layout"><div className="tank"><div className="tank-fill" style={{ height: `${sensors.tankLevelPct}%` }} /><span>{fmt(sensors.tankLevelPct, "%", 0)}</span></div><div className="water-data"><Instrument label="Rainfall" value={fmt(sensors.rainfallMmHr, " mm/h", 1)} /><Instrument label="Capture" value={fmt(result.water.captureRateLpm, " L/min", 1)} /><Instrument label="Turbidity" value={fmt(sensors.waterTurbidityNtu, " NTU", 1)} /><div className="route-state"><span>Active route</span><b>{route}</b></div></div></div>;
 }
 
 function Conditions({ sensors }) {
-  return <div className="condition-grid"><Instrument label="Irradiance" value={fmt(sensors.solarIrradianceWm2, " W/m²", 0)} /><Instrument label="Wind" value={fmt(sensors.windSpeedMs, " m/s", 1)} /><Instrument label="Ambient" value={fmt(sensors.ambientTempC, "°C", 1)} /><Instrument label="Panel" value={fmt(sensors.panelTempC, "°C", 1)} /><Instrument label="Humidity" value={fmt(sensors.humidityPct, "% RH", 0)} /><Instrument label="Grid" value={sensors.gridAvailable ? "AVAILABLE" : "OFFLINE"} /></div>;
+  return <div className="condition-grid"><Instrument label="Irradiance" value={fmt(sensors.solarIrradianceWm2, " W/m²", 0)} /><Instrument label="Wind" value={fmt(sensors.windSpeedMs, " m/s", 1)} /><Instrument label="Ambient" value={fmt(sensors.ambientTempC, "°C", 1)} /><Instrument label="Panel" value={fmt(sensors.panelTempC, "°C", 1)} /><Instrument label="Humidity" value={fmt(sensors.humidityPct, "% RH", 0)} /><Instrument label="Grid" value={sensors.gridAvailable ? "Available" : "Offline"} /></div>;
 }
 
 function Maintenance({ sensors, result, controller }) {
-  return <div className="maintenance-layout"><div className="soiling-index"><span>SOILING INDEX</span><strong>{fmt(sensors.soilingIndex * 100, "%", 1)}</strong><div><i style={{ width: `${Math.min(100, sensors.soilingIndex / 0.25 * 100)}%` }} /></div><small>Automatic trigger {fmt(DEFAULT_CONFIG.cleaningAutoThreshold * 100, "%", 0)}</small></div><div className="eligibility"><span className={result.cleaning.eligible ? "eligible" : "blocked"}>{result.cleaning.eligible ? "CLEANING ELIGIBLE" : "CLEANING DEFERRED"}</span>{result.cleaning.eligible ? <p>Water, wind, irradiance and panel temperature are inside the safe envelope.</p> : <ul>{result.cleaning.blockers.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>}<small>{controller.cleaningCycles} completed cycles</small></div></div>;
+  return <div className="maintenance-layout"><div className="soiling-index"><span>Soiling index</span><strong>{fmt(sensors.soilingIndex * 100, "%", 1)}</strong><div><i style={{ width: `${Math.min(100, sensors.soilingIndex / 0.25 * 100)}%` }} /></div><small>Automatic trigger {fmt(DEFAULT_CONFIG.cleaningAutoThreshold * 100, "%", 0)}</small></div><div className="eligibility"><span className={result.cleaning.eligible ? "eligible" : "blocked"}>{result.cleaning.eligible ? "Cleaning eligible" : "Cleaning deferred"}</span>{result.cleaning.eligible ? <p>Water, wind, irradiance and panel temperature are inside the safe envelope.</p> : <ul>{result.cleaning.blockers.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>}<small>{controller.cleaningCycles} completed cycles</small></div></div>;
 }
 
 function ControlAuthority({ manualEnabled, setManualEnabled, manualMode, setManualMode, paused, setPaused, result }) {
-  return <div className="authority"><div className="authority-head"><div><span>CONTROL SOURCE</span><b>{manualEnabled ? "SUPERVISOR" : "AUTOMATIC ENGINE"}</b></div><button className={`switch ${manualEnabled ? "on" : ""}`} onClick={() => setManualEnabled(!manualEnabled)} aria-pressed={manualEnabled}><i /></button></div><div className="mode-buttons">{[MODES.NORMAL, MODES.CONSERVE, MODES.STORM, MODES.CLEANING].map((mode) => <button key={mode} disabled={!manualEnabled} onClick={() => setManualMode(mode)} className={manualMode === mode ? "active" : ""}>{mode}</button>)}</div><div className="safety-copy"><span>SAFETY PRECEDENCE</span><p>Emergency, battery, inverter, wind and water interlocks always override supervisor commands.</p></div><button className="pause-button" onClick={() => setPaused(!paused)}><span>{paused ? "RESUME SIMULATION" : "PAUSE SIMULATION"}</span><b>{paused ? "HELD" : result.mode}</b></button></div>;
+  return <div className="authority"><div className="authority-head"><div><span>Control source</span><b>{manualEnabled ? "Supervisor" : "Automatic engine"}</b></div><button className={`switch ${manualEnabled ? "on" : ""}`} onClick={() => setManualEnabled(!manualEnabled)} aria-pressed={manualEnabled}><i /></button></div><div className="mode-buttons">{[MODES.NORMAL, MODES.CONSERVE, MODES.STORM, MODES.CLEANING].map((mode) => <button key={mode} disabled={!manualEnabled} onClick={() => setManualMode(mode)} className={manualMode === mode ? "active" : ""}>{mode}</button>)}</div><div className="safety-copy"><span>Safety precedence</span><p>Emergency, battery, inverter, wind and water interlocks always override supervisor commands.</p></div><button className="pause-button" onClick={() => setPaused(!paused)}><span>{paused ? "Resume simulation" : "Pause simulation"}</span><b>{paused ? "Held" : result.mode}</b></button></div>;
 }
 
 function EventJournal({ alarms, events, onAcknowledge }) {
@@ -227,7 +228,7 @@ function EventJournal({ alarms, events, onAcknowledge }) {
 
 function ActuatorTable({ outputs }) {
   const labels = { pvContactor: "PV contactor", windContactor: "Wind contactor", windBrake: "Turbine brake", batteryContactor: "Battery contactor", gridContactor: "Grid contactor", firstFlushValve: "First-flush valve", storageValve: "Storage valve", overflowValve: "Overflow valve", cleaningPump: "Cleaning pump", filtrationPump: "Filtration pump", loadShedRelay: "Load-shed relay" };
-  return <div className="actuator-grid">{Object.entries(outputs).map(([key, value]) => <div key={key}><span>{labels[key]}</span><b className={value ? "state-on" : "state-off"}>{value ? "ENERGIZED" : "OPEN"}</b></div>)}</div>;
+  return <div className="actuator-grid">{Object.entries(outputs).map(([key, value]) => <div key={key}><span>{labels[key]}</span><b className={value ? "state-on" : "state-off"}>{value ? "Energized" : "Open"}</b></div>)}</div>;
 }
 
 function Instrument({ label, value }) {
