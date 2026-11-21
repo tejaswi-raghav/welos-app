@@ -1,0 +1,6 @@
+# Repository owner approval required for all changes
+* @tejaswi-raghav
+
+# Protect ownership and security configurations
+/.github/ @tejaswi-raghav
+/vercel.json @tejaswi-raghav
