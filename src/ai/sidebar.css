@@ -1,14 +1,14 @@
 /* WELOS AI sidebar: sits above every page, never in the page flow */
-.wai{position:fixed;inset:0;z-index:80;pointer-events:none;font-family:"Inter",system-ui,sans-serif;color:#F5F3ED;font-size:14px;line-height:1.5}
+.wai{position:fixed;inset:0;z-index:80;pointer-events:none;font-family:"Archivo",system-ui,sans-serif;color:#F5F3ED;font-size:14px;line-height:1.5}
 .wai.on{pointer-events:auto}
 .wai-scrim{position:absolute;inset:0;background:rgba(5,8,12,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity .35s ease}
 .wai.on .wai-scrim{opacity:1}
 .wai-panel{position:absolute;top:0;right:0;bottom:0;width:min(460px,100vw);display:flex;flex-direction:column;background:#111A24;border-left:1px solid rgba(199,208,217,.14);box-shadow:-30px 0 80px rgba(0,0,0,.45);transform:translateX(102%);transition:transform .5s cubic-bezier(.2,.8,.2,1);outline:none}
 .wai.on .wai-panel{transform:none}
 .wai-head{display:flex;justify-content:space-between;gap:16px;padding:22px 22px 16px;border-bottom:1px solid rgba(199,208,217,.12)}
-.wai-kicker{display:inline-flex;align-items:center;gap:8px;font:500 10.5px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.16em;color:#00BFEA}
+.wai-kicker{display:inline-flex;align-items:center;gap:8px;font:500 13px/1 "Archivo",system-ui,sans-serif;color:#00BFEA}
 .wai-kicker i{width:7px;height:7px;border-radius:50%;background:#00BFEA;box-shadow:0 0 10px #00BFEA}
-.wai-head h2{margin:10px 0 0;font:700 24px/1.1 "Satoshi","Inter",sans-serif;letter-spacing:-.02em}
+.wai-head h2{margin:10px 0 0;font:650 24px/1.1 "Archivo",system-ui,sans-serif;font-stretch:112%;letter-spacing:-.02em}
 .wai-for{margin:6px 0 0;font-size:12.5px;color:rgba(199,208,217,.75)}
 .wai-x{all:unset;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(199,208,217,.18);color:#C7D0D9;flex:0 0 auto}
 .wai-x:hover{color:#F5F3ED;border-color:#C7D0D9}
@@ -19,20 +19,20 @@
 .wai-strip div:last-child{border-right:0}
 .wai-strip b{display:block;font:600 14px/1.2 "Inter",sans-serif;color:#F5F3ED;font-variant-numeric:tabular-nums;white-space:nowrap}
 .wai-strip div:first-child b{color:#FFB800}
-.wai-strip span{font:500 9.5px/1 "DM Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(199,208,217,.6)}
-.wai-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid rgba(199,208,217,.2);border-radius:999px;font:500 10px/1 "DM Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:#C7D0D9}
+.wai-strip span{font:400 12px/1.2 "Archivo",system-ui,sans-serif;letter-spacing:.1em;color:rgba(199,208,217,.6)}
+.wai-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid rgba(199,208,217,.2);border-radius:999px;font:500 12.5px/1 "Archivo",system-ui,sans-serif;letter-spacing:.08em;color:#C7D0D9}
 .wai-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:#C7D0D9}
 .wai-pill.ai{border-color:rgba(0,191,234,.5);color:#00BFEA}.wai-pill.ai::before{background:#00BFEA;box-shadow:0 0 8px #00BFEA}
 .wai-pill.thinking::before{background:#FFB800;animation:wai-blink 1s infinite alternate}
 @keyframes wai-blink{to{opacity:.25}}
-.wai-headline{margin:12px 0 0;font:700 21px/1.2 "Satoshi","Inter",sans-serif;letter-spacing:-.01em}
+.wai-headline{margin:12px 0 0;font:620 21px/1.2 "Archivo",system-ui,sans-serif;font-stretch:108%;letter-spacing:-.01em}
 .wai-sum{margin:8px 0 0;color:#C7D0D9;font-size:14px;line-height:1.55}
-.wai-h4{margin:22px 0 8px;font:500 10.5px/1 "DM Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(199,208,217,.7)}
+.wai-h4{margin:22px 0 8px;font:600 14.5px/1.2 "Archivo",system-ui,sans-serif;color:rgba(199,208,217,.7)}
 .wai-list,.wai-q{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .wai-list li{font-size:13.5px;line-height:1.5;color:#C7D0D9;padding-left:12px;border-left:2px solid rgba(255,184,0,.5)}
 .wai-list li b{display:block;color:#F5F3ED;font-size:13.5px}
 .wai-q li{position:relative;padding-left:18px;font-size:13.5px;color:#C7D0D9}
-.wai-q li::before{content:"?";position:absolute;left:0;top:0;font:600 12px/1.5 "DM Mono",monospace;color:#00BFEA}
+.wai-q li::before{content:"";position:absolute;left:2px;top:8px;width:6px;height:6px;border-radius:50%;background:#00BFEA}
 .wai-ask{margin-top:8px;padding-top:4px;border-top:1px solid rgba(199,208,217,.1)}
 .wai-thread{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:10px}
 .wai-thread .me,.wai-thread .bot{margin:0;max-width:90%;padding:10px 12px;font-size:13.5px;line-height:1.5;border-radius:12px}
@@ -52,7 +52,7 @@
 .wai-link:hover{text-decoration:underline}
 .wai-fine{margin:14px 0 0;font-size:11.5px;line-height:1.5;color:rgba(199,208,217,.6)}
 /* edge tab, only on pages without their own WELOS AI button */
-.wai-edge{position:fixed;right:0;bottom:96px;z-index:70;display:flex;align-items:center;gap:8px;writing-mode:vertical-rl;padding:16px 9px;background:#111A24;border:1px solid rgba(0,191,234,.35);border-right:0;color:#F5F3ED;font:500 10.5px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.18em;cursor:pointer;transition:background .2s,transform .3s}
+.wai-edge{position:fixed;right:0;bottom:96px;z-index:70;display:flex;align-items:center;gap:8px;writing-mode:vertical-rl;padding:16px 9px;background:#111A24;border:1px solid rgba(0,191,234,.35);border-right:0;color:#F5F3ED;font:500 13px/1 "Archivo",system-ui,sans-serif;cursor:pointer;transition:background .2s,transform .3s}
 .wai-edge i{width:7px;height:7px;border-radius:50%;background:#00BFEA;box-shadow:0 0 10px #00BFEA}
 .wai-edge:hover{background:#16222f}
 html.ai-open .wai-edge{transform:translateX(110%)}

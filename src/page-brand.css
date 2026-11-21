@@ -1,6 +1,4 @@
 /* WELOS shared chrome for Studio and Control OS */
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@500,700,800,900&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap");
 .page-brand{display:inline-flex;align-items:center;gap:12px;min-width:0;color:#F5F3ED;text-decoration:none;justify-self:start}
 .page-brand img{height:28px;width:auto;flex:0 0 auto;display:block}
 .page-brand span{display:flex;flex-direction:column;justify-content:center;border-left:1px solid rgba(199,208,217,.16);padding-left:12px;white-space:nowrap}

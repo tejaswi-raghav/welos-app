@@ -10,13 +10,15 @@ npm run dev
 
 Open the local URL shown by Vite. Entry points:
 
-- `/` — **exploded view landing**: scroll the appliance apart; each part says what it does, how it works and what energy or resource it captures, with UAE notes and its capacity sized for the visitor's configured site. Below: what each module captures, the three product scales (priced by the sizing engine), what comes next, and links into the tools.
-- `/studio.html` — **Studio**: the 3D model and the **Design yours** configurator side by side, with buttons for *Side by side*, *3D model* and *Configure* (`#both`, `#model`, `#configure`; `?tier=M` opens a scale). Modules switched on or off in the configurator appear on the model.
-- `/control.html` — live WELOS OS simulator
-- **WELOS AI** — the site advisor lives in a slide-out sidebar (`src/ai/`) opened from every page's header, so it never interrupts the page. It follows the build saved by the configurator.
+- `/` — **one roof, one day**: a pinned 3D rooftop in Dubai where scrolling moves the clock. Sunrise, midday surplus, dust and rinse, the evening sea breeze, night on the battery, a storm, the unit taken apart, and a simulated day showing what WELOS OS decides. Readouts come from a 24-hour simulation of a sized villa. Below: the three sizes (priced by the sizing engine) and what's next.
+- `/studio.html` — **Design your roof**: pick the place, size, package and add-ons on the left; the 3D roof in the middle updates live and plays your simulated day with the time scrubber; the right shows price, saving, payback, coverage, your day chart and every part with the rule that sized it. Click parts to inspect them, or take the unit apart. `?tier=M` opens a size.
+- `/control.html` — live WELOS OS simulator.
+- **WELOS AI** — the site advisor in a slide-out sidebar on every page, following the build you designed.
 - `/model.html`, `/configure.html` and `/explore.html` redirect to the new pages.
 
-Brand: the amber ring logo with the `welos™` wordmark (`public/brand/`) and the palette Night `#090D12`, Deep `#111A24`, Paper `#F5F3ED`, Sun `#FFB800`, Steel `#C7D0D9`, Sky `#00BFEA`.
+Code map: `src/stage/stage.js` (the 3D rooftop: sky, sun, city, rain, energy and water flows), `src/stage/model.js` (the WELOS unit), `src/stage/day.js` (24-hour simulation), `src/site/sizing.js` (sizing and pricing engine), `src/ai/` (WELOS AI sidebar), `src/landing/` and `src/studio/` (pages).
+
+Brand: the amber ring logo with the `welos™` wordmark in light (`welos-header.png`) and ink (`welos-header-ink.png`) versions; colours Night `#090D12`, Deep `#111A24`, Paper `#F5F3ED`, Sun `#FFB800` (energy), Steel `#C7D0D9`, Sky `#00BFEA` (water); type Archivo, with its wide cut for headlines.
 
 ## Product foundation
 

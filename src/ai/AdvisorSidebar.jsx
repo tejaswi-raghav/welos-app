@@ -102,9 +102,9 @@ export default function AdvisorSidebar() {
       <div className="wai-panel" tabIndex={-1} ref={panel}>
         <header className="wai-head">
           <div>
-            <span className="wai-kicker"><i /> WELOS AI</span>
+            <span className="wai-kicker"><i />WELOS AI</span>
             <h2 id="ai-title">Your site advisor</h2>
-            <p className="wai-for">WELOS {build.tier} {result.package.name} · {place}{build.example ? " (example)" : ""}</p>
+            <p className="wai-for">WELOS {build.tier}, {result.package.name.toLowerCase()} package, {place}{build.example ? " (an example until you design yours)" : ""}</p>
           </div>
           <button className="wai-x" type="button" onClick={() => setOpen(false)} aria-label="Close WELOS AI">✕</button>
         </header>
@@ -136,7 +136,7 @@ export default function AdvisorSidebar() {
               <button type="submit" disabled={asking || !question.trim()}>{asking ? "…" : "Ask"}</button>
             </form>
           </div>
-          {!onStudio() && <a className="wai-link" href="/studio.html#configure">{build.example ? "Configure your own site" : "Change this build"} in the Studio →</a>}
+          {!onStudio() && <a className="wai-link" href="/studio.html#configure">{build.example ? "Configure your own site" : "Change this build"} in the Studio</a>}
           <p className="wai-fine">The sizing engine sets every number and price; WELOS AI explains them. Indicative UAE estimates, not a quotation.</p>
         </div>
       </div>

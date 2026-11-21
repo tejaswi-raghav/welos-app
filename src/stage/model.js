@@ -1,15 +1,13 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 // Dimensions are visual proportions for an integrated rooftop concept, not fabrication CAD.
-const C = {
+export const C = {
   shell: 0xdfe4e9, frame: 0x5e6a76, dark: 0x141b23, black: 0x0d1218,
   glass: 0x0b1a2b, cell: 0x13263f, solar: 0xffb800, water: 0x00a9d4,
   wind: 0xf5f3ed, energy: 0xffb800, green: 0x00bfea, safety: 0xff5d4f,
 };
-const VIEWS = {
+export const VIEWS = {
   overview: { eye: [9.5, 6.8, 11.5], look: [0, 0.65, 0] },
   controller: { eye: [3.7, 1.9, 6.2], look: [-0.05, -0.75, 1.65] },
   solar: { eye: [3.4, 6.7, 7.4], look: [-1.05, 1.65, -0.45] },
@@ -329,59 +327,15 @@ function addHydro(root) {
   return assembly;
 }
 
-export function createWelosScene(container, { onSelect, onReady, onError, modules: initialModules, transparent = false, controlsEnabled = true, theme = "dark" } = {}) {
-  // Stage colours only; the model itself is identical in both themes.
-  const stage = theme === "light"
-    ? { bg: 0xf4f4f4, floor: 0xe4e5e6, floorOpacity: 0.9, gridA: 0xbfc1c4, gridB: 0xd6d7d9, gridOpacity: 0.55, exposure: 1.35 }
-    : { bg: 0x090d12, floor: 0x111a24, floorOpacity: 0.6, gridA: 0x2a3a4a, gridB: 0x162130, gridOpacity: 0.3, exposure: 1.6 };
+
+/**
+ * Build the WELOS appliance. Returns the root group, the part registry
+ * (id -> object with userData.home / userData.separated for the exploded view),
+ * the subsystem assemblies and a setModules() to show or hide add-ons.
+ */
+export function buildWelosModel() {
   const registry = new Map();
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let renderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-  } catch (error) {
-    onError?.(error);
-    return null;
-  }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = stage.exposure;
-  renderer.domElement.setAttribute("aria-label", "Interactive 3D WELOS rooftop appliance with configurable solar, wind, water and hydro add-ons");
-  container.appendChild(renderer.domElement);
-
-  const scene = new THREE.Scene();
-  if (!transparent) {
-    scene.background = new THREE.Color(stage.bg);
-    scene.fog = new THREE.FogExp2(stage.bg, 0.02);
-  }
-  const camera = new THREE.PerspectiveCamera(37, 1, 0.1, 100);
-  const targetEye = new THREE.Vector3(...VIEWS.overview.eye);
-  const targetLook = new THREE.Vector3(...VIEWS.overview.look);
-  camera.position.copy(targetEye);
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = !reduced;
-  controls.dampingFactor = 0.075;
-  controls.minDistance = 3;
-  controls.maxDistance = 27;
-  controls.maxPolarAngle = Math.PI * 0.81;
-  controls.target.copy(targetLook);
-  // embedded (e.g. landing page): never capture wheel/touch scrolling
-  controls.enabled = controlsEnabled;
-
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const environment = pmrem.fromScene(new RoomEnvironment(), 0.04);
-  scene.environment = environment.texture;
-  pmrem.dispose();
-  const key = new THREE.DirectionalLight(0xfff1d6, 4.1);
-  key.position.set(-4, 9, 7);
-  scene.add(key);
-  const rim = new THREE.DirectionalLight(0xffb800, 2.2);
-  rim.position.set(6, 5, -5);
-  scene.add(rim, new THREE.HemisphereLight(0xe9eef5, 0x101820, 1.7));
-
   const root = new THREE.Group();
-  scene.add(root);
   addPlatform(root);
   const assemblies = {};
   for (const [name, builder] of Object.entries({ solar: addSolar, wind: addWind, water: addWater, controller: addController, storage: addStorage })) {
@@ -403,138 +357,7 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
     if (cable) cable.visible = !!selection.solar;
     registry.get("mppt").visible = !!selection.solar;
     registry.get("wind-rectifier").visible = !!selection.wind;
-    requestRender();
   }
-
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(9.7, 72), new THREE.MeshBasicMaterial({ color: stage.floor, transparent: true, opacity: stage.floorOpacity }));
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -2.43;
-  scene.add(floor);
-  const grid = new THREE.GridHelper(21, 21, stage.gridA, stage.gridB);
-  grid.position.y = -2.42;
-  grid.material.transparent = true;
-  grid.material.opacity = stage.gridOpacity;
-  scene.add(grid);
-
-  const raycaster = new THREE.Raycaster();
-  const pointer = new THREE.Vector2();
-  const interactive = [];
-  root.traverse((object) => { if (object.isMesh && object.userData.partId) interactive.push(object); });
-  let selected = null;
-  let view = "overview";
-  let separation = 0;
-  let disposed = false;
-  let last = performance.now();
-  let pending = false;
-  let pointerStart = null;
-  let transitioning = false;
-  setModules(initialModules);
-
-  function selectPart(id, notify = false) {
-    if (selected && registry.has(selected)) registry.get(selected).traverse((child) => {
-      if (child.isMesh && child.material?.emissive) child.material.emissiveIntensity = 0;
-    });
-    selected = id;
-    if (id && registry.has(id)) registry.get(id).traverse((child) => {
-      if (child.isMesh && child.material?.emissive) {
-        child.material.emissive.setHex(C.solar);
-        child.material.emissiveIntensity = 0.075;
-      }
-    });
-    if (notify) onSelect?.(id);
-    requestRender();
-  }
-  function onPointerDown(event) {
-    pointerStart = [event.clientX, event.clientY];
-    transitioning = false;
-  }
-  function onPointerUp(event) {
-    if (!pointerStart || Math.hypot(event.clientX - pointerStart[0], event.clientY - pointerStart[1]) > 5) return;
-    pointerStart = null;
-    const rect = renderer.domElement.getBoundingClientRect();
-    pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
-    raycaster.setFromCamera(pointer, camera);
-    const hit = raycaster.intersectObjects(interactive, false)[0];
-    if (hit?.object?.userData?.partId) selectPart(hit.object.userData.partId, true);
-  }
-  renderer.domElement.addEventListener("pointerdown", onPointerDown);
-  renderer.domElement.addEventListener("pointerup", onPointerUp);
-  function setExploded(value) {
-    separation = THREE.MathUtils.clamp(value, 0, 1);
-    requestRender();
-  }
-  function setView(id) {
-    view = VIEWS[id] ? id : "overview";
-    targetEye.set(...VIEWS[view].eye);
-    targetLook.set(...VIEWS[view].look);
-    transitioning = true;
-    requestRender();
-  }
-  function reset() {
-    setView("overview");
-    setExploded(0);
-    selectPart(null);
-  }
-  function resize() {
-    const width = Math.max(1, container.clientWidth);
-    const height = Math.max(1, container.clientHeight);
-    if (renderer.domElement.width === Math.round(width * renderer.getPixelRatio()) && renderer.domElement.height === Math.round(height * renderer.getPixelRatio())) return;
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }
-  function render(now = performance.now()) {
-    if (disposed) return;
-    const dt = Math.min((now - last) / 1000, 0.05);
-    last = now;
-    resize();
-    const blend = reduced ? 1 : 1 - Math.pow(0.9, dt * 60);
-    if (transitioning) {
-      camera.position.lerp(targetEye, blend);
-      controls.target.lerp(targetLook, blend);
-      if (camera.position.distanceTo(targetEye) < 0.012 && controls.target.distanceTo(targetLook) < 0.012) transitioning = false;
-    }
-    registry.forEach((object) => {
-      object.userData.destination.copy(object.userData.home).addScaledVector(object.userData.separated, separation);
-      object.position.lerp(object.userData.destination, reduced ? 1 : 1 - Math.pow(0.86, dt * 60));
-    });
-    if (!reduced) {
-      if (assemblies.wind.visible) registry.get("vawt-rotor").rotation.y += dt * 0.32;
-    }
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  function requestRender() {
-    if (!reduced || pending || disposed) return;
-    pending = true;
-    requestAnimationFrame((now) => { pending = false; render(now); });
-  }
-  const observer = new ResizeObserver(requestRender);
-  observer.observe(container);
-  if (reduced) {
-    controls.addEventListener("change", requestRender);
-    requestRender();
-  } else renderer.setAnimationLoop(render);
-  requestAnimationFrame(() => { if (!disposed) onReady?.(); });
-
-  return {
-    setView, setExploded, setModules, selectPart, reset,
-    get view() { return view; },
-    dispose() {
-      disposed = true;
-      observer.disconnect();
-      renderer.setAnimationLoop(null);
-      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
-      renderer.domElement.removeEventListener("pointerup", onPointerUp);
-      controls.removeEventListener("change", requestRender);
-      controls.dispose();
-      scene.traverse((object) => {
-        object.geometry?.dispose();
-        if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach((m) => m.dispose());
-      });
-      environment.dispose();
-      renderer.dispose();
-      renderer.domElement.remove();
-    },
-  };
+  setModules({});
+  return { root, registry, assemblies, setModules };
 }

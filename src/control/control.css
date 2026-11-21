@@ -291,3 +291,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--amber); outline
 /* WELOS 2026 — display type */
 h1,h2,h3,.display{font-family:"Satoshi","Inter",sans-serif;letter-spacing:-.03em}
 h1 em,h2 em{font-style:normal;background:linear-gradient(120deg,#FFB800,#FFD36B);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* WELOS typography: one family, sentence case, tabular numbers */
+.control-app,.control-app *{font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif!important;text-transform:none!important;letter-spacing:normal!important}
+.control-app b,.control-app strong,.control-app output,.metric>b{font-variant-numeric:tabular-nums}
+.control-app h1,.control-app h2{font-stretch:110%;letter-spacing:-.015em!important}
