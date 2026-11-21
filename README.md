@@ -14,7 +14,7 @@ Open the local URL shown by Vite. Entry points:
 - `/studio.html` — **Studio**: the 3D model and the **Design yours** configurator side by side, with buttons for *Side by side*, *3D model* and *Configure* (`#both`, `#model`, `#configure`; `?tier=M` opens a scale). Modules switched on or off in the configurator appear on the model.
 - `/control.html` — live WELOS OS simulator
 - **WELOS AI** — the site advisor lives in a slide-out sidebar (`src/ai/`) opened from every page's header, so it never interrupts the page. It follows the build saved by the configurator.
-- `/glass.html` and `/classic.html` — previous landings, kept as fallbacks. `/model.html`, `/configure.html` and `/explore.html` redirect to the new pages.
+- `/model.html`, `/configure.html` and `/explore.html` redirect to the new pages.
 
 Brand: the amber ring logo with the `welos™` wordmark (`public/brand/`) and the palette Night `#090D12`, Deep `#111A24`, Paper `#F5F3ED`, Sun `#FFB800`, Steel `#C7D0D9`, Sky `#00BFEA`.
 

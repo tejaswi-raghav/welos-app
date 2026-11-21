@@ -42,8 +42,6 @@ export default defineConfig({
         landing: resolve(__dirname, "index.html"),
         studio: resolve(__dirname, "studio.html"),
         control: resolve(__dirname, "control.html"),
-        glass: resolve(__dirname, "glass.html"),
-        classic: resolve(__dirname, "classic.html"),
       },
     },
   },
