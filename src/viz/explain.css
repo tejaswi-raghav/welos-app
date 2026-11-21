@@ -1,0 +1,111 @@
+/* Visual explainers (src/viz/explain.js). Animations run once when ".viz" gains ".in". */
+.ico { display: inline-block; flex: none; vertical-align: -4px; }
+.viz svg { display: block; overflow: visible; }
+
+/* waffle */
+.v-waffle { width: 100%; max-width: 132px; }
+.v-waffle .w-off { fill: var(--paper-2); }
+.v-waffle .w-on { fill: var(--grid); transition: fill 0s; }
+.viz.in .v-waffle .w-on { animation: w-light .5s var(--ease) both; animation-delay: calc(var(--i) * 9ms + 200ms); }
+.v-waffle .w-on.sun { --to: var(--sun); } .v-waffle .w-on.water { --to: var(--water); }
+@keyframes w-light { to { fill: var(--to); } }
+.viz:not(.anim) .v-waffle .w-on { fill: var(--to); }
+
+/* panels */
+.v-panels { width: 100%; max-width: 180px; height: auto; }
+.v-panels .p-on { fill: #1E2833; }
+.v-panels .p-free { fill: none; stroke: var(--rule-strong); stroke-dasharray: 2 2; }
+.viz.in .v-panels .p-on { animation: pop .35s var(--ease) both; animation-delay: calc(var(--i) * 18ms); }
+@keyframes pop { from { opacity: 0; transform: translateY(-3px); } }
+
+/* battery */
+.v-battery { width: 100%; max-width: 190px; }
+.b-shell { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.b-fill { fill: var(--sun); transform-origin: left; }
+.b-res { fill: var(--ember); }
+.b-need { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.b-t { font: 500 10px/1 var(--mono); fill: var(--ink-3); }
+.viz.in .b-fill, .viz.in .b-res { animation: grow-x .9s var(--ease) both; }
+@keyframes grow-x { from { transform: scaleX(0); } }
+
+/* bathtubs */
+.v-tubs { width: 100%; max-width: 220px; height: auto; }
+.t-shell { fill: none; stroke: var(--ink); stroke-width: 1.4; }
+.t-water { fill: var(--water); }
+.viz.in .t-water { animation: fill-up .8s var(--ease) both; animation-delay: calc(var(--i) * 120ms); transform-box: fill-box; transform-origin: bottom; }
+@keyframes fill-up { from { transform: scaleY(0); } }
+
+/* cube */
+.v-cube { width: 100%; max-width: 220px; height: auto; }
+.c-front { fill: var(--water); } .c-right { fill: #0E6E95; } .c-top { fill: #5FB4D6; }
+.c-box { transform-box: fill-box; transform-origin: bottom; }
+.viz.in .c-box { animation: rise-up 1s var(--ease) both .15s; }
+@keyframes rise-up { from { transform: scaleY(0); } }
+.c-person { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.c-person circle { fill: var(--ink); stroke: none; }
+.c-dim { stroke: var(--ink-3); } .c-ground { stroke: var(--rule-strong); }
+.c-t { font: 600 11px/1 var(--f); fill: var(--water-ink); }
+
+/* dust */
+.v-dust { width: 100%; max-width: 180px; }
+.d-cells rect { fill: #1E2833; }
+.d-before circle { fill: #C9A86A; } .d-after circle { fill: #C9A86A; opacity: 0; }
+.d-wipe { fill: rgba(255, 255, 255, .55); opacity: 0; }
+.viz.in .d-before { animation: dust-off .5s ease both 1.4s; }
+.viz.in .d-after { animation: dust-on .3s ease both 1.5s; }
+.viz.in .d-after circle { opacity: 1; }
+.viz.in .d-wipe { animation: wipe 1.2s var(--ease-io) both .5s; }
+@keyframes dust-off { to { opacity: 0; } }
+@keyframes dust-on { from { opacity: 0; } }
+@keyframes wipe { 0% { opacity: 1; transform: translateX(0); } 90% { opacity: 1; } 100% { opacity: 0; transform: translateX(95px); } }
+
+/* payback */
+.v-payback { width: 100%; max-width: 460px; height: auto; }
+.pb-axis, .pb-tick { stroke: var(--rule-strong); }
+.pb-cost { fill: var(--paper-2); }
+.pb-gain { fill: var(--sun); }
+.pb-mark { stroke: var(--ink); stroke-width: 1.5; }
+.pb-dot { fill: var(--ink); }
+.pb-t { font: 500 9.5px/1 var(--mono); fill: var(--ink-3); }
+.pb-lbl { font: 600 11.5px/1 var(--f); fill: var(--ink); }
+.viz.in .pb-gain { animation: grow-x .9s var(--ease) both .4s; transform-box: fill-box; }
+.viz.in .pb-cost { animation: grow-x .6s var(--ease) both; transform-box: fill-box; }
+
+/* hours */
+.v-hours { width: 56px; height: 56px; }
+.h-dial { fill: none; stroke: var(--paper-2); stroke-width: 5; }
+.h-arc { fill: none; stroke: var(--ember); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 1 1; }
+.viz.in .h-arc { animation: draw 1.1s var(--ease) both .3s; }
+@keyframes draw { from { stroke-dashoffset: 1; } }
+.h-t { font: 640 12px/1 var(--f); fill: var(--ink); }
+
+/* runoff */
+.v-runoff { width: 100%; max-width: 150px; }
+.r-house { fill: none; stroke: var(--ink-3); stroke-width: 1.4; }
+.r-roof { stroke: var(--ink); stroke-width: 2.5; }
+.r-pipe { fill: none; stroke: var(--ink-3); stroke-width: 2; }
+.r-out { fill: var(--water); }
+.r-drop { stroke: var(--water); stroke-width: 1.6; stroke-linecap: round; }
+.viz.in .r-drop { animation: fall 1.1s linear infinite; animation-delay: calc(var(--i) * -0.13s); }
+@keyframes fall { from { transform: translateY(0); opacity: 1; } 80% { opacity: 1; } to { transform: translateY(26px); opacity: 0; } }
+
+/* meter */
+.v-meter { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 2px 8px; }
+.m-ico { color: var(--ink-2); grid-row: span 2; }
+.m-l { font-size: 12.5px; color: var(--ink-3); }
+.v-meter b { font: 620 15px/1.1 var(--f); font-variant-numeric: tabular-nums; text-align: right; }
+.v-meter b small { font-size: 11.5px; font-weight: 480; color: var(--ink-3); margin-left: 3px; }
+.m-bar { grid-column: 2 / -1; display: block; height: 4px; background: var(--paper-2); border-radius: 2px; overflow: hidden; }
+.m-bar > i { display: block; height: 100%; background: var(--ink-2); border-radius: 2px; }
+
+/* ring */
+.v-ring { width: 44px; height: 44px; }
+.g-bg { fill: none; stroke: var(--paper-2); stroke-width: 5; }
+.g-fg { fill: none; stroke-width: 5; stroke-linecap: round; }
+.v-ring.sun .g-fg { stroke: var(--sun); } .v-ring.water .g-fg { stroke: var(--water); }
+
+@media (prefers-reduced-motion: reduce) {
+  .viz.in * { animation: none !important; }
+  .viz.in .d-before { opacity: 0; } .viz.in .d-after { opacity: 1; }
+  .viz .v-waffle .w-on { fill: var(--to); }
+}

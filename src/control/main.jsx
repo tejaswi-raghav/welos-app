@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createControllerState, DEFAULT_CONFIG, evaluateController, MODES } from "./engine.js";
 import { advanceSimulation, createInitialSensors, SCENARIOS } from "./simulator.js";
+import "../design/tokens.css";
 import "./control.css";
-import "../page-brand.css";
+import { modeReason } from "../os/explain.js";
 import "../ai/mount.jsx";
 
 const TICK_SECONDS = 60;
@@ -17,12 +18,12 @@ const scenarioLabels = {
 };
 
 const modeLabels = {
-  [MODES.STARTUP]: "Startup validation",
-  [MODES.NORMAL]: "Automatic optimization",
-  [MODES.CONSERVE]: "Reserve protection",
-  [MODES.STORM]: "Storm capture",
-  [MODES.CLEANING]: "Panel cleaning",
-  [MODES.MANUAL]: "Manual supervision",
+  [MODES.STARTUP]: "Starting up",
+  [MODES.NORMAL]: "Normal operation",
+  [MODES.CONSERVE]: "Protecting reserve",
+  [MODES.STORM]: "Storm mode",
+  [MODES.CLEANING]: "Cleaning panels",
+  [MODES.MANUAL]: "Supervisor control",
   [MODES.FAULT]: "Safety isolation",
 };
 
@@ -35,6 +36,7 @@ function App() {
   const initialState = useMemo(() => ({ ...createControllerState(), uptimeSeconds: 10 }), []);
   const initialResult = useMemo(() => evaluateController({ sensors: initialSensors, previousState: initialState, dtSeconds: TICK_SECONDS }), [initialSensors, initialState]);
   const [sensors, setSensors] = useState(initialSensors);
+  const [shown, setShown] = useState(initialSensors); // the inputs the current decision was made from
   const [controller, setController] = useState(initialResult.nextState);
   const [result, setResult] = useState(initialResult);
   const [scenario, setScenario] = useState(SCENARIOS.CLEAR);
@@ -73,6 +75,7 @@ function App() {
           dtSeconds: TICK_SECONDS,
         });
         controllerRef.current = evaluated.nextState;
+        setShown(currentSensors);
         setController(evaluated.nextState);
         setResult(evaluated);
         setHistory((items) => [...items, historyPoint(nextSensors, evaluated)].slice(-MAX_HISTORY));
@@ -95,7 +98,6 @@ function App() {
   }, [paused]);
 
   const activeAlarms = result.alarms.filter((item) => !acknowledged.includes(item.id));
-  const connectionHealthy = result.mode !== MODES.FAULT;
 
   const applyScenario = (nextScenario) => {
     setScenario(nextScenario);
@@ -103,105 +105,187 @@ function App() {
     setEvents((items) => [{ id: Date.now(), time: sensors.timestamp, level: "info", text: `Simulation profile loaded: ${scenarioLabels[nextScenario]}` }, ...items].slice(0, 20));
   };
 
+  const [showIO, setShowIO] = useState(false);
+  const [inspect, setInspect] = useState("Battery");
+  const reason = modeReason(result, shown, DEFAULT_CONFIG);
+  const decision = controller.lastDecision.replace(/^Storm mode: /, "").replace(/^./, (c) => c.toUpperCase());
+  const clock = new Date(sensors.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   return (
     <div className="control-app">
-      <header className="topbar">
-        <a className="control-brand page-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header.png" alt="welos" /></a>
-        <div className="topbar-site"><span>Rooftop node</span><b>DXB–WLS–001</b></div>
-        <div className="topbar-clock"><span>Simulation time</span><b>{new Date(sensors.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</b></div>
-        <div className={`connection ${connectionHealthy ? "online" : "offline"}`}><i />{connectionHealthy ? "Link healthy" : "Safety lock"}</div>
-        <nav className="control-links" aria-label="Site"><a href="/">System</a><a href="/studio.html">Studio</a><button type="button" className="ai-btn" data-ai-open><i />WELOS AI</button></nav>
+      <header className="c-top">
+        <a className="c-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header-ink.png" alt="welos" width="120" height="26" /></a>
+        <div className="c-title"><b>Control OS</b><span className="c-sim"><i aria-hidden="true" />Simulator<span className="c-long"> · not connected to hardware</span></span></div>
+        <nav className="c-links" aria-label="Site"><a href="/">Overview</a><a href="/studio.html">Studio</a><button type="button" className="c-ai" data-ai-open>Ask WELOS</button></nav>
       </header>
 
-      <aside className="rail" aria-label="Control sections">
-        <span className="rail-label">Operations</span>
-        {["Overview", "Energy", "Water", "Maintenance", "Events"].map((item, index) => <a key={item} href={`#${item.toLowerCase()}`} className={index === 0 ? "active" : ""}><i>{String(index + 1).padStart(2, "0")}</i><span>{item}</span></a>)}
-        <div className="rail-version"><span>Engine</span><b>v1.0.0</b><small>Reference build</small></div>
-      </aside>
-
-      <main className="control-main" id="overview">
-        <section className={`mode-banner mode-${result.mode.toLowerCase()}`}>
-          <div><span className="overline">Current operating state</span><h1>{modeLabels[result.mode]}</h1><p>{controller.lastDecision}</p></div>
-          <div className="mode-code"><span>Mode</span><b>{result.mode}</b><small>Transition {new Date(controller.lastTransitionAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></div>
+      <main className="c-main">
+        <section className={`c-state mode-${result.mode.toLowerCase()}`} aria-live="polite">
+          <div className="c-state-main">
+            <p className="c-eyebrow"><span className="c-clock">{clock}</span> simulated time · 1 s = 1 min</p>
+            <h1><span className="c-mode">{modeLabels[result.mode]}</span></h1>
+            <p className="c-decision">{decision}.</p>
+            <p className="c-why"><b>Why:</b> {reason}</p>
+          </div>
+          <div className="c-actions">
+            <p className="c-eyebrow" id="scenLabel">Inject a condition</p>
+            <div className="c-seg" role="radiogroup" aria-labelledby="scenLabel">
+              {Object.values(SCENARIOS).map((item) => (
+                <button key={item} type="button" role="radio" aria-checked={scenario === item} className={scenario === item ? "on" : ""} onClick={() => applyScenario(item)}>
+                  <b>{scenarioLabels[item]}</b><small>{scenarioDescription(item)}</small>
+                </button>
+              ))}
+            </div>
+            <button type="button" className="c-pause" onClick={() => setPaused(!paused)} aria-pressed={paused}>{paused ? "Resume simulation" : "Pause simulation"}</button>
+          </div>
         </section>
 
-        <section className="kpi-strip" aria-label="Key system measurements">
-          <Metric label="Renewable input" value={fmt(result.power.renewableKw, " kW", 2)} meta={`${fmt(result.power.pvKw, " PV", 2)} · ${fmt(result.power.windKw, " wind", 2)}`} tone="amber" />
-          <Metric label="Active demand" value={fmt(result.power.demandKw, " kW", 2)} meta={`${fmt(result.power.servedLoadKw, " kW served", 2)}`} tone="neutral" />
-          <Metric label="Battery reserve" value={fmt(sensors.batterySoc, "%", 1)} meta={`${fmt(sensors.batteryVoltageV, " V", 1)} · reserve ${result.power.reserveSoc}%`} tone="green" />
-          <Metric label="Water storage" value={fmt(sensors.tankLevelPct, "%", 1)} meta={`${fmt(result.water.captureRateLpm, " L/min", 1)} capture`} tone="cyan" />
-          <Metric label="Open alarms" value={String(activeAlarms.length).padStart(2, "0")} meta={activeAlarms[0]?.title || "All checks nominal"} tone={activeAlarms.length ? "red" : "green"} />
+        <section className="c-flow-wrap" aria-labelledby="flowTitle">
+          <header className="c-sec-head"><h2 id="flowTitle">Where the power is going</h2><p>Arrows point the way energy moves right now; thickness follows kW.</p></header>
+          <div className="c-flow-grid">
+            <div className="c-flow-col"><EnergyFlow result={result} sensors={shown} inspect={inspect} setInspect={setInspect} /><NodeWhy id={inspect} result={result} sensors={shown} /></div>
+            <Trend history={history} />
+          </div>
         </section>
 
-        <section className="dashboard-grid">
-          <Panel title="Live resource bus" code="Energy / 01" className="power-panel" id="energy">
-            <PowerFlow result={result} sensors={sensors} />
-          </Panel>
-          <Panel title="Battery protection" code="Storage / 02" className="battery-panel">
+        <section className="c-cards" aria-label="Subsystems">
+          <Card title="Battery" kicker={`${result.power.reserveSoc}% reserve protected`} id="energy">
             <BatteryPanel sensors={sensors} result={result} history={history} />
-          </Panel>
-          <Panel title="Water routing" code="Hydro / 03" className="water-panel" id="water">
+          </Card>
+          <Card title="Water" kicker={result.water.storageActive ? "Capturing rain" : result.water.firstFlushActive ? "Diverting first flush" : "Standby"} id="water">
             <WaterPanel sensors={sensors} result={result} />
-          </Panel>
-          <Panel title="Operating conditions" code="Environment / 04" className="conditions-panel">
-            <Conditions sensors={sensors} />
-          </Panel>
-          <Panel title="Soiling and cleaning" code="Maintenance / 05" className="maintenance-panel" id="maintenance">
+          </Card>
+          <Card title="Panel cleaning" kicker={result.cleaning.eligible ? "Safe to clean" : "Deferred"} id="maintenance">
             <Maintenance sensors={sensors} result={result} controller={controller} />
-          </Panel>
-          <Panel title="Control authority" code="Command / 06" className="control-panel">
-            <ControlAuthority manualEnabled={manualEnabled} setManualEnabled={setManualEnabled} manualMode={manualMode} setManualMode={setManualMode} paused={paused} setPaused={setPaused} result={result} />
-          </Panel>
-          <Panel title="Scenario injection" code="Simulation / 07" className="scenario-panel">
-            <div className="scenario-grid">{Object.values(SCENARIOS).map((item) => <button key={item} className={scenario === item ? "active" : ""} onClick={() => applyScenario(item)}><i /><span>{scenarioLabels[item]}</span><small>{scenarioDescription(item)}</small></button>)}</div>
-          </Panel>
-          <Panel title="Alarms and event journal" code="Events / 08" className="events-panel" id="events">
-            <EventJournal alarms={activeAlarms} events={events} onAcknowledge={(id) => setAcknowledged((items) => [...items, id])} />
-          </Panel>
-          <Panel title="Actuator states" code="I/O / 09" className="actuator-panel">
-            <ActuatorTable outputs={result.outputs} />
-          </Panel>
+          </Card>
         </section>
 
-        <footer className="control-footer"><span>Reference control software. Hardware calibration required before field actuation.</span><span>60× simulation rate · Auto-save off</span></footer>
+        <section className="c-cards c-cards-2" aria-label="Operations">
+          <Card title="Alarms and events" kicker={activeAlarms.length ? `${activeAlarms.length} open` : "No open alarms"} id="events">
+            <EventJournal alarms={activeAlarms} events={events} onAcknowledge={(id) => setAcknowledged((items) => [...items, id])} />
+          </Card>
+          <Card title="Supervisor control" kicker={manualEnabled ? "Supervisor in control" : "Automatic engine"}>
+            <ControlAuthority manualEnabled={manualEnabled} setManualEnabled={setManualEnabled} manualMode={manualMode} setManualMode={setManualMode} />
+          </Card>
+          <Card title="Conditions" kicker="Simulated sensors">
+            <Conditions sensors={shown} />
+            <button type="button" className="c-io-toggle" aria-expanded={showIO} onClick={() => setShowIO(!showIO)}>{showIO ? "Hide" : "Show"} actuator states (11)</button>
+            {showIO && <ActuatorTable outputs={result.outputs} />}
+          </Card>
+        </section>
+
+        <footer className="c-foot">Reference control software running in your browser on simulated sensors for a 3.6 kWp, 24 kWh reference unit. Hardware calibration and certification are required before field actuation. The same state machine ships in the ESP32 reference firmware.</footer>
       </main>
     </div>
   );
 }
 
-function Panel({ title, code, className = "", id, children }) {
-  return <section className={`panel ${className}`} id={id}><header><div><span>{code}</span><h2>{title}</h2></div><i className="panel-status" /></header><div className="panel-body">{children}</div></section>;
+function Card({ title, kicker, id, children }) {
+  return <section className="c-card" id={id}><header><h2>{title}</h2><span>{kicker}</span></header>{children}</section>;
 }
 
-function Metric({ label, value, meta, tone }) {
-  return <div className={`metric tone-${tone}`}><span>{label}</span><b>{value}</b><small>{meta}</small></div>;
+function EnergyFlow({ result, sensors, inspect, setInspect }) {
+  const p = result.power, o = result.outputs;
+  const bat = p.batteryChargeKw - p.batteryDischargeKw;
+  const grid = p.gridExportKw - p.gridImportKw;
+  const w = (kw) => Math.max(1.5, Math.min(9, 1.5 + kw * 2.2));
+  const link = (id, d, kw, dir, color) => kw > 0.02
+    ? <path key={id} d={d} className={`c-link ${dir < 0 ? "rev" : ""}`} stroke={color} strokeWidth={w(kw)} />
+    : <path key={id} d={d} className="c-link idle" />;
+  const node = (x, y, label, value, sub, cls = "") => (
+    <g className={`c-node ${cls} ${inspect === label ? "sel" : ""}`} transform={`translate(${x} ${y})`} role="button" tabIndex={0} aria-pressed={inspect === label} aria-label={`Why: ${label}`}
+      onClick={() => setInspect(label)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setInspect(label); } }}>
+      <rect x="-74" y="-30" width="148" height="60" rx="6" />
+      <text className="n-l" y="-9">{label}</text>
+      <text className="n-v" y="13">{value}</text>
+      {sub && <text className="n-s" y="46">{sub}</text>}
+    </g>
+  );
+  const rows = [
+    ["Sun", "→", "bus", fmt(p.pvKw, " kW", 1), "s"],
+    ["Wind", "→", "bus", o.windBrake ? "Braked" : fmt(p.windKw, " kW", 1), "w"],
+    ["Bus", "→", "Home", fmt(p.servedLoadKw, " kW", 1), "h"],
+    ["Bus", bat >= 0 ? "→" : "←", "Battery", Math.abs(bat) < 0.02 ? "Idle" : fmt(Math.abs(bat), " kW", 1), "b"],
+    ["Bus", grid >= 0 ? "→" : "←", "Grid", !sensors.gridAvailable ? "Offline" : fmt(Math.abs(grid), " kW", 1), "g"],
+  ];
+  return <figure className="c-flow">
+    <ul className="c-flow-list">{rows.map(([a, d, b, v, c]) => { const n = a === "Bus" ? b : a; return <li key={b + a} className={c}><button type="button" aria-pressed={inspect === n} onClick={() => setInspect(n)}><span>{a} <i>{d}</i> {b}</span><b>{v}</b></button></li>; })}</ul>
+    <svg viewBox="0 0 640 330" role="group" aria-label={`Sun ${fmt(p.pvKw, " kW", 1)}, wind ${fmt(p.windKw, " kW", 1)}, home ${fmt(p.servedLoadKw, " kW", 1)}, battery ${bat >= 0 ? "charging" : "discharging"} ${fmt(Math.abs(bat), " kW", 1)}, grid ${sensors.gridAvailable ? (grid >= 0 ? "export" : "import") + " " + fmt(Math.abs(grid), " kW", 1) : "unavailable"}`}>
+      {link("pv", "M150 70 C 230 70 250 165 290 165", p.pvKw, 1, "var(--sun)")}
+      {link("wind", "M150 260 C 230 260 250 165 290 165", p.windKw, 1, "var(--ember)")}
+      {link("home", "M350 165 C 400 165 420 70 490 70", p.servedLoadKw, 1, "var(--ink)")}
+      {link("bat", "M350 165 L 490 165", Math.abs(bat), bat >= 0 ? 1 : -1, "var(--ember)")}
+      {link("grid", "M350 165 C 400 165 420 260 490 260", Math.abs(grid), grid >= 0 ? 1 : -1, "var(--grid)")}
+      <g className="c-bus" transform="translate(320 165)"><rect x="-30" y="-46" width="60" height="92" rx="5" /><text y="-4">48 V</text><text y="12">bus</text></g>
+      {node(76, 70, "Sun", fmt(p.pvKw, " kW", 1), `${fmt(sensors.solarIrradianceWm2, " W/m²", 0)}`, "sun")}
+      {node(76, 260, "Wind", o.windBrake ? "Braked" : fmt(p.windKw, " kW", 1), `${fmt(sensors.windSpeedMs, " m/s", 1)}`, "wind")}
+      {node(564, 70, "Home", fmt(p.servedLoadKw, " kW", 1), p.loadShedKw > 0 ? `${fmt(p.loadShedKw, " kW shed", 1)}` : "all loads served")}
+      {node(564, 165, "Battery", Math.abs(bat) < 0.02 ? "Idle" : `${bat > 0 ? "+" : "−"}${fmt(Math.abs(bat), " kW", 1)}`, null, "bat")}
+      {node(564, 260, "Grid", !sensors.gridAvailable ? "Offline" : Math.abs(grid) < 0.02 ? "0 kW" : `${grid > 0 ? "export " : "import "}${fmt(Math.abs(grid), " kW", 1)}`, null, "grid")}
+    </svg>
+  </figure>;
 }
 
-function PowerFlow({ result, sensors }) {
-  const charging = result.power.batteryChargeKw > 0;
-  const batteryValue = charging ? result.power.batteryChargeKw : result.power.batteryDischargeKw;
-  return <div className="power-flow">
-    <FlowNode label="PV array" value={fmt(result.power.pvKw, " kW", 2)} status={result.outputs.pvContactor ? "active" : "off"} />
-    <FlowNode label="Wind turbine" value={fmt(result.power.windKw, " kW", 2)} status={result.outputs.windBrake ? "off" : "active"} />
-    <div className="resource-bus"><span>DC resource bus</span><b>{fmt(result.power.renewableKw, " kW", 2)}</b><i /></div>
-    <FlowNode label="Site load" value={fmt(result.power.servedLoadKw, " kW", 2)} status="load" />
-    <FlowNode label={`Battery ${charging ? "charge" : "discharge"}`} value={fmt(batteryValue, " kW", 2)} status={batteryValue > 0 ? "battery" : "idle"} />
-    <FlowNode label={sensors.gridAvailable ? "Grid exchange" : "Grid isolated"} value={fmt(result.power.gridImportKw || result.power.gridExportKw, " kW", 2)} status={sensors.gridAvailable ? "grid" : "off"} />
-    <div className="flow-note"><span>Routing decision</span><p>{result.nextState.lastDecision}</p></div>
-  </div>;
+// Why is this node doing what it is doing? Measurements and limits straight from the engine.
+function NodeWhy({ id, result, sensors }) {
+  const c = DEFAULT_CONFIG, p = result.power, o = result.outputs;
+  const kw = (x) => fmt(x, " kW", 2);
+  const W = {
+    Sun: () => [p.pvKw > 0.02 ? `Producing ${kw(p.pvKw)}.` : "Not producing: no usable sunlight.",
+      [["Sunlight", fmt(sensors.solarIrradianceWm2, " W/m²", 0)], ["Dust loss", fmt(sensors.soilingIndex * 100, "%", 0)], ["Panel temp", fmt(sensors.panelTempC, " °C", 0)], ["Cleans at", `${c.cleaningAutoThreshold * 100}% dust`]],
+      sensors.soilingIndex >= c.cleaningAutoThreshold ? (result.cleaning.eligible ? "Dust passed the trigger and every safety check passes, so a rinse runs." : `Dust passed the trigger but cleaning is held: ${result.cleaning.blockers.join(", ").toLowerCase()}.`) : "Output follows sunlight, minus dust and heat losses."],
+    Wind: () => [o.windBrake ? "Braked." : p.windKw > 0.02 ? `Producing ${kw(p.windKw)}.` : "Turning too slowly to produce.",
+      [["Wind", fmt(sensors.windSpeedMs, " m/s", 1)], ["Starts at", `${c.windCutInMs} m/s`], ["Brakes at", `${c.windCutOutMs} m/s`], ["Storm mode at", `${c.windStormMs} m/s`]],
+      o.windBrake ? `Wind is outside the safe band (${c.windCutInMs}–${c.windCutOutMs} m/s) or a fault is active, so the rotor is braked and its contactor opened.` : "Inside the safe band: the rectifier feeds the DC bus."],
+    Home: () => [`Supplying ${kw(p.servedLoadKw)}${p.loadShedKw > 0 ? `, shedding ${kw(p.loadShedKw)}` : ""}.`,
+      [["Demand", kw(p.demandKw)], ["From sun + wind", kw(Math.min(p.renewableKw, p.servedLoadKw))], ["From battery", kw(p.batteryDischargeKw)], ["From grid", kw(p.gridImportKw)]],
+      p.loadShedKw > 0 ? "Islanded with the battery at its reserve: non-critical circuits are shed to protect it." : "The home is always served first; the battery and grid only fill what the roof can't."],
+    Battery: () => [p.batteryChargeKw > 0.01 ? `Charging ${kw(p.batteryChargeKw)}.` : p.batteryDischargeKw > 0.01 ? `Supplying ${kw(p.batteryDischargeKw)}.` : "Holding.",
+      [["Charge", fmt(sensors.batterySoc, "%", 0)], ["Reserve now", `${p.reserveSoc}%`], ["Max rate", kw(c.batteryMaxChargeKw)], ["Temperature", fmt(sensors.batteryTempC, " °C", 0)]],
+      p.batteryChargeKw > 0.01 ? "Sun and wind exceed the home's demand, so the surplus goes here before any export."
+        : p.batteryDischargeKw > 0.01 ? `Demand is above generation, so the battery covers the gap down to its ${p.reserveSoc}% reserve.`
+        : sensors.batterySoc <= p.reserveSoc + 0.5 ? `At its ${p.reserveSoc}% reserve: kept for outages and storms.` : "Generation and demand are balanced."],
+    Grid: () => [!sensors.gridAvailable ? "Offline: the unit is running as an island." : p.gridImportKw > 0.01 ? `Importing ${kw(p.gridImportKw)}.` : p.gridExportKw > 0.01 ? `Exporting ${kw(p.gridExportKw)}.` : "Idle.",
+      [["Grid", sensors.gridAvailable ? "Available" : "Down"], ["Import", kw(p.gridImportKw)], ["Export", kw(p.gridExportKw)], ["Curtailed", kw(p.curtailedKw)]],
+      !sensors.gridAvailable ? "Without the grid the reserve rises to 35% and only the home is supplied." : p.gridImportKw > 0.01 ? "Last resort: used only after the battery reaches its reserve." : p.gridExportKw > 0.01 ? "Battery is full or at its charge limit, so surplus is exported." : "Nothing to buy or sell right now."],
+  };
+  const f = W[id] || W.Battery;
+  const [head, facts, why] = f();
+  return <aside className="c-why-card" aria-live="polite">
+    <p className="c-eyebrow">Why · {id}</p>
+    <h3>{head}</h3>
+    <p>{why}</p>
+    <dl>{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+    <p className="c-hint">Select any box in the diagram to ask why.</p>
+  </aside>;
 }
 
-function FlowNode({ label, value, status }) {
-  return <div className={`flow-node control-flow-node status-${status}`}><i /><span>{label}</span><b>{value}</b></div>;
+function Trend({ history }) {
+  const W = 300, H = 150, n = history.length;
+  const max = Math.max(1, ...history.map((h) => Math.max(h.renewable, h.load))) * 1.1;
+  const x = (i) => (n < 2 ? 0 : (i / (n - 1)) * W);
+  const y = (v) => H - (v / max) * H;
+  const line = (k) => history.map((h, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(h[k]).toFixed(1)}`).join("");
+  const last = history[n - 1] || { renewable: 0, load: 0 };
+  const surplus = last.renewable >= last.load;
+  return <figure className="c-trend">
+    <figcaption><b>{surplus ? "Generation is covering demand" : "Demand is above generation"}</b><span>Last {n} simulated minutes</span></figcaption>
+    <svg viewBox={`0 0 ${W} ${H + 18}`} preserveAspectRatio="none" role="img" aria-label="Generation and demand over the last simulated minutes">
+      <line x1="0" x2={W} y1={H} y2={H} stroke="var(--rule-strong)" />
+      <path d={`${line("renewable")}L${x(n - 1)} ${H}L0 ${H}Z`} fill="rgba(255,184,0,.22)" />
+      <path d={line("renewable")} fill="none" stroke="var(--sun)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <path d={line("load")} fill="none" stroke="var(--ink)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+    </svg>
+    <ul className="c-trend-key"><li><i className="s" />Sun + wind {fmt(last.renewable, " kW", 1)}</li><li><i className="l" />Demand {fmt(last.load, " kW", 1)}</li></ul>
+  </figure>;
 }
 
 function BatteryPanel({ sensors, result, history }) {
   const trend = history.map((item) => item.soc);
   return <div className="battery-wrap">
-    <div className="battery-main"><div className="battery-shell"><span style={{ height: `${sensors.batterySoc}%` }} /></div><div><strong>{fmt(sensors.batterySoc, "%", 1)}</strong><small>State of charge</small><em>Protected floor {result.power.reserveSoc}%</em></div></div>
-    <Sparkline values={trend} color="#F0A50E" />
+    <div className="soc"><div className="soc-top"><strong>{fmt(sensors.batterySoc, "%", 0)}</strong><span>{result.power.batteryChargeKw > 0 ? `charging ${fmt(result.power.batteryChargeKw, " kW", 1)}` : result.power.batteryDischargeKw > 0 ? `supplying ${fmt(result.power.batteryDischargeKw, " kW", 1)}` : "holding"}</span></div><div className="soc-bar"><i style={{ width: `${sensors.batterySoc}%` }} /><b style={{ left: `${result.power.reserveSoc}%` }} title="Reserve" /></div><small>Reserve line at {result.power.reserveSoc}%</small></div>
+    <Sparkline values={trend} color="#F86A00" />
     <div className="instrument-row"><Instrument label="Voltage" value={fmt(sensors.batteryVoltageV, " V", 1)} /><Instrument label="Current" value={fmt(sensors.batteryCurrentA, " A", 1)} /><Instrument label="Temperature" value={fmt(sensors.batteryTempC, "°C", 1)} /></div>
-    <div className="charge-state"><span>{result.power.batteryChargeKw > 0 ? "Charging" : result.power.batteryDischargeKw > 0 ? "Supplying" : "Reserve hold"}</span><b>{fmt(result.power.batteryChargeKw || result.power.batteryDischargeKw, " kW", 2)}</b></div>
   </div>;
 }
 
@@ -215,16 +299,20 @@ function Conditions({ sensors }) {
 }
 
 function Maintenance({ sensors, result, controller }) {
-  return <div className="maintenance-layout"><div className="soiling-index"><span>Soiling index</span><strong>{fmt(sensors.soilingIndex * 100, "%", 1)}</strong><div><i style={{ width: `${Math.min(100, sensors.soilingIndex / 0.25 * 100)}%` }} /></div><small>Automatic trigger {fmt(DEFAULT_CONFIG.cleaningAutoThreshold * 100, "%", 0)}</small></div><div className="eligibility"><span className={result.cleaning.eligible ? "eligible" : "blocked"}>{result.cleaning.eligible ? "Cleaning eligible" : "Cleaning deferred"}</span>{result.cleaning.eligible ? <p>Water, wind, irradiance and panel temperature are inside the safe envelope.</p> : <ul>{result.cleaning.blockers.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>}<small>{controller.cleaningCycles} completed cycles</small></div></div>;
+  return <div className="maintenance-layout"><div className="soiling-index"><div className="soc-top"><strong>{fmt(sensors.soilingIndex * 100, "%", 0)}</strong><span>output lost to dust</span></div><div className="soc-bar dust"><i style={{ width: `${Math.min(100, sensors.soilingIndex / 0.25 * 100)}%` }} /><b style={{ left: `${DEFAULT_CONFIG.cleaningAutoThreshold / 0.25 * 100}%` }} /></div><small>Cleans automatically at {fmt(DEFAULT_CONFIG.cleaningAutoThreshold * 100, "%", 0)}</small></div><div className="eligibility"><span className={result.cleaning.eligible ? "eligible" : "blocked"}>{result.cleaning.eligible ? "Cleaning eligible" : "Cleaning deferred"}</span>{result.cleaning.eligible ? <p>Water, wind, irradiance and panel temperature are inside the safe envelope.</p> : <ul>{result.cleaning.blockers.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>}<small>{controller.cleaningCycles} completed cycles</small></div></div>;
 }
 
-function ControlAuthority({ manualEnabled, setManualEnabled, manualMode, setManualMode, paused, setPaused, result }) {
-  return <div className="authority"><div className="authority-head"><div><span>Control source</span><b>{manualEnabled ? "Supervisor" : "Automatic engine"}</b></div><button className={`switch ${manualEnabled ? "on" : ""}`} onClick={() => setManualEnabled(!manualEnabled)} aria-pressed={manualEnabled}><i /></button></div><div className="mode-buttons">{[MODES.NORMAL, MODES.CONSERVE, MODES.STORM, MODES.CLEANING].map((mode) => <button key={mode} disabled={!manualEnabled} onClick={() => setManualMode(mode)} className={manualMode === mode ? "active" : ""}>{mode}</button>)}</div><div className="safety-copy"><span>Safety precedence</span><p>Emergency, battery, inverter, wind and water interlocks always override supervisor commands.</p></div><button className="pause-button" onClick={() => setPaused(!paused)}><span>{paused ? "Resume simulation" : "Pause simulation"}</span><b>{paused ? "Held" : result.mode}</b></button></div>;
+function ControlAuthority({ manualEnabled, setManualEnabled, manualMode, setManualMode }) {
+  return <div className="authority">
+    <label className="c-switch"><input type="checkbox" checked={manualEnabled} onChange={(e) => setManualEnabled(e.target.checked)} /><span>Take supervisor control</span></label>
+    <fieldset className="mode-buttons" disabled={!manualEnabled}><legend className="sr-only">Requested mode</legend>{[MODES.NORMAL, MODES.CONSERVE, MODES.STORM, MODES.CLEANING].map((mode) => <button key={mode} type="button" onClick={() => setManualMode(mode)} aria-pressed={manualMode === mode} className={manualMode === mode ? "on" : ""}>{modeLabels[mode]}</button>)}</fieldset>
+    <p className="safety-copy">{manualEnabled ? "Requests are applied only when no higher-priority condition applies. " : "Turn on to request a mode. "}Emergency, battery, inverter, wind and water interlocks always override supervisor commands.</p>
+  </div>;
 }
 
 function EventJournal({ alarms, events, onAcknowledge }) {
   const rows = alarms.length ? alarms.map((item) => ({ ...item, alarm: true, time: Date.now(), text: item.title })) : events;
-  return <div className="event-list">{rows.slice(0, 6).map((item) => <div key={item.id} className={`event event-${item.severity || item.level}`}><i /><time>{new Date(item.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time><div><b>{item.text}</b>{item.detail && <small>{item.detail}</small>}</div>{item.alarm && <button onClick={() => onAcknowledge(item.id)}>ACK</button>}</div>)}</div>;
+  return <div className="event-list">{rows.slice(0, 6).map((item) => <div key={item.id} className={`event event-${item.severity || item.level}`}><i /><time>{new Date(item.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time><div><b>{item.text}</b>{item.detail && <small>{item.detail}</small>}</div>{item.alarm && <button type="button" onClick={() => onAcknowledge(item.id)}>Acknowledge</button>}</div>)}</div>;
 }
 
 function ActuatorTable({ outputs }) {

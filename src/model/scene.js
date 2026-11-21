@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { partById } from "./parts.js";
 
 // Dimensions are visual proportions for an integrated rooftop concept, not fabrication CAD.
 const C = {
@@ -332,7 +333,7 @@ function addHydro(root) {
 export function createWelosScene(container, { onSelect, onReady, onError, modules: initialModules, transparent = false, controlsEnabled = true, theme = "dark" } = {}) {
   // Stage colours only; the model itself is identical in both themes.
   const stage = theme === "light"
-    ? { bg: 0xf4f4f4, floor: 0xe4e5e6, floorOpacity: 0.9, gridA: 0xbfc1c4, gridB: 0xd6d7d9, gridOpacity: 0.55, exposure: 1.35 }
+    ? { bg: 0xf4f1ea, floor: 0xe8e3d8, floorOpacity: 0.9, gridA: 0xc9c3b6, gridB: 0xdcd7cc, gridOpacity: 0.55, exposure: 1.3 }
     : { bg: 0x090d12, floor: 0x111a24, floorOpacity: 0.6, gridA: 0x2a3a4a, gridB: 0x162130, gridOpacity: 0.3, exposure: 1.6 };
   const registry = new Map();
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -363,7 +364,7 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
   controls.enableDamping = !reduced;
   controls.dampingFactor = 0.075;
   controls.minDistance = 3;
-  controls.maxDistance = 27;
+  controls.maxDistance = 40;
   controls.maxPolarAngle = Math.PI * 0.81;
   controls.target.copy(targetLook);
   // embedded (e.g. landing page): never capture wheel/touch scrolling
@@ -429,16 +430,41 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
   let pointerStart = null;
   let transitioning = false;
   setModules(initialModules);
+  requestAnimationFrame(() => { if (!disposed) { resize(); frame(); camera.position.copy(targetEye); controls.target.copy(targetLook); } });
 
+  // Focus: the chosen system stays solid, everything else fades to a ghost.
+  // A selected part gets a soft lift (white emissive) that reads on dark and light materials.
+  const meshes = [];
+  root.traverse((o) => { if (o.isMesh && o.material) { const m = o.material; o.userData.baseOpacity = m.opacity; o.userData.baseTransparent = m.transparent; meshes.push(o); } });
+  const sysOf = (o) => { let p = o; while (p && !p.userData.partId) p = p.parent; return p ? partById[p.userData.partId]?.system : null; };
+  meshes.forEach((o) => { o.userData.sys = sysOf(o); o.userData.fade = 1; });
+  let fading = true;
+  function applyFocus(dt) {
+    let moving = false;
+    for (const o of meshes) {
+      const target = view === "overview" || !o.userData.sys ? 1 : (o.userData.sys === view || (view === "storage" && o.userData.sys === "controller" && false)) ? 1 : 0.12;
+      const cur = o.userData.fade;
+      const next = reduced ? target : cur + (target - cur) * (1 - Math.pow(0.82, dt * 60));
+      if (Math.abs(next - target) > 0.004) moving = true;
+      o.userData.fade = Math.abs(next - target) <= 0.004 ? target : next;
+      const m = o.material, op = o.userData.baseOpacity * o.userData.fade;
+      const want = op < 0.999 || o.userData.baseTransparent;
+      if (m.transparent !== want) { m.transparent = want; m.needsUpdate = true; }
+      m.opacity = op;
+      m.depthWrite = op > 0.5;
+    }
+    return moving;
+  }
   function selectPart(id, notify = false) {
     if (selected && registry.has(selected)) registry.get(selected).traverse((child) => {
-      if (child.isMesh && child.material?.emissive) child.material.emissiveIntensity = 0;
+      if (child.isMesh && child.material?.emissive) { child.material.emissive.copy(child.userData.emissive0 || new THREE.Color(0)); child.material.emissiveIntensity = child.userData.emissiveI0 ?? 0; }
     });
     selected = id;
     if (id && registry.has(id)) registry.get(id).traverse((child) => {
       if (child.isMesh && child.material?.emissive) {
-        child.material.emissive.setHex(C.solar);
-        child.material.emissiveIntensity = 0.075;
+        child.userData.emissive0 ??= child.material.emissive.clone(); child.userData.emissiveI0 ??= child.material.emissiveIntensity;
+        child.material.emissive.setHex(0xffffff);
+        child.material.emissiveIntensity = 0.16;
       }
     });
     if (notify) onSelect?.(id);
@@ -463,11 +489,26 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
     separation = THREE.MathUtils.clamp(value, 0, 1);
     requestRender();
   }
+  // Every view is framed from the bounds of what it shows, so it fits any panel shape.
+  const _box = new THREE.Box3(), _tmp = new THREE.Box3(), _sphere = new THREE.Sphere(), _dir = new THREE.Vector3();
+  function frame() {
+    _box.makeEmpty();
+    if (view === "overview") _box.setFromObject(root);
+    else registry.forEach((obj, id) => { if (partById[id]?.system === view && obj.visible) { _tmp.setFromObject(obj); _box.union(_tmp); } });
+    if (_box.isEmpty()) _box.setFromObject(root);
+    _box.getBoundingSphere(_sphere);
+    _dir.set(...VIEWS[view].eye).sub(new THREE.Vector3(...VIEWS[view].look)).normalize();
+    const vfov = THREE.MathUtils.degToRad(camera.fov), hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
+    const fit = Math.min(vfov, hfov) / 2;
+    const dist = Math.max(controls.minDistance, (_sphere.radius * (view === "overview" ? 1.02 : 1.55)) / Math.sin(fit));
+    targetLook.copy(_sphere.center);
+    targetEye.copy(_sphere.center).addScaledVector(_dir, dist);
+    transitioning = true;
+  }
   function setView(id) {
     view = VIEWS[id] ? id : "overview";
-    targetEye.set(...VIEWS[view].eye);
-    targetLook.set(...VIEWS[view].look);
-    transitioning = true;
+    frame();
+    fading = true;
     requestRender();
   }
   function reset() {
@@ -482,6 +523,7 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    frame(); // re-fit the current view to the new panel shape
   }
   function render(now = performance.now()) {
     if (disposed) return;
@@ -501,6 +543,7 @@ export function createWelosScene(container, { onSelect, onReady, onError, module
     if (!reduced) {
       if (assemblies.wind.visible) registry.get("vawt-rotor").rotation.y += dt * 0.32;
     }
+    if (fading) fading = applyFocus(dt);
     controls.update();
     renderer.render(scene, camera);
   }

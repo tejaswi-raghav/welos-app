@@ -3,287 +3,263 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>WELOS — Sun, wind and water, engineered as one system</title>
-<meta name="description" content="WELOS is a UAE rooftop system that captures sun, wind and rain on one chassis. Scroll the exploded view to see what every part captures and how it is sized for your site.">
-<meta name="theme-color" content="#090D12">
-<link rel="icon" href="favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta property="og:title" content="WELOS — Energy above. Water within.">
-<meta property="og:description" content="One rooftop system for sun, wind and water, built for the UAE.">
-<meta property="og:image" content="brand/welos-lockup.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@500,700,800,900&display=swap" rel="stylesheet">
+<title>WELOS — Power and water from your own roof</title>
+<meta name="description" content="WELOS is one rooftop unit that captures sun, wind and rain, stores them, and runs its own controller to decide where every watt and litre goes. Built for UAE homes and buildings.">
+<meta name="theme-color" content="#F4F1EA">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/mona-sans-wdth.woff2" as="font" type="font/woff2" crossorigin>
+<meta property="og:title" content="WELOS — Power and water from your own roof">
+<meta property="og:description" content="One rooftop unit for sun, wind and rain, with a controller that decides where every watt and litre goes.">
+<meta property="og:image" content="/brand/welos-lockup.png">
 </head>
 <body>
-<canvas id="gl" aria-label="Interactive 3D model of the WELOS system" role="img"></canvas>
-<div class="grid" aria-hidden="true"></div>
-<i class="reg tl" aria-hidden="true"></i><i class="reg tr" aria-hidden="true"></i><i class="reg bl" aria-hidden="true"></i><i class="reg br" aria-hidden="true"></i>
+<a class="skip" href="#demo">Skip to the sizing demo</a>
+<canvas id="gl" aria-hidden="true"></canvas>
 <svg id="lines" aria-hidden="true"></svg>
+<div class="scrim" aria-hidden="true"></div>
 <div id="labels" aria-hidden="true"></div>
-<figure class="ref" id="ref" aria-hidden="true">
-  <button type="button" id="refBtn" aria-label="Enlarge reference visual"><span class="ref-img"><img id="refImg" alt=""></span></button>
-  <figcaption><span><b id="refCode"></b><span id="refT"></span></span><span class="kind">Reference visual <span class="z">⤢</span></span></figcaption>
-</figure>
-<div id="lb" role="dialog" aria-modal="true" aria-label="Reference visual"><img id="lbImg" alt=""><p><b id="lbCode"></b>&nbsp;&nbsp;<span id="lbT"></span>&nbsp;&nbsp;·&nbsp;&nbsp;Supplied reference visual. The interactive model is the engineering source.</p></div>
 
-<header class="site-head">
-  <a class="brand" href="./" aria-label="WELOS home"><img src="brand/welos-header.png" alt="welos" width="139" height="30"></a>
-  <nav class="site-nav" aria-label="Site">
-    <a href="#top" data-scene="0">System</a>
-    <a href="#capture">What it captures</a>
-    <a href="#products">Products</a>
-    <a href="#next">What's next</a>
-    <a class="keep" href="studio.html">Studio</a>
-    <a href="control.html">Control OS</a>
+<header class="nav" id="nav">
+  <a class="nav-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header-ink.png" alt="welos" width="139" height="30"></a>
+  <nav class="nav-links" aria-label="Site">
+    <a href="#inside" data-goto="1">Inside</a>
+    <a href="#clean">Self-cleaning</a>
+    <a href="#decide">How it decides</a>
+    <a href="#demo">Size it</a>
+    <a href="#status">What's real</a>
   </nav>
-  <div class="head-right">
-    <div class="status"><span>Scene <b id="sc">00</b>/16</span><span id="scn">The object</span></div>
-    <button type="button" class="btn sky" data-ai-open><i></i><span>WELOS AI</span></button>
+  <div class="nav-tools">
+    <a class="nav-tool" href="/studio.html">Studio</a>
+    <a class="nav-tool" href="/control.html">Control OS</a>
+    <button type="button" class="nav-ai" data-ai-open>Ask WELOS</button>
   </div>
 </header>
 
-<nav class="rail" id="rail" aria-label="Jump to scene"></nav>
+<main id="story" aria-label="The WELOS system">
+  <div class="panels" id="panels">
 
-<main class="panels" id="panels">
-  <article class="panel" data-s="0">
-    <div class="label">System 01 · Built for the UAE</div>
-    <h1 class="mega">SUN.<br>WIND.<br>WATER.</h1>
-    <p class="q">Three natural resources, captured on one rooftop chassis and run as one system. Scroll to take it apart and see what every part captures.</p>
-    <div class="hint">Scroll to explore ↓</div>
-  </article>
+    <article class="panel hero" data-s="0" data-e="0" id="top">
+      <p class="eyebrow">Rooftop power and water system · Built for the UAE</p>
+      <h1>Power and water from your own roof.</h1>
+      <p class="lede">WELOS is one rooftop unit that captures sun, wind and rain, stores them, and runs its own controller to decide where every watt and litre goes.</p>
+      <div class="cta">
+        <a class="w-btn primary" href="#demo">Size it for my roof</a>
+        <a class="w-btn line" href="#inside" data-goto="1">See inside</a>
+      </div>
+    </article>
 
-  <article class="panel" data-s="1">
-    <div class="label">Exploded view</div>
-    <h2>System architecture</h2>
-    <p class="q">One chassis carries five subsystems: wind, solar and catchment, control, energy, and water.</p>
-    <p class="hide-m">Each part moves out along the direction it would be removed for service.</p>
-    <dl class="specs"><dt>Source model</dt><dd>174 meshes, 27 tagged components</dd><dt>Footprint</dt><dd>One modular chassis</dd></dl>
-  </article>
+    <article class="panel" data-s="1" data-e="1" id="inside">
+      <p class="p-code"><span class="w-code">02 / 08</span> Take it apart</p>
+      <h2>Five systems, one chassis.</h2>
+      <p class="q">Tap any part on the model to see what it does and what still needs testing.</p>
+      <ul class="jump" aria-label="Jump to a subsystem">
+        <li><button type="button" data-goto="3"><i data-ico="sun" class="ic s"></i>Solar canopy<span class="w-code">S</span></button></li>
+        <li><button type="button" data-goto="2"><i data-ico="wind" class="ic w"></i>Wind turbine<span class="w-code">W · optional</span></button></li>
+        <li><button type="button" data-goto="5"><i data-ico="chip" class="ic"></i>Power and control<span class="w-code">E · C</span></button></li>
+        <li><button type="button" data-goto="6"><i data-ico="drop" class="ic b"></i>Water<span class="w-code">R</span></button></li>
+        <li><button type="button" data-goto="10"><i data-ico="cube" class="ic"></i>Structure<span class="w-code">B</span></button></li>
+      </ul>
+    </article>
 
-  <article class="panel" data-s="2">
-    <span class="num w">01</span>
-    <div class="label">Wind generation</div>
-    <h2>Vertical-axis wind turbine</h2>
-    <p class="q">Turns moving air into electricity, catching wind from any direction in a compact vertical footprint.</p>
-    <dl class="cap w"><dt>Captures</dt><dd>Kinetic energy in moving air</dd><dt>How</dt><dd>Helical rotor spins a direct-drive generator</dd><dt>Becomes</dt><dd>AC power, rectified onto the 48 V DC bus</dd></dl>
-    <p class="hide-m">A fail-safe brake stops the rotor for faults, extreme wind and service, with no cloud connection needed.</p>
-    <dl class="specs"><dt>Rated output</dt><dd>400 W</dd><dt>Cut-in speed</dt><dd>2.0 m/s</dd><dt>Acoustic target</dt><dd>Below 45 dB</dd></dl>
-    <p class="uae"><b>UAE</b><span>An add-on, not a default: fitted only where a site measurement shows enough wind, such as coastal or high roofs.</span></p>
-  </article>
+    <article class="panel" data-s="2" data-e="3">
+      <p class="p-code"><span class="w-code s">03 / 08</span> Sun and wind</p>
+      <h2>Two ways to make power.</h2>
+      <ul class="rows">
+        <li><i data-ico="sun" class="ic s"></i><b>Solar canopy</b><span>Power, shade and the rain catchment in one.</span></li>
+        <li><i data-ico="wind" class="ic w"></i><b>Vertical-axis turbine</b><span>Any wind direction. Brakes itself above 15&nbsp;m/s.</span></li>
+        <li><i data-ico="dust" class="ic"></i><b>Reference cell</b><span>Measures dust loss against a clean panel.</span></li>
+      </ul>
+      <details class="more"><summary>Details</summary>
+        <p class="status"><span class="w-src target">Concept</span> Wind is fitted only where roof-height wind averages 4.5&nbsp;m/s or more, after on-site measurement.</p>
+      </details>
+    </article>
 
-  <article class="panel" data-s="3">
-    <span class="num s">02</span>
-    <div class="label">Solar generation</div>
-    <h2>Solar panel array</h2>
-    <p class="q">The main energy source. Six modules turn sunlight into electricity, and also catch the rain and shade the roof below.</p>
-    <dl class="cap s"><dt>Captures</dt><dd>Sunlight</dd><dt>How</dt><dd>Photovoltaic cells, tracked by an MPPT charger</dd><dt>Becomes</dt><dd>DC electricity for the home, battery and grid</dd></dl>
-    <dl class="specs"><dt>Array rating</dt><dd>800 W DC</dd><dt>Module efficiency</dt><dd>21.5%</dd></dl>
-    <p class="uae"><b>UAE</b><span>Heat and dust are the real losses here, so the controller rinses the panels when it measures soiling.</span></p>
-  </article>
+    <article class="panel" data-s="4" data-e="5">
+      <p class="p-code"><span class="w-code">04 / 08</span> Power and control</p>
+      <h2>One bus. One decision-maker.</h2>
+      <ul class="rows">
+        <li><i data-ico="battery" class="ic"></i><b>LiFePO4 battery</b><span>Keeps 20% back, 35% in storms and outages.</span></li>
+        <li><i data-ico="chip" class="ic"></i><b>Edge controller</b><span>Decides on the roof. No cloud needed.</span></li>
+        <li><i data-ico="shield" class="ic"></i><b>Hard-wired protection</b><span>Software can never override a safety trip.</span></li>
+      </ul>
+      <details class="more"><summary>Details</summary>
+        <p class="status"><span class="w-src engine">Working software</span> The same decision engine runs in Control OS and in the ESP32 reference firmware.</p>
+      </details>
+    </article>
 
-  <article class="panel" data-s="4">
-    <span class="num">03</span>
-    <div class="label">Protective chassis</div>
-    <h2>Enclosure and structure</h2>
-    <p class="q">Sealed, IP-rated enclosures keep the electronics away from heat, sand and water, with a hinged door for service.</p>
-    <dl class="cap"><dt>Protects</dt><dd>Power and control electronics</dd><dt>How</dt><dd>Grounded backplate, segregated cabling, four load posts</dd></dl>
-  </article>
+    <article class="panel" data-s="6" data-e="10">
+      <p class="p-code"><span class="w-code b">05 / 08</span> Rain to water</p>
+      <h2>Rain becomes usable water.</h2>
+      <ol class="chain b">
+        <li><i data-ico="drop" class="ic b"></i>Canopy</li><li><i data-ico="reset" class="ic b"></i>First flush</li><li><i data-ico="tank" class="ic b"></i>Tank</li><li><i data-ico="shield" class="ic b"></i>Filter + UV</li><li><i data-ico="explode" class="ic b"></i>Pump</li>
+      </ol>
+      <p class="rule">The dirtiest first 1.2&nbsp;mm is diverted. The inlet closes if water turns cloudy (above 5&nbsp;NTU).</p>
+      <details class="more"><summary>Details</summary>
+        <p class="status"><span class="w-src target">Concept</span> Non-potable use only: irrigation, flushing, panel rinsing.</p>
+      </details>
+    </article>
 
-  <article class="panel" data-s="5">
-    <span class="num">04</span>
-    <div class="label">Power &amp; control</div>
-    <h2>Energy management</h2>
-    <p class="q">Collects power from the sun and wind, stores the surplus and decides where every watt goes.</p>
-    <dl class="cap e"><dt>Stores</dt><dd>Daytime surplus in a 3.5 kWh LiFePO4 battery</dd><dt>Routes</dt><dd>Home loads first, then battery, pump and grid</dd></dl>
-    <div class="bus hide-m" aria-label="Energy architecture">
-      <span class="n sol">Solar MPPT</span><span class="a">→</span><span class="n" style="grid-row:span 2">48 V DC bus</span>
-      <span class="n wnd">Wind rectifier</span><span class="a">→</span>
-      <span></span><span></span><span class="a">↓</span>
-      <span class="n">Battery</span><span class="a">←</span><span class="n">Inverter → Loads</span>
+    <article class="panel" data-s="11" data-e="13">
+      <p class="p-code"><span class="w-code">06 / 08</span> Follow the flows</p>
+      <h2>Power goes home first. Water goes to the tank.</h2>
+      <ol class="chain e"><li><i data-ico="sun" class="ic s"></i>Sun + wind</li><li><i data-ico="home" class="ic"></i>Home</li><li><i data-ico="battery" class="ic"></i>Battery</li><li><i data-ico="grid" class="ic"></i>Grid</li></ol>
+      <ol class="chain b"><li><i data-ico="drop" class="ic b"></i>Rain</li><li><i data-ico="tank" class="ic b"></i>Tank</li><li><i data-ico="shield" class="ic b"></i>Treat</li><li><i data-ico="plant" class="ic b"></i>Use</li></ol>
+    </article>
+
+    <article class="panel" data-s="14" data-e="14">
+      <p class="p-code"><span class="w-code">07 / 08</span> The loop</p>
+      <h2>Each half helps the other.</h2>
+      <p class="q">Solar power runs the pump. Harvested water rinses the panels when dust costs 18% of their output.</p>
+      <div class="cta"><a class="w-btn line" href="#clean">Watch it clean itself</a></div>
+    </article>
+
+    <article class="panel" data-s="15" data-e="16">
+      <p class="p-code"><span class="w-code">08 / 08</span> Back together</p>
+      <h2>One unit. Sized to your roof.</h2>
+      <ol class="reasm" id="steps"><li>Base</li><li>Tank</li><li>Treatment</li><li>Pump</li><li>Power</li><li>Enclosure</li><li>Canopy</li><li>Turbine</li></ol>
+      <div class="cta"><a class="w-btn primary" href="#demo">Size it for my roof</a><a class="w-btn line" href="/studio.html">Open the Studio</a></div>
+    </article>
+  </div>
+
+  <section class="cond" id="cond" aria-label="Run the rooftop">
+    <div class="cond-head">
+      <div class="cond-tabs" role="tablist" aria-label="Mode">
+        <button type="button" role="tab" id="tabBtnCond" aria-controls="tabCond" aria-selected="true">Conditions</button>
+        <button type="button" role="tab" id="tabBtnDay" aria-controls="tabDay" aria-selected="false">24 hours</button>
+      </div>
+      <div class="flowsel" role="group" aria-label="Show flows">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="energy" aria-pressed="false"><i class="fs e"></i>Energy</button>
+        <button type="button" data-f="water" aria-pressed="false"><i class="fs w"></i>Water</button>
+      </div>
     </div>
-    <dl class="specs"><dt>Controller</dt><dd>ESP32 / STM32, 1 Hz sensing</dd><dt>Links</dt><dd>Wi-Fi, BLE, LoRaWAN</dd></dl>
-  </article>
+    <div class="cond-panel" id="tabCond" role="tabpanel" aria-labelledby="tabBtnCond">
+      <div class="chips" role="radiogroup" aria-label="Operating condition" id="condChips"></div>
+      <button type="button" class="cond-pause" id="condPause" aria-pressed="false" aria-label="Pause the tour">❚❚</button>
+    </div>
+    <div class="cond-panel" id="tabDay" role="tabpanel" aria-labelledby="tabBtnDay" hidden>
+      <div class="day-ctl">
+        <button type="button" class="day-play" id="dayPlay" aria-label="Play the day">▶</button>
+        <div class="day-track"><svg class="day-mini" id="dayMini" aria-hidden="true"></svg><input type="range" id="dayT" min="0" max="143" step="1" value="72" aria-label="Time of day"></div>
+      </div>
+    </div>
+    <div class="cond-out" aria-live="polite">
+      <p class="cond-dec"><span class="clk" id="cClock"></span><span class="mode" id="cMode"></span><span id="cDec"></span></p>
+      <dl class="cond-flows" id="cFlows"></dl>
+    </div>
+    <p class="cond-note"><span class="w-src sim">Simulated</span> Every decision by the WELOS OS control engine · Dubai villa: 10.5 kWp, 20 kWh, optional 1 kW turbine</p>
+  </section>
 
-  <article class="panel" data-s="6">
-    <span class="num b">05</span>
-    <div class="label">Rain catchment</div>
-    <h2>Gutter and first flush</h2>
-    <p class="q">Rain runs off the solar canopy into a perimeter gutter. A first-flush diverter rejects the dirtiest first runoff.</p>
-    <dl class="cap b"><dt>Captures</dt><dd>Rainfall on the canopy</dd><dt>How</dt><dd>Gutter, rain sensor and first-flush valve</dd><dt>Becomes</dt><dd>Clean runoff, sent to storage</dd></dl>
-    <dl class="specs"><dt>Capture rate</dt><dd>50 L/min</dd></dl>
-    <p class="uae"><b>UAE</b><span>Rain is rare but arrives in heavy bursts, so the gutter also manages storm runoff from the roof.</span></p>
-  </article>
-
-  <article class="panel" data-s="7">
-    <span class="num b">06</span>
-    <div class="label">Water storage</div>
-    <h2>Protected storage tank</h2>
-    <p class="q">Harvested water is kept in an opaque tank with a screened vent, overflow and drain.</p>
-    <dl class="cap b"><dt>Stores</dt><dd>300 L of harvested water</dd><dt>Senses</dt><dd>Level, flow, pressure, turbidity, conductivity, leaks</dd></dl>
-  </article>
-
-  <article class="panel" data-s="8">
-    <span class="num b">07</span>
-    <div class="label">Multi-stage treatment</div>
-    <h2>Filter and UV train</h2>
-    <p class="q">Water passes through three treatment stages before use.</p>
-    <ul class="flow b"><li><span>Sediment filtration</span></li><li><span>Carbon filtration</span></li><li><span>UV-C disinfection</span></li></ul>
-    <dl class="specs"><dt>Treatment rate</dt><dd>10 L/min</dd><dt>Supply</dt><dd>Non-potable</dd></dl>
-    <p class="fine">Water testing defines final treatment. Drinking-water use needs separate certification.</p>
-  </article>
-
-  <article class="panel" data-s="9">
-    <span class="num b">08</span>
-    <div class="label">Pump &amp; delivery</div>
-    <h2>Variable-speed pump</h2>
-    <p class="q">Uses stored solar energy to deliver treated water for irrigation, panel cleaning and other non-potable uses.</p>
-    <dl class="cap b"><dt>Uses</dt><dd>Stored energy from the battery</dd><dt>Delivers</dt><dd>Pressurised water, including a rinse line back to the panels</dd></dl>
-  </article>
-
-  <article class="panel" data-s="10">
-    <span class="num">09</span>
-    <div class="label">Structural foundation</div>
-    <h2>Base frame</h2>
-    <p class="q">A base plate and frame on four feet carry the canopy posts, turbine mast and tank.</p>
-    <dl class="cap"><dt>Carries</dt><dd>Wind, weight and water loads into the roof</dd></dl>
-  </article>
-
-  <article class="panel" data-s="11">
-    <div class="label">Full exploded view</div>
-    <h2 class="mega sm">ONE SYSTEM.<br>TWO ESSENTIAL RESOURCES.</h2>
-    <p class="q">Energy + water.</p>
-  </article>
-
-  <article class="panel" data-s="12">
-    <div class="label">How energy moves</div>
-    <h2 class="mega sm">HARVEST.</h2>
-    <p class="q">Sun and wind feed one DC bus. Home loads come first; surplus charges the battery, then runs water treatment or exports to the grid.</p>
-    <p class="hide-m">The battery keeps a 20% reserve for outages.</p>
-  </article>
-
-  <article class="panel" data-s="13">
-    <div class="label">How water moves</div>
-    <h2 class="mega sm">TREAT.</h2>
-    <p class="q">Rain becomes usable water in six steps.</p>
-    <ul class="flow b"><li><span>Rain on canopy</span></li><li><span>Gutter + first flush</span></li><li><span>Storage</span></li><li><span>Filter + UV train</span></li><li><span>Pump</span></li><li><span>Output</span></li></ul>
-  </article>
-
-  <article class="panel" data-s="14">
-    <div class="label">The connection</div>
-    <h2 class="mega sm">NOT SEPARATE TECHNOLOGIES.</h2>
-    <h2 class="mega sm two" id="oneSys">ONE INTEGRATED SYSTEM.</h2>
-    <p class="q">Solar power runs the pump and treatment. Stored water rinses the panels when the controller measures a soiling loss above 15%.</p>
-  </article>
-
-  <article class="panel" data-s="15">
-    <div class="label">Reassembly</div>
-    <h2>Back together</h2>
-    <ol class="steps" id="steps">
-      <li><i>01</i>Base locks</li><li><i>02</i>Storage returns</li><li><i>03</i>Treatment returns</li><li><i>04</i>Pump returns</li>
-      <li><i>05</i>Power electronics return</li><li><i>06</i>Chassis closes</li><li><i>07</i>Solar array lowers</li><li><i>08</i>Turbine descends</li>
-    </ol>
-  </article>
-
-  <article class="panel" data-s="16">
-    <img class="lockup" src="brand/welos-lockup@1x.png" alt="welos" width="504" height="356">
-    <h2 class="mega sm">ENERGY ABOVE.<br>WATER WITHIN.</h2>
-    <p class="q">Independent infrastructure for UAE rooftops, engineered as one system.</p>
-    <div class="cta"><a class="btn sun" href="studio.html" id="ctaExplore">Open the Studio →</a><a class="btn line" href="#capture" id="ctaTech">What it captures ↓</a></div>
-  </article>
+  <nav class="rail" id="rail" aria-label="Story chapters"></nav>
+  <div id="track" aria-hidden="true"></div>
+  <div id="veil"><p id="veilMsg">Loading the model</p></div>
+  <aside class="partcard" id="partcard" role="dialog" aria-modal="false" aria-labelledby="pcName" tabindex="-1" hidden></aside>
 </main>
-
-<div class="foot"><span>Model <b>174 meshes</b></span><span id="ro">AZ 0.0° EL 0.0°</span><span>Concept hardware. Figures are roadmap design targets.</span></div>
-<div id="track" aria-hidden="true"></div>
-<div id="veil"><p id="veilMsg">Assembling the model</p></div>
 
 <div class="after" id="after">
 
-  <section class="sec" id="capture">
+  <section class="sec clean" id="clean" aria-labelledby="cleanTitle">
     <div class="wrap">
-      <span class="kick sun rv"><i></i>What it captures</span>
-      <h2 class="rv">Five jobs. <em>One roof.</em></h2>
-      <p class="lede rv">Every WELOS module either captures a resource, stores it, or decides how to use it. Here's the whole system on one line.</p>
-      <div class="ledger">
-        <article class="res s rv"><span class="n">01 · SUN</span><h3>Solar canopy</h3><dl><div><dt>Captures</dt><dd>Sunlight, all day</dd></div><div><dt>Becomes</dt><dd>DC electricity on the 48 V bus</dd></div><div><dt>Used for</dt><dd>Home loads first, then battery, pump and grid export</dd></div></dl><span class="tag">Core module</span></article>
-        <article class="res w rv"><span class="n">02 · WIND</span><h3>Vertical-axis turbine</h3><dl><div><dt>Captures</dt><dd>Moving air from any direction</dd></div><div><dt>Becomes</dt><dd>AC, rectified to DC</dd></div><div><dt>Used for</dt><dd>Evening and night generation when the sun is gone</dd></div></dl><span class="tag">Add-on · measure first</span></article>
-        <article class="res b rv"><span class="n">03 · RAIN</span><h3>Catchment &amp; treatment</h3><dl><div><dt>Captures</dt><dd>Rain on the canopy</dd></div><div><dt>Becomes</dt><dd>Filtered, UV-treated non-potable water</dd></div><div><dt>Used for</dt><dd>Panel rinsing, irrigation, approved non-potable uses</dd></div></dl><span class="tag">Add-on · storm-ready</span></article>
-        <article class="res e rv"><span class="n">04 · STORE</span><h3>Battery &amp; tank</h3><dl><div><dt>Holds</dt><dd>3.5 kWh of energy, 300 L of water</dd></div><div><dt>Why</dt><dd>Moves daytime surplus into the evening, and storm water into dry weeks</dd></div></dl><span class="tag">Included</span></article>
-        <article class="res i rv"><span class="n">05 · DECIDE</span><h3>WELOS OS</h3><dl><div><dt>Senses</dt><dd>Power, soiling, level, flow, water quality, every second</dd></div><div><dt>Decides</dt><dd>What to use, what to store, when to rinse, when to export</dd></div></dl><span class="tag">Included</span></article>
-      </div>
-      <div class="flowline rv"><b class="s">Sun + wind</b>→<b>DC bus</b>→<b>Home</b>→<b>Battery</b>→<b class="b">Pump + UV</b>→<b class="b">Panel rinse</b>→<b class="s">More sun captured</b></div>
+      <header class="sec-head">
+        <p class="eyebrow">Self-cleaning</p>
+        <h2 id="cleanTitle">The panels clean themselves. Only when it's safe.</h2>
+      </header>
+      <div class="cl-app"></div>
     </div>
   </section>
 
-  <section class="sec" id="products">
+  <section class="sec" id="problem" aria-labelledby="problemTitle">
     <div class="wrap">
-      <span class="kick sun rv"><i></i>Products</span>
-      <h2 class="rv">One platform, <em>three scales.</em></h2>
-      <p class="lede rv">The same chassis and WELOS OS, sized from a single villa to a commercial campus. Prices are indicative installed estimates for Dubai.</p>
-      <div class="pgrid" id="pgrid"></div>
+      <header class="sec-head">
+        <p class="eyebrow">What it changes</p>
+        <h2 id="problemTitle">Four things a bare roof can't do.</h2>
+      </header>
+      <div class="tiles" id="compare"></div>
+      <p class="cmp-foot" id="compareFoot"></p>
     </div>
   </section>
 
-  <section class="sec" id="next">
+  <section class="sec" id="decide" aria-labelledby="decideTitle">
     <div class="wrap">
-      <span class="kick sun rv"><i></i>What else can be done</span>
-      <h2 class="rv">From exhibit <em>to rooftop.</em></h2>
-      <p class="lede rv">What our research says to do next: prove the software, pilot with parts you can buy, and only then build our own hardware.</p>
-      <div class="road">
-        <div class="lane s rv"><h3>Software</h3><p>Build now, using the tools on this site.</p>
-          <div class="item"><strong>Sizing, price and payback in AED</strong><span class="chip now">In Studio</span><p>NASA climate data for your exact point, every subsystem sized to it, priced and explained by WELOS AI.</p></div>
-          <div class="item"><strong>Forecast-driven WELOS OS</strong><span class="chip next">Next</span><p>Plan tomorrow from the weather, dust and AC-load forecast, for example by charging fully before a hazy day.</p></div>
-          <div class="item"><strong>Site wind check</strong><span class="chip next">Next</span><p>Satellite wind data plus a short roof measurement, giving a clear yes or no on the turbine.</p></div>
-          <div class="item"><strong>Homeowner and installer apps</strong><span class="chip later">Later</span><p>Daily energy, water and savings for owners; surveys, photos and approval checklists for installers.</p></div>
-          <div class="item"><strong>QR code on every unit</strong><span class="chip later">Later</span><p>A printed code opens that roof's live dashboard and service history. No extra electronics.</p></div>
-        </div>
-        <div class="lane b rv"><h3>Hardware</h3><p>Buy first, build once the pilots show what matters.</p>
-          <div class="item"><strong>Stage 1 · Pilot kit</strong><span class="chip next">Next</span><p>A hybrid inverter readable over Modbus, a Wi-Fi gateway, water level and flow sensors, and a first-flush filter, on 3–5 villas.</p></div>
-          <div class="item"><strong>Stage 2 · Our own controller</strong><span class="chip later">Later</span><p>One box for solar, battery, pump and sensors that keeps running its rules offline.</p></div>
-          <div class="item"><strong>Stage 3 · Integrated canopy</strong><span class="chip later">Later</span><p>Panels, gutters and turbine mount as one structure, rated for local wind and sandstorm loads.</p></div>
-          <div class="item"><strong>Water sources beyond rain</strong><span class="chip next">Study</span><p>Compare AC condensate recovery, greywater reuse and atmospheric water on litres per dirham.</p></div>
-        </div>
-        <div class="lane w rv"><h3>Business</h3><p>The parts that decide whether it ships.</p>
-          <div class="item"><strong>Utility approvals</strong><span class="chip now">Now</span><p>Partner with a DEWA-accredited contractor for Shams Dubai, then cover the other emirates' utilities.</p></div>
-          <div class="item"><strong>Pay monthly</strong><span class="chip next">Next</span><p>Upfront cost is the main barrier, so offer green-loan or monthly plans alongside cash.</p></div>
-          <div class="item"><strong>Developers and communities</strong><span class="chip later">Later</span><p>Fit WELOS into new villas and master-planned communities, where the roof is designed for it.</p></div>
-          <div class="item"><strong>Pilot data</strong><span class="chip next">Next</span><p>Measured energy, water and AED saved from real roofs, published openly.</p></div>
-        </div>
+      <header class="sec-head">
+        <p class="eyebrow">How it decides</p>
+        <h2 id="decideTitle">Four steps, every control cycle.</h2>
+        <p class="sec-lede">Same inputs, same decision, safety first. Pick a condition and follow it through.</p>
+      </header>
+      <div class="trace" id="trace"></div>
+      <details class="rules"><summary>See the full mode table</summary>
+        <table>
+          <thead><tr><th scope="col">Condition</th><th scope="col">Mode</th><th scope="col">What changes</th></tr></thead>
+          <tbody>
+            <tr><td>Emergency stop, battery, inverter or leak fault</td><td>Safety isolation</td><td>Contactors open, turbine braked, pumps stopped, valves closed</td></tr>
+            <tr><td>Rain at or above 3 mm/h, or wind at or above 12 m/s</td><td>Storm</td><td>Battery reserve raised to 35%, rain capture prioritised</td></tr>
+            <tr><td>Soiling at 18% with water, wind, sun and temperature in the safe envelope</td><td>Cleaning panels</td><td>Pump runs a 3-minute, 12 L rinse cycle</td></tr>
+            <tr><td>Grid lost, or battery at or below 25%</td><td>Protecting reserve</td><td>35% reserve when islanded; non-critical load shed if needed</td></tr>
+            <tr><td>None of the above</td><td>Normal</td><td>Home first, then battery, then grid export</td></tr>
+          </tbody>
+        </table>
+        <p class="w-src engine">Thresholds from src/control/engine.js</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="sec demo" id="demo" aria-labelledby="demoTitle">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow">Size it</p>
+        <h2 id="demoTitle">Your roof, sized and run for a day.</h2>
+        <p class="sec-lede">Pick a climate and a building. Every part is sized for it, then run for a day.</p>
+      </header>
+      <div class="demo-grid">
+        <form class="controls" id="demoForm" aria-label="Site inputs"></form>
+        <div class="results" id="demoOut"></div>
       </div>
-      <div class="secure rv">
-        <h4>Security baseline for any WELOS box</h4>
-        <ul>
-          <li><strong>Signed updates</strong>A/B firmware slots with automatic rollback.</li>
-          <li><strong>Outbound only</strong>Encrypted connections out; nothing listens on the home network.</li>
-          <li><strong>Device identity</strong>A hardware identity per unit, never a shared password.</li>
-          <li><strong>Offline first</strong>Safety rules keep running with no internet, and sync later.</li>
-        </ul>
+      <figure class="day" id="day" aria-labelledby="dayTitle"></figure>
+    </div>
+  </section>
+
+  <section class="sec" id="status" aria-labelledby="statusTitle">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow">What's real today</p>
+        <h2 id="statusTitle">Software that works. Hardware still to prove.</h2>
+      </header>
+      <div class="status-grid">
+        <div class="col"><h3><span class="w-src engine">Working now</span></h3><ul>
+          <li><i data-ico="coin" class="ic"></i>Sizing and pricing engine</li>
+          <li><i data-ico="sun" class="ic"></i>NASA climate lookup, any address</li>
+          <li><i data-ico="chip" class="ic"></i>Control engine and simulator</li>
+          <li><i data-ico="shield" class="ic"></i>ESP32 reference firmware</li></ul></div>
+        <div class="col"><h3><span class="w-src target">Concept, to validate</span></h3><ul>
+          <li><i data-ico="cube" class="ic"></i>The integrated unit: no prototype yet</li>
+          <li><i data-ico="wind" class="ic"></i>Wind: noise and real-roof yield</li>
+          <li><i data-ico="drop" class="ic"></i>Water treatment: set by water tests</li>
+          <li><i data-ico="bill" class="ic"></i>Prices: estimates, not quotes</li></ul></div>
+        <div class="col"><h3><span class="w-src sim">Next</span></h3><ul>
+          <li><i data-ico="villa" class="ic"></i>Pilot on 3–5 villas, measured</li>
+          <li><i data-ico="clock" class="ic"></i>Forecast-aware charging</li>
+          <li><i data-ico="grid" class="ic"></i>Utility approval with DEWA</li></ul></div>
       </div>
     </div>
   </section>
 
-  <section class="sec" id="go">
-    <div class="wrap">
-      <span class="kick rv"><i></i>Keep exploring</span>
-      <div class="go">
-        <a class="card rv" href="studio.html"><span class="glow"></span><div><span class="kick sun"><i></i>Studio</span><h3>See it in 3D. Size it for your roof.</h3><p>The 3D model and the site configurator side by side: every module you add or remove shows up on the model, with price, payback and the rule that sized it.</p></div><div class="row"><span class="btn sun">Open the Studio</span><span class="btn line">Configure a site</span></div></a>
-        <a class="card sky rv" href="control.html"><span class="glow"></span><div><span class="kick sky"><i></i>WELOS OS</span><h3>Watch the controller think.</h3><p>A live simulation of how WELOS OS balances sun, wind, battery and water through the day.</p></div><div class="row"><span class="btn line">Open Control OS</span></div></a>
-      </div>
+  <section class="sec tools" aria-label="Tools">
+    <div class="wrap tools-grid">
+      <a class="tool" href="/studio.html"><span class="w-code">Studio</span><h3>Configure the full build</h3><p>Any address, every component switchable, the 3D model beside it.</p><span class="arrow" aria-hidden="true">→</span></a>
+      <a class="tool" href="/control.html"><span class="w-code">Control OS</span><h3>Run the controller</h3><p>Inject storms, dust and outages and watch every decision and actuator.</p><span class="arrow" aria-hidden="true">→</span></a>
     </div>
   </section>
 
-  <footer class="site-foot">
-    <div class="wrap">
-      <img src="brand/welos-lockup@1x.png" alt="welos" width="504" height="356" loading="lazy">
-      <p>WELOS · Dubai, UAE. Concept hardware: every figure is a roadmap design target until measured on a pilot roof. Prices are indicative UAE estimates, not a quotation; final design needs a site survey, structural review and local approvals.</p>
-      <nav aria-label="Footer"><a href="studio.html">Studio</a><a href="control.html">Control OS</a><a href="#products">Products</a><a href="#" data-ai-open>WELOS AI</a></nav>
+  <footer class="foot">
+    <div class="wrap foot-grid">
+      <img src="/brand/welos-header-ink.png" alt="welos" width="139" height="30" loading="lazy">
+      <p>WELOS · Dubai, UAE. Concept hardware: every hardware figure is a design target until measured on a pilot roof. Prices are indicative UAE estimates, not a quotation; final design needs a site survey, structural review and local approvals.</p>
+      <nav aria-label="Footer"><a href="/studio.html">Studio</a><a href="/control.html">Control OS</a><a href="https://github.com/tejaswi-raghav/welos-app">Source</a></nav>
     </div>
   </footer>
 </div>
 
 <script type="module" src="/src/landing/site.js"></script>
-<script type="module" src="/src/explore/main.js"></script>
-<script type="module" src="/src/explore/why.js"></script>
 </body>
 </html>

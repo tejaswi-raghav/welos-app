@@ -2,10 +2,17 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { DATA, BLADE } from './model-data.js';
+import { partById } from '../model/parts.js';
 
 /* ============ SOURCE MODEL (transcribed 1:1 from the supplied welos model scene graph) ============ */
 
 const T_MAX = 17;
+/* scroll weight per scene: key chapters get a full screen, connective ones less */
+const WEIGHT = [1, 0.9, 0.7, 0.8, 0.35, 0.8, 0.55, 0.45, 0.5, 0.45, 0.3, 0.5, 0.75, 0.75, 0.9, 0.5, 0.8];
+const W_SUM = WEIGHT.reduce((a, b) => a + b, 0);
+const CUM = WEIGHT.reduce((acc, w) => (acc.push(acc[acc.length - 1] + w / W_SUM), acc), [0]);
+function tFromP(p) { let i = 0; while (i < WEIGHT.length - 1 && p >= CUM[i + 1]) i++; return i + Math.min(1, (p - CUM[i]) / (WEIGHT[i] / W_SUM)); }
+function pFromT(t) { const i = Math.min(WEIGHT.length - 1, Math.floor(t)); return CUM[i] + (t - i) * WEIGHT[i] / W_SUM; }
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
 let reduce = RM.matches; RM.addEventListener?.('change', e => reduce = e.matches);
 const $ = s => document.querySelector(s);
@@ -18,11 +25,15 @@ const lerp = (a, b, u) => a + (b - a) * u;
 const canvas = $('#gl');
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+  if (!renderer.getContext()) throw new Error('no context');
 } catch (e) {
-  $('#veilMsg').textContent = 'This exhibit needs WebGL. Open it in a recent browser with hardware acceleration turned on.';
+  // polished 2D fallback: a still of the model, and the story as plain reading content
+  document.body.classList.add('no-gl');
+  $('#veil').classList.add('gone');
   throw e;
 }
+renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -40,7 +51,7 @@ const hemi = new THREE.HemisphereLight(0xffffff, 0xd8d6d0, 0.55); scene.add(hemi
 const key = new THREE.DirectionalLight(0xffffff, 2.1);
 key.position.set(6, 12, 8); key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
-Object.assign(key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 40 });
+Object.assign(key.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 44 });
 key.shadow.bias = -0.0005; key.shadow.normalBias = 0.025;
 scene.add(key);
 const fill = new THREE.DirectionalLight(0xffffff, 0.55); fill.position.set(-8, 5, -4); scene.add(fill);
@@ -127,7 +138,7 @@ for (const k in KEY) for (const o of KEY[k]) o.userData.homeWorld = o.getWorldPo
 /* ground: shadow catcher + fading technical grid */
 const GROUND_Y = -2.385;
 const shadowMat = new THREE.ShadowMaterial({ opacity: .17 });
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), shadowMat);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), shadowMat);
 ground.rotation.x = -Math.PI / 2; ground.position.y = GROUND_Y; ground.receiveShadow = true; scene.add(ground);
 const gridMat = new THREE.ShaderMaterial({
   transparent: true, depthWrite: false,
@@ -143,6 +154,35 @@ const gridMat = new THREE.ShaderMaterial({
 });
 const grid = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), gridMat);
 grid.rotation.x = -Math.PI / 2; grid.position.y = GROUND_Y + 0.002; scene.add(grid);
+
+/* the roof it stands on: an architectural section model of a UAE villa roof.
+   Context only: light concrete, no detail that competes with the unit. */
+const ROOF = new THREE.Group(); scene.add(ROOF);
+const concrete = new THREE.MeshStandardMaterial({ color: 0xE6E0D4, roughness: 0.92, metalness: 0 });
+const concreteDark = new THREE.MeshStandardMaterial({ color: 0xD6CFC1, roughness: 0.95, metalness: 0 });
+const cutFace = new THREE.MeshStandardMaterial({ color: 0xC9C1B2, roughness: 1, metalness: 0 });
+const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; ROOF.add(o); return o; };
+const RX0 = -7.4, RX1 = 7.6, RZ0 = -5.2, RZ1 = 4.6, SLAB = 0.34;
+{
+  const slab = box(RX1 - RX0, SLAB, RZ1 - RZ0, [cutFace, cutFace, concrete, cutFace, cutFace, cutFace], (RX0 + RX1) / 2, GROUND_Y - SLAB / 2 - 0.004, (RZ0 + RZ1) / 2);
+  slab.castShadow = false;
+  // parapets on the two far edges, with a coping line
+  box(RX1 - RX0, 0.9, 0.22, concrete, (RX0 + RX1) / 2, GROUND_Y + 0.45, RZ0 + 0.11);
+  box(0.22, 0.9, RZ1 - RZ0, concrete, RX0 + 0.11, GROUND_Y + 0.45, (RZ0 + RZ1) / 2);
+  box(RX1 - RX0 + 0.06, 0.05, 0.3, concreteDark, (RX0 + RX1) / 2, GROUND_Y + 0.925, RZ0 + 0.11);
+  box(0.3, 0.05, RZ1 - RZ0 + 0.06, concreteDark, RX0 + 0.11, GROUND_Y + 0.925, (RZ0 + RZ1) / 2);
+  // two split-AC condensers, the load WELOS feeds, back-right
+  for (let i = 0; i < 2; i++) {
+    const cx = 4.2 + i * 1.25, cz = RZ0 + 0.75;
+    box(1.05, 0.75, 0.42, new THREE.MeshStandardMaterial({ color: 0xF2F0EA, roughness: 0.6 }), cx, GROUND_Y + 0.42, cz);
+    const fan = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.02, 32), concreteDark); fan.rotation.x = Math.PI / 2; fan.position.set(cx - 0.12, GROUND_Y + 0.43, cz + 0.22); ROOF.add(fan);
+    box(0.06, 0.05, 0.42, concreteDark, cx - 0.45, GROUND_Y + 0.025, cz); box(0.06, 0.05, 0.42, concreteDark, cx + 0.45, GROUND_Y + 0.025, cz);
+  }
+  // drain the rain goes to today, front-left
+  const drain = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.01, 24), new THREE.MeshStandardMaterial({ color: 0x8C949C, roughness: 0.5, metalness: 0.4 }));
+  drain.position.set(RX0 + 0.8, GROUND_Y + 0.006, RZ1 - 0.8); ROOF.add(drain);
+}
+ground.visible = false; // the roof now catches the shadows
 
 /* ============ EXPLODE CHOREOGRAPHY ============
    [key, offset in parent space, explode start (scene t), reassembly start]
@@ -188,7 +228,7 @@ const moveW = {};
 function moveWeight(m, t) { return ramp(t, m.a, m.a + 0.5) * (1 - ramp(t, m.b, m.b + 0.28)); }
 
 /* ============ SCENES, FOCUS SETS ============ */
-const SCN = ['The object', 'Exploded view', 'Wind', 'Solar', 'Chassis', 'Power & control', 'Catchment', 'Storage', 'Treatment', 'Delivery', 'Foundation', 'Full system', 'Energy path', 'Water path', 'Connection', 'Reassembly', 'welos'];
+const SCN = ['Overview', 'Inside one unit', 'Wind', 'Solar canopy', 'Enclosure', 'Power and control', 'Catchment', 'Storage', 'Treatment', 'Delivery', 'Structure', 'Whole system', 'How power moves', 'How water moves', 'The loop', 'Reassembly', 'Your roof'];
 const S = (...a) => new Set(a);
 const WIND = ['vawt-rotor', 'wind-brake', 'wind-generator', 'wind-mast'];
 const SOLAR = ['pv-array', 'pv-racking', 'soiling-sensor', 'cleaning-manifold', 'rain-gutter'];
@@ -251,6 +291,38 @@ function anchor(k, p, out) {
   return out.set(p[0], p[1], p[2]).add(_w).sub(o.userData.homeWorld);
 }
 
+/* ============ HERO CONDITION (set by src/landing/hero.js from the control engine) ============ */
+const HERO = { omega: 1.2, sun: 0.9, dark: 0, level: {}, dir: {}, tags: {}, hour: 12.5, filter: 'all', az: 0, azT: 0 };
+const FLOW_KIND = { pv: 'energy', wind: 'energy', bat: 'energy', load: 'energy', pump: 'energy', air: 'energy', rain: 'water', treat: 'water', rinse: 'water' };
+const TAG_KIND = { pv: 'energy', wind: 'energy', bat: 'energy', home: 'energy', water: 'water' };
+function applyCondition(run) {
+  if (!run) return;
+  const { result: r, sensors: x } = run, p = r.power, o = r.outputs;
+  const lv = (kw, full) => kw > 0.02 ? clamp(0.4 + 0.6 * kw / full) : 0;
+  HERO.omega = o.windBrake || x.windSpeedMs < 1.5 ? 0 : 0.42 * x.windSpeedMs;
+  HERO.sun = 1.3 * clamp(x.solarIrradianceWm2 / 930);
+  HERO.dark = 1 - clamp(x.solarIrradianceWm2 / 400);
+  const batKw = p.batteryChargeKw - p.batteryDischargeKw;
+  HERO.level = {
+    pv: lv(p.pvKw, 8), wind: lv(p.windKw, 1), bat: lv(Math.abs(batKw), 6), load: lv(p.servedLoadKw, 4),
+    pump: o.cleaningPump ? 0.7 : 0, rain: (o.storageValve || o.firstFlushValve) ? 0.9 : 0,
+    treat: o.filtrationPump ? 0.75 : 0, rinse: o.cleaningPump ? 0.85 : 0,
+    air: x.windSpeedMs > 1.5 ? clamp(0.35 + x.windSpeedMs / 14) : 0,
+  };
+  HERO.dir = { bat: batKw >= 0 ? 1 : -1 };
+  HERO.tags = run.tags || {};
+  HERO.hour = run.hour ?? (parseInt(run.cond?.clock, 10) + (parseInt(run.cond?.clock?.slice(3), 10) || 0) / 60 || 12.5);
+  for (const c of CALLOUTS) if (c.hero) {
+    const tg = HERO.tags[c.hero];
+    c.show = !!tg && (HERO.filter === 'all' || TAG_KIND[c.hero] === HERO.filter); if (!tg) continue;
+    c.el.querySelector('.code').textContent = tg.code; c.el.querySelector('.t').textContent = tg.value;
+    const sEl = c.el.querySelector('.s'); sEl.textContent = tg.note || ''; sEl.hidden = !tg.note;
+    c.hh = 0;
+  }
+}
+addEventListener('welos:condition', e => applyCondition(e.detail));
+addEventListener('welos:flows', e => { HERO.filter = e.detail; applyCondition(window.__welosCondition); });
+
 /* ============ FLOWS (energy / water / air), routed through the model's own conduits ============ */
 const flowVS = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
 const flowFS = `uniform vec3 uColor; uniform float uOpacity,uReveal,uTime,uRep,uDash; varying vec2 vUv;
@@ -265,8 +337,8 @@ const flowFS = `uniform vec3 uColor; uniform float uOpacity,uReveal,uTime,uRep,u
   }`;
 const COL = { solar: new THREE.Color(), water: new THREE.Color(), orange: new THREE.Color(), ink: new THREE.Color() };
 class Flow {
-  constructor(pts, col, { r = 0.022, dash = 0, win = [] } = {}) {
-    this.pts = pts; this.col = col; this.r = r; this.win = win; this.v = pts.map(() => new THREE.Vector3());
+  constructor(pts, col, { r = 0.022, dash = 0, win = [], hero = null } = {}) {
+    this.pts = pts; this.col = col; this.r = r; this.win = win; this.hero = hero; this.phase = 0; this.v = pts.map(() => new THREE.Vector3());
     this.mat = new THREE.ShaderMaterial({
       vertexShader: flowVS, fragmentShader: flowFS, transparent: true, depthTest: false, depthWrite: false,
       uniforms: { uColor: { value: new THREE.Color() }, uOpacity: { value: 0 }, uReveal: { value: 0 }, uTime: { value: 0 }, uRep: { value: 8 }, uDash: { value: dash } }
@@ -280,6 +352,12 @@ class Flow {
       const x = ramp(t, a, a + 0.1) * (1 - ramp(t, b - 0.1, b));
       if (x > al) { al = x; rv = ra == null ? 1 : ramp(t, ra, rb); }
     }
+    // hero: the live condition decides which conduits carry energy or water, which way, and how fast
+    let speed = 0.55, dir = 1;
+    const lv = this.hero && (HERO.filter === 'all' || FLOW_KIND[this.hero] === HERO.filter) ? (HERO.level[this.hero] || 0) : 0;
+    if (lv > 0 && heroA * lv > al) { al = heroA * lv; rv = 1; speed = 0.25 + 0.6 * lv; dir = HERO.dir[this.hero] || 1; }
+    this.lvl = (this.lvl ?? al) + (al - (this.lvl ?? al)) * 0.12; al = this.lvl;
+    this.phase += (reduce ? 0 : 1) * speed * dir * frameDt;
     if (al < 0.004) { this.mesh.visible = false; return; }
     this.mesh.visible = true;
     let sig = '';
@@ -294,7 +372,7 @@ class Flow {
     this.mat.uniforms.uColor.value.copy(COL[this.col]);
     this.mat.uniforms.uOpacity.value = al * (this.mat.uniforms.uDash.value > .5 ? .55 : .95);
     this.mat.uniforms.uReveal.value = rv;
-    this.mat.uniforms.uTime.value = reduce ? 0 : time * 0.55;
+    this.mat.uniforms.uTime.value = this.phase;
   }
 }
 const WIN_E = (ra, rb) => [[12.05, 13.0, ra, rb], [14.05, 15.05, 14.08, 14.3]];
@@ -302,28 +380,28 @@ const WIN_W = (ra, rb) => [[13.05, 14.0, ra, rb], [14.05, 15.05, 14.08, 14.3]];
 const flows = [
   // energy
   new Flow([['pv-array', [-0.95, 1.74, -0.28]], ['pv-racking', [-0.95, 1.4, -0.3]], ['pv-cable', [-0.95, 0.85, -0.3]], ['pv-cable', [1.3, 0.85, -0.3]], ['mppt', [1.36, 0.2, 1.66]]], 'solar',
-    { win: [[3.3, 4.0, 3.38, 3.85], [5.05, 6.0, 5.1, 5.32], ...WIN_E(12.1, 12.4)] }),
+    { hero: 'pv', win: [[3.3, 4.0, 3.38, 3.85], [5.05, 6.0, 5.1, 5.32], ...WIN_E(12.1, 12.4)] }),
   new Flow([['vawt-rotor', [3.25, 2.25, -0.9]], ['wind-brake', [3.25, 0.86, -0.9]], ['wind-generator', [3.25, 0.5, -0.9]], ['wind-mast', [3.25, -0.65, -0.9]], ['wind-cable', [2.2, -0.65, -0.9]], ['wind-rectifier', [2.13, 0.08, 1.66]]], 'orange',
-    { win: [[5.05, 6.0, 5.1, 5.32], ...WIN_E(12.1, 12.4)] }),
-  new Flow([['mppt', [1.36, 0.08, 1.8]], ['dc-bus', [1.55, -0.13, 1.95]]], 'solar', { win: [[5.05, 6.0, 5.28, 5.42], ...WIN_E(12.38, 12.5)] }),
-  new Flow([['wind-rectifier', [2.13, 0.08, 1.8]], ['dc-bus', [1.95, -0.13, 1.95]]], 'orange', { win: [[5.05, 6.0, 5.28, 5.42], ...WIN_E(12.38, 12.5)] }),
-  new Flow([['dc-bus', [1.4, -0.13, 1.97]], ['lifepo4-battery', [1.3, -1.25, 1.99]]], 'solar', { win: [[5.05, 6.0, 5.4, 5.56], ...WIN_E(12.48, 12.66)] }),
-  new Flow([['dc-bus', [2.1, -0.13, 1.97]], ['hybrid-inverter', [2.1, -0.55, 1.98]], ['hybrid-inverter', [2.3, -0.55, 1.98]], ['load-panel', [3.05, -0.87, 1.9]]], 'solar', { win: [[5.05, 6.0, 5.46, 5.66], ...WIN_E(12.58, 12.82)] }),
+    { hero: 'wind', win: [[5.05, 6.0, 5.1, 5.32], ...WIN_E(12.1, 12.4)] }),
+  new Flow([['mppt', [1.36, 0.08, 1.8]], ['dc-bus', [1.55, -0.13, 1.95]]], 'solar', { hero: 'pv', win: [[5.05, 6.0, 5.28, 5.42], ...WIN_E(12.38, 12.5)] }),
+  new Flow([['wind-rectifier', [2.13, 0.08, 1.8]], ['dc-bus', [1.95, -0.13, 1.95]]], 'orange', { hero: 'wind', win: [[5.05, 6.0, 5.28, 5.42], ...WIN_E(12.38, 12.5)] }),
+  new Flow([['dc-bus', [1.4, -0.13, 1.97]], ['lifepo4-battery', [1.3, -1.25, 1.99]]], 'solar', { hero: 'bat', win: [[5.05, 6.0, 5.4, 5.56], ...WIN_E(12.48, 12.66)] }),
+  new Flow([['dc-bus', [2.1, -0.13, 1.97]], ['hybrid-inverter', [2.1, -0.55, 1.98]], ['hybrid-inverter', [2.3, -0.55, 1.98]], ['load-panel', [3.05, -0.87, 1.9]]], 'solar', { hero: 'load', win: [[5.05, 6.0, 5.46, 5.66], ...WIN_E(12.58, 12.82)] }),
   new Flow([['controller-pcb', [-0.37, -0.37, 1.72]], ['terminal-blocks', [0.19, -0.81, 1.66]], ['dc-bus', [1.2, -0.13, 1.97]]], 'ink', { r: 0.012, dash: 1, win: [[5.05, 6.0, 5.5, 5.7]] }),
-  new Flow([['dc-bus', [1.75, -0.13, 1.97]], ['terminal-blocks', [0.6, -0.81, 1.66]], ['terminal-blocks', [-0.2, -0.81, 1.66]], ['water-pump', [-1.35, -1.6, 1.75]]], 'solar', { win: [[14.05, 15.05, 14.2, 14.45]] }),
+  new Flow([['dc-bus', [1.75, -0.13, 1.97]], ['terminal-blocks', [0.6, -0.81, 1.66]], ['terminal-blocks', [-0.2, -0.81, 1.66]], ['water-pump', [-1.35, -1.6, 1.75]]], 'solar', { hero: 'pump', win: [[14.05, 15.05, 14.2, 14.45]] }),
   // water
   new Flow([['pv-array', [-0.95, 1.75, 0.4]], ['rain-gutter', [-0.95, 1.76, 1.54]], ['rain-gutter', [-3.95, 1.76, 1.54]], ['pipe-0', [-3.95, 1.35, 1.56]], ['pipe-0', [-3.95, -0.5, 1.55]], ['first-flush', [-3.94, -0.9, 1]], ['first-flush', [-3.94, -1.62, 1]], ['pipe-1', [-3.5, -1.62, 1]], ['water-tank', [-3.5, -0.95, 1]]], 'water',
-    { win: [[6.08, 8.0, 6.12, 6.6], [13.05, 14.0, 13.1, 13.38], [14.05, 15.05, 14.08, 14.3]] }),
+    { hero: 'rain', win: [[6.08, 8.0, 6.12, 6.6], [13.05, 14.0, 13.1, 13.38], [14.05, 15.05, 14.08, 14.3]] }),
   new Flow([['water-tank', [-2.8, -1.0, 1.0]], ['water-tank', [-2.1, -1, 1]], ['pipe-2', [-1.7, -1, 1.4]], ['filter-header', [-1.71, -0.5, 1.9]], ['filter-stage-1', [-1.71, -0.66, 1.9]], ['filter-stage-1', [-1.71, -1.45, 1.9]], ['filter-stage-2', [-1.3, -1.45, 1.9]], ['filter-stage-2', [-1.3, -0.66, 1.9]], ['filter-stage-3', [-0.89, -0.66, 1.9]], ['filter-stage-3', [-0.89, -1.45, 1.9]], ['water-pump', [-1.15, -1.6, 1.75]]], 'water',
-    { win: [[8.05, 9.0, 8.12, 8.6], ...WIN_W(13.34, 13.62)] }),
+    { hero: 'treat', win: [[8.05, 9.0, 8.12, 8.6], ...WIN_W(13.34, 13.62)] }),
   new Flow([['water-pump', [-1.55, -1.6, 1.75]], ['water-pump', [-1.95, -1.62, 1.75]], ['pipe-4', [-3.75, -1.62, 1.75]], ['pipe-4', [-3.75, 1.42, 1.62]], ['cleaning-manifold', [-3.55, 1.52, -2.11]], ['cleaning-manifold', [1.7, 1.52, -2.11]]], 'water',
-    { win: [[9.05, 10.0, 9.1, 9.55], ...WIN_W(13.58, 13.9)] }),
+    { hero: 'rinse', win: [[9.05, 10.0, 9.1, 9.55], ...WIN_W(13.58, 13.9)] }),
 ];
 // airflow streamlines around the rotor (wind scene)
 const air = [1.55, 2.25, 2.95].map((y, j) => {
   const pts = []; const r = 1.08 + j * 0.06;
   for (let i = 0; i <= 10; i++) { const a = -2.6 + i * 0.44 + j * 0.3; pts.push(['vawt-rotor', [3.25 + Math.cos(a) * r, y + (i - 5) * 0.025, -0.9 + Math.sin(a) * r]]); }
-  return new Flow(pts, 'ink', { r: 0.008, dash: 1, win: [[2.12, 3.0, 2.2 + j * 0.05, 2.55 + j * 0.05]] });
+  return new Flow(pts, 'ink', { r: 0.008, dash: 1, hero: 'air', win: [[2.12, 3.0, 2.2 + j * 0.05, 2.55 + j * 0.05]] });
 });
 flows.push(...air);
 
@@ -349,9 +427,9 @@ const CALLOUTS = [
   { s: 2, k: 'wind-generator', p: [3.6, 0.45, -0.5], c: 'W02', t: 'Integrated generation', d: 'Direct-drive permanent-magnet generator.', side: 'r', dy: 44, a: 'w' },
   { s: 2, k: 'wind-mast', p: [3.25, -0.6, -0.78], c: 'AXIS', t: 'Vertical architecture', d: 'Compact footprint on the shared base.', side: 'l', dy: 30 },
   // solar
-  { s: 3, k: 'pv-array', p: [0.9, 1.72, 0.6], c: 'S01', t: 'Photovoltaic canopy', d: 'Six modules. Also the rain catchment.', side: 'r', dy: -40, a: 's' },
+  { s: 3, k: 'pv-array', p: [0.9, 1.72, 0.6], c: 'S01', t: 'Photovoltaic canopy', d: 'Makes the power and catches the rain.', side: 'r', dy: -40, a: 's' },
   { s: 3, k: 'soiling-sensor', p: [-3.69, 1.6, -1.82], c: 'S04', t: 'Soiling reference', d: 'Clean reference cell detects dust losses.', side: 'l', dy: -30, a: 's' },
-  { s: 3, k: 'cleaning-manifold', p: [0.9, 1.52, -2.11], c: 'S05', t: 'Cleaning manifold', d: 'Low-flow spray rail for panel rinsing.', side: 'r', dy: -20, a: 's' },
+  { s: 3, k: 'cleaning-manifold', p: [0.9, 1.52, -2.11], c: 'S05', t: 'Cleaning manifold', d: 'Low-flow rinse rail.', side: 'r', dy: -70, a: 's' },
   { s: 3, k: 'pv-racking', p: [1.9, 1.47, -0.26], c: 'S02', t: 'Structural racking', d: 'Carries loads, keeps drainage fall.', side: 'r', dy: 36, a: 's' },
   // chassis
   { s: 4, k: 'enclosure', p: [-0.84, -0.15, 1.45], c: 'C01', t: 'IP-rated enclosure', d: 'Keeps dust and water off control hardware.', side: 'l', dy: -36 },
@@ -361,10 +439,10 @@ const CALLOUTS = [
   { s: 4, mh: 1, k: 'post', p: [1.85, 0.7, 1.6], c: 'FRM', t: 'Canopy posts', d: 'Transfer canopy loads to the base.', side: 'r', dy: -20 },
   // power
   { s: 5, k: 'mppt', p: [1.36, 0.1, 1.92], c: 'E01', t: 'Solar MPPT', side: 'l', dy: -40, a: 's' },
-  { s: 5, k: 'wind-rectifier', p: [2.13, 0.1, 1.92], c: 'E02', t: 'Wind rectifier', side: 'r', dy: -40, a: 'w' },
+  { s: 5, mh: 1, k: 'wind-rectifier', p: [2.13, 0.1, 1.92], c: 'E02', t: 'Wind rectifier', side: 'r', dy: -40, a: 'w' },
   { s: 5, mh: 1, k: 'dc-bus', p: [1.75, -0.13, 1.98], c: 'E04', t: '48 V DC bus', side: 'r', dy: -6 },
-  { s: 5, k: 'hybrid-inverter', p: [2.3, -0.55, 1.97], c: 'E05', t: 'Hybrid inverter', side: 'r', dy: 22 },
-  { s: 5, k: 'lifepo4-battery', p: [1.2, -1.36, 1.97], c: 'E03', t: 'LiFePO4 battery', d: '3.5 kWh usable, smart BMS.', side: 'l', dy: 30 },
+  { s: 5, mh: 1, k: 'hybrid-inverter', p: [2.3, -0.55, 1.97], c: 'E05', t: 'Hybrid inverter', side: 'r', dy: 22 },
+  { s: 5, k: 'lifepo4-battery', p: [1.2, -1.36, 1.97], c: 'E03', t: 'LiFePO4 battery', d: 'Sized per site, own BMS.', side: 'l', dy: 30 },
   { s: 5, mh: 1, k: 'controller-pcb', p: [-0.37, -0.3, 1.63], c: 'C03', t: 'Edge controller', d: 'Runs locally, no cloud needed.', side: 'l', dy: -30 },
   { s: 5, k: 'load-panel', p: [3.05, -0.87, 1.88], c: 'E06', t: 'Critical loads', side: 'r', dy: 40 },
   // catchment
@@ -411,7 +489,16 @@ const CALLOUTS = [
   // connection
   { s: 14, k: 'cleaning-manifold', p: [0.9, 1.52, -2.11], c: 'LOOP', t: 'Water cleans the panels', side: 'r', dy: -30, a: 'b' },
   { s: 14, k: 'water-pump', p: [-1.3, -1.45, 1.98], c: 'LOOP', t: 'Energy runs the pump', side: 'r', dy: 30, a: 's' },
+  // hero: live values from the control engine, placed in the open paper around the unit
+  { s: 0, hero: 'pv', k: 'pv-array', p: [0.6, 1.76, -0.7], c: 'SUN', t: '', d: ' ', side: 'r', dy: -120, dx: 40, a: 's', mh: 1 },
+  { s: 0, hero: 'wind', k: 'vawt-rotor', p: [3.69, 2.9, -0.9], c: 'WIND', t: '', d: ' ', side: 'r', dy: -40, dx: 40, a: 'w', mh: 1 },
+  { s: 0, hero: 'bat', k: 'lifepo4-battery', p: [1.2, -1.36, 1.97], c: 'BATTERY', t: '', d: ' ', side: 'l', dy: 150, dx: 40, a: 's', mh: 1 },
+  { s: 0, hero: 'home', k: 'load-panel', p: [3.3, -0.6, 1.88], c: 'HOME', t: '', d: ' ', side: 'r', dy: 70, dx: 40, mh: 1 },
+  { s: 0, hero: 'water', k: 'rain-gutter', p: [-2.6, 1.76, 1.54], c: 'WATER', t: '', d: ' ', side: 'r', dy: -150, dx: 20, a: 'b', mh: 1 },
 ];
+// phones: at most two labels per chapter so they never stack
+const perScene = {};
+CALLOUTS.forEach(c => { if (c.hero) return; perScene[c.s] = (perScene[c.s] || 0) + 1; if (perScene[c.s] > 2) c.mh = 1; });
 const SVGNS = 'http://www.w3.org/2000/svg';
 const svg = $('#lines'), labelsEl = $('#labels');
 CALLOUTS.forEach(c => {
@@ -429,191 +516,27 @@ CALLOUTS.forEach(c => {
 /* ============ UI: rail, panels ============ */
 const panels = [...document.querySelectorAll('.panel')];
 const rail = $('#rail');
-SCN.forEach((name, i) => {
+// eight chapters over the seventeen choreographed scenes
+const CHAPTERS = [[0, 0, 'The rooftop'], [1, 1, 'Take it apart'], [2, 3, 'Sun and wind'], [4, 5, 'Power and control'], [6, 10, 'Rain to water'], [11, 13, 'Follow the flows'], [14, 14, 'The loop'], [15, 16, 'Back together']];
+const chapterAlpha = (t, a, b) => (a === 0 ? 1 : ramp(t, a - 0.02, a + 0.16)) * (1 - (b === 16 ? 0 : ramp(t, b + 0.8, b + 0.96)));
+CHAPTERS.forEach(([a, , name], i) => {
   const b = document.createElement('button'); b.type = 'button';
-  b.innerHTML = `<span class="lbl">${String(i).padStart(2, '0')} ${name}</span><span class="tick"></span>`;
-  b.setAttribute('aria-label', `Scene ${i}: ${name}`);
-  b.addEventListener('click', () => goTo(i + (i === 0 ? 0 : 0.5)));
+  b.innerHTML = `<span class="lbl">${name}</span><span class="tick"></span>`;
+  b.setAttribute('aria-label', `Chapter ${i + 1} of ${CHAPTERS.length}: ${name}`);
+  b.addEventListener('click', () => goTo(a + (a === 0 ? 0 : 0.5)));
   rail.appendChild(b);
 });
 const railBtns = [...rail.children];
 // the exhibit is driven by #track only; the page continues below it
 const trackEl = $('#track');
 function scrollable() { return Math.max(1, trackEl.offsetHeight - innerHeight); }
-function goTo(t) { window.scrollTo({ top: (t / T_MAX) * scrollable(), behavior: reduce ? 'auto' : 'smooth' }); }
+function goTo(t) { window.scrollTo({ top: pFromT(t) * scrollable(), behavior: reduce ? 'auto' : 'smooth' }); }
+document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); closeCard(); goTo(+el.dataset.goto + 0.5); }));
+// track length follows the scene weights
+if (Math.abs(W_SUM - 11.0) > 0.001) trackEl.style.height = `calc(${W_SUM.toFixed(2)} * var(--scene-h, 84vh) + 100vh)`; // keep landing.css in step
 const stepEls = [...document.querySelectorAll('#steps li')];
 const STEP_T = [15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.72];
 
-
-/* ============ REFERENCE PLATES: supplied visuals, each tied to its part in the model ============ */
-// Supplied product reference visuals, cropped per subsystem (public/explore/).
-const REF_IMG = {
- "full": {
-  "src": "explore/ref-full.jpg",
-  "w": 900,
-  "h": 644
- },
- "wind": {
-  "src": "explore/ref-wind.jpg",
-  "w": 225,
-  "h": 700
- },
- "canopy": {
-  "src": "explore/ref-canopy.jpg",
-  "w": 900,
-  "h": 496
- },
- "chassis": {
-  "src": "explore/ref-chassis.jpg",
-  "w": 535,
-  "h": 370
- },
- "power": {
-  "src": "explore/ref-power.jpg",
-  "w": 420,
-  "h": 350
- },
- "catch": {
-  "src": "explore/ref-catch.jpg",
-  "w": 250,
-  "h": 570
- },
- "tank": {
-  "src": "explore/ref-tank.jpg",
-  "w": 250,
-  "h": 320
- },
- "filter": {
-  "src": "explore/ref-filter.jpg",
-  "w": 240,
-  "h": 290
- },
- "base": {
-  "src": "explore/ref-base.jpg",
-  "w": 900,
-  "h": 227
- }
-};
-const REFS = {
-  1: { img: 'full', code: 'REF 00', t: 'Assembled unit' },
-  2: { img: 'wind', code: 'REF 01', t: 'Wind turbine', k: 'vawt-rotor' },
-  3: { img: 'canopy', code: 'REF 02', t: 'PV canopy', k: 'pv-array' },
-  4: { img: 'chassis', code: 'REF 03', t: 'Enclosures', k: 'power-cabinet' },
-  5: { img: 'power', code: 'REF 04', t: 'Control + power', k: 'hybrid-inverter' },
-  6: { img: 'catch', code: 'REF 05', t: 'Downpipe', k: 'pipe-0' },
-  7: { img: 'tank', code: 'REF 06', t: 'Storage tank', k: 'water-tank' },
-  8: { img: 'filter', code: 'REF 07', t: 'Filter train', k: 'filter-header' },
-  10: { img: 'base', code: 'REF 08', t: 'Base frame', k: 'foot' },
-};
-for (const s in REFS) {
-  const r = REFS[s]; if (!r.k) continue;
-  const c = CALLOUTS.find(c => c.s === +s && c.k === r.k); r.p = c ? c.p : [0, 0, 0]; r.v = new THREE.Vector3();
-}
-const refEl = $('#ref'), refImg = $('#refImg'), lb = $('#lb');
-const refG = document.createElementNS(SVGNS, 'g'); refG.style.opacity = 0;
-const refPath = document.createElementNS(SVGNS, 'path'); refPath.setAttribute('fill', 'none'); refPath.setAttribute('stroke-width', '1'); refPath.setAttribute('stroke-dasharray', '2 4');
-const refSq = document.createElementNS(SVGNS, 'rect'); refSq.setAttribute('width', 5); refSq.setAttribute('height', 5);
-const refDot = document.createElementNS(SVGNS, 'circle'); refDot.setAttribute('r', '3.2'); refDot.setAttribute('fill', 'none'); refDot.setAttribute('stroke-width', '1');
-[refPath, refSq, refDot].forEach(e => { e.style.stroke = 'var(--ink-2)'; refG.appendChild(e); }); refSq.style.fill = 'var(--ink-2)';
-svg.appendChild(refG);
-let refScene = -1, refBox = null, lastLive = [];
-const _bx = new THREE.Box3(), _bc = new THREE.Vector3();
-function rectOf(objs) {
-  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-  for (const o of objs) {
-    _bx.setFromObject(o); if (_bx.isEmpty()) continue;
-    for (let i = 0; i < 8; i++) {
-      _bc.set(i & 1 ? _bx.max.x : _bx.min.x, i & 2 ? _bx.max.y : _bx.min.y, i & 4 ? _bx.max.z : _bx.min.z).project(camera);
-      const x = (_bc.x * .5 + .5) * W, y = (-_bc.y * .5 + .5) * H;
-      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
-    }
-  }
-  return x1 > x0 ? { x0, y0, x1, y1 } : null;
-}
-const ovl = (a, b) => { if (!a || !b) return 0; const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return w > 0 && h > 0 ? w * h : 0; };
-function placeRef(s, pw, ph) {
-  const hdr = mobile ? 66 : 80, lm = mobile ? 14 : 36, rm = mobile ? 38 : 100;
-  const bottom = mobile ? H * 0.52 - 8 : H - 58;
-  const pr = panels[s].getBoundingClientRect();
-  let pb = pr.top; for (const ch of panels[s].children) pb = Math.max(pb, ch.getBoundingClientRect().bottom);
-  const panelR = mobile ? { x0: 0, y0: H * 0.52, x1: W, y1: H } : { x0: pr.left - 12, y0: pr.top - 12, x1: pr.right + 20, y1: pb + 28 };
-  const mid = (Math.max(panelR.x1, 0) + W - rm) / 2 - pw / 2;
-  const C = mobile ? [[lm, hdr], [W - rm - pw, hdr]]
-    : [[lm, bottom - ph], [W - rm - pw, bottom - ph], [W - rm - pw, hdr], [mid, hdr], [mid, bottom - ph],
-       [W - rm - pw, (hdr + bottom - ph) / 2], [panelR.x1 + 8, hdr], [panelR.x1 + 8, bottom - ph],
-       [(mid + W - rm - pw) / 2, hdr], [(mid + W - rm - pw) / 2, bottom - ph]];
-  const F = FOCUS[s] || new Set(), occ = [];
-  for (const k in KEY) {
-    const pipe = /^pipe|cable/.test(k);
-    if (pipe && !F.has(k)) continue;
-    occ.push([rectOf(KEY[k]), F.has(k) ? 2.5 : (s === 1 ? 1 : 0.5)]);
-  }
-  for (const c of lastLive) {
-    occ.push([{ x0: c.x0 - 8, x1: c.x1 + 8, y0: c.ly - c.hh / 2 - 8, y1: c.ly + c.hh / 2 + 8 }, 14]);
-    occ.push([{ x0: c.x - 14, x1: c.x + 14, y0: c.y - 14, y1: c.y + 14 }, 30]);
-    occ.push([{ x0: Math.min(c.x, c.x0), x1: Math.max(c.x, c.x1), y0: Math.min(c.y, c.ly) - 3, y1: Math.max(c.y, c.ly) + 3 }, 2]);
-  }
-  if (!mobile) occ.push([panelR, 40]);
-  let best = null, bs = 1e18;
-  C.forEach(([x, y], i) => {
-    const r = { x0: x - 10, y0: y - 10, x1: x + pw + 10, y1: y + ph + 10 };
-    if (r.x0 < 0 || r.x1 > W || r.y0 < hdr - 20) return;
-    let sc = i * 40; for (const [o, w] of occ) sc += w * ovl(r, o);
-    if (sc < bs) { bs = sc; best = { x, y, w: pw, h: ph }; }
-  });
-  return best || { x: C[0][0], y: C[0][1], w: pw, h: ph };
-}
-function setRef(s) {
-  const r = REFS[s], im = REF_IMG[r.img];
-  refImg.src = im.src; refImg.alt = `${r.t}, reference visual`;
-  $('#refCode').textContent = r.code; $('#refT').textContent = r.t;
-  const asp = im.h / im.w;
-  let pw = mobile ? (asp > 1.3 ? 70 : 116) : (asp > 1.3 ? 150 : 228);
-  if (!mobile && pw * asp > 250) pw = 250 / asp;
-  if (mobile && pw * asp > 112) pw = 112 / asp;
-  const ih = Math.round(pw * asp);
-  refEl.querySelector('.ref-img').style.cssText = `width:${pw}px;height:${ih}px`;
-  const fw = Math.max(pw, mobile ? 104 : 200) + (mobile ? 16 : 24);
-  refEl.style.width = fw + 'px';
-  refBox = placeRef(s, fw, ih + (mobile ? 34 : 44) + 22);
-  refBox.iw = pw; refBox.ih = ih;
-  refEl.style.transform = `translate(${refBox.x.toFixed(1)}px, ${refBox.y.toFixed(1)}px)`;
-  refScene = s;
-}
-function openLB() {
-  if (refScene < 0) return; const r = REFS[refScene];
-  $('#lbImg').src = REF_IMG[r.img].src; $('#lbImg').alt = `${r.t}, reference visual`;
-  $('#lbCode').textContent = r.code; $('#lbT').textContent = r.t;
-  lb.classList.add('on'); lb.focus?.();
-}
-$('#refBtn').addEventListener('click', openLB);
-lb.tabIndex = -1;
-lb.addEventListener('click', () => lb.classList.remove('on'));
-addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('on'); });
-addEventListener('resize', () => { refScene = -1; });
-function updateRef(t) {
-  const s = Math.floor(t + 0.04), r = REFS[s];
-  const a = r ? ramp(t, s + 0.3, s + 0.5) * (1 - ramp(t, s + 0.8, s + 0.94)) : 0;
-  if (a < 0.01) {
-    refEl.style.opacity = 0; refEl.style.visibility = 'hidden'; refEl.classList.remove('live'); refG.style.opacity = 0;
-    if (!r || t < s + 0.3) refScene = -1;
-    return;
-  }
-  if (refScene !== s) setRef(s);
-  refEl.style.visibility = 'visible'; refEl.style.opacity = a.toFixed(3); refEl.classList.toggle('live', a > 0.6);
-  if (!r.k || mobile) { refG.style.opacity = 0; return; }
-  anchor(r.k, r.p, r.v).project(camera);
-  const ax = (r.v.x * .5 + .5) * W, ay = (-r.v.y * .5 + .5) * H;
-  const bx0 = refBox.x + 4, by0 = refBox.y + 4, bx1 = refBox.x + refBox.iw + 20, by1 = refBox.y + refBox.ih + 20;
-  const px = clamp(ax, bx0, bx1), py = clamp(ay, by0, by1);
-  if (Math.hypot(ax - px, ay - py) < 30) { refG.style.opacity = 0; return; }
-  // leave the plate horizontally or vertically, then run straight to the part
-  const ex = px === bx0 || px === bx1 ? px + (px === bx1 ? 18 : -18) : px, ey = ex === px ? py + (py === by1 ? 18 : -18) : py;
-  refPath.setAttribute('d', `M${px.toFixed(1)} ${py.toFixed(1)}L${ex.toFixed(1)} ${ey.toFixed(1)}L${ax.toFixed(1)} ${ay.toFixed(1)}`);
-  refSq.setAttribute('x', (px - 2.5).toFixed(1)); refSq.setAttribute('y', (py - 2.5).toFixed(1));
-  refDot.setAttribute('cx', ax.toFixed(1)); refDot.setAttribute('cy', ay.toFixed(1));
-  refG.style.opacity = (a * (mobile ? 0.6 : 0.9)).toFixed(3);
-}
 
 /* ============ THEME ============ */
 let dimColor = new THREE.Color(), paperColor = new THREE.Color(), inkCss = '#000', isDark = false;
@@ -621,12 +544,11 @@ function readTheme() {
   const cs = getComputedStyle(document.documentElement);
   const g = n => cs.getPropertyValue(n).trim();
   paperColor.set(g('--paper')); dimColor.set(g('--dim'));
-  scene.background = paperColor;
   COL.solar.set(g('--solar')); COL.water.set(g('--water')); COL.orange.set(g('--orange')); COL.ink.set(g('--ink'));
   inkCss = g('--ink');
   isDark = paperColor.getHSL({ h: 0, s: 0, l: 0 }).l < 0.5;
   shadowMat.opacity = parseFloat(g('--shadow')) || .17;
-  gridMat.uniforms.uColor.value.set(inkCss); gridMat.uniforms.uAlpha.value = isDark ? .12 : .09;
+  gridMat.uniforms.uColor.value.set(inkCss); gridMat.uniforms.uAlpha.value = isDark ? .12 : .045;
   hemi.groundColor.copy(paperColor);
   guides.forEach(({ l }) => l.material.color.set(inkCss)); axes.forEach(({ l }) => l.material.color.set(inkCss));
   svg.querySelectorAll('path').forEach(p => p.setAttribute('stroke', inkCss));
@@ -637,26 +559,34 @@ readTheme();
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', readTheme);
 new MutationObserver(readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+let viewHero = -1;
+function setView(h) {
+  if (Math.abs(h - viewHero) < 0.002) return; viewHero = h;
+  if (mobile) camera.setViewOffset(W, H, 0, H * 0.08, W, H);
+  else if (stacked) camera.setViewOffset(W, H, 0, -H * (0.03 + 0.04 * h), W, H);
+  else camera.setViewOffset(W, H, -W * ((W > 1100 ? 0.13 : 0.16) + 0.045 * h), -H * 0.02 * h, W, H);
+  camera.updateProjectionMatrix();
+}
+
 /* ============ LAYOUT ============ */
-let W = 1, H = 1, mobile = false, panelRight = 0;
+let W = 1, H = 1, mobile = false, stacked = false, panelRight = 0;
 function resize() {
-  W = innerWidth; H = innerHeight; mobile = W < 760;
+  W = innerWidth; H = innerHeight; mobile = W < 760; stacked = !mobile && W <= 1100 && H > W * 1.1;
   renderer.setSize(W, H, false);
   camera.aspect = W / H;
-  if (mobile) camera.setViewOffset(W, H, 0, H * 0.2, W, H);
-  else camera.setViewOffset(W, H, -W * (W > 1100 ? 0.13 : 0.16), 0, W, H);
-  camera.updateProjectionMatrix();
-  const asp = W / H; camDist = mobile ? 1.78 * Math.max(1, 0.6 / asp) : 1.2 * Math.max(1, 1.55 / asp);
-  const r = $('#panels').getBoundingClientRect(); panelRight = mobile ? 0 : r.right;
+  setView(1);
+  const asp = W / H; camDist = mobile ? 1.78 * Math.max(1, 0.6 / asp) : stacked ? 1.05 * Math.max(1, 0.95 / asp) : 1.2 * Math.max(1, 1.55 / asp);
+  const r = $('#panels').getBoundingClientRect(); panelRight = mobile || stacked ? 0 : r.right;
 }
 addEventListener('resize', resize); resize();
 
 /* ============ FRAME ============ */
 let tTarget = 0, tNow = 0, last = performance.now(), start = last, first = true;
-let past = false, hidden = false;
+const _sun = new THREE.Vector3();
+let past = false, hidden = false, heroA = 1, rotorOmega = 0, rotorAngle = 0, frameDt = 1 / 60;
 const onScroll = () => {
   const y = window.scrollY, r = scrollable();
-  tTarget = clamp(y / r) * T_MAX;
+  tTarget = tFromP(clamp(y / r));
   const p = y > r + innerHeight * 0.3; if (p !== past) { past = p; document.body.classList.toggle('past', p); }
   hidden = y > r + innerHeight * 1.05;
 };
@@ -666,7 +596,7 @@ const _p = new THREE.Vector3(), _q = new THREE.Vector3(), _c = new THREE.Color()
 
 function frame(now) {
   if (hidden && !first) { last = now; requestAnimationFrame(frame); return; }
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; frameDt = dt;
   const time = (now - start) / 1000;
   tNow = reduce ? tTarget : tNow + (tTarget - tNow) * (1 - Math.exp(-dt * 7));
   if (Math.abs(tTarget - tNow) < 1e-4) tNow = tTarget;
@@ -677,7 +607,10 @@ function frame(now) {
     m.w = moveWeight(m, t); moveW[m.k] = m.w;
     for (const o of KEY[m.k]) o.position.copy(o.userData.home).addScaledVector(m.off, m.w);
   }
-  if (!reduce) ROTOR.rotation.y = rotorY0 + time * (0.35 + 0.9 * sceneAlpha(t, 2));
+  heroA = t < 1 ? sceneAlpha(t, 0) : 0;
+  const omegaTarget = heroA > 0.5 ? HERO.omega : 1.1 + 0.9 * sceneAlpha(t, 2);
+  rotorOmega += (omegaTarget - rotorOmega) * (1 - Math.exp(-dt * 1.6));
+  if (!reduce) { rotorAngle += rotorOmega * dt; ROTOR.rotation.y = rotorY0 + rotorAngle; }
   modelRoot.updateMatrixWorld(true);
 
   // highlight / dim
@@ -705,13 +638,25 @@ function frame(now) {
   _d.subVectors(camPos, camTgt);
   const asp = W / H; let k = asp < 1 ? 1 + (1 - asp) * 1.25 : asp < 1.35 ? 1.08 : 1;
   if (!reduce) k *= 1 + 0.12 * (1 - ease(clamp((time - 0.2) / 2.6)));
-  _d.multiplyScalar(k);
+  _d.multiplyScalar(k * (1 + (mobile ? 0.04 : 0.16) * heroA));
+  setView(heroA);
+  HERO.az += (HERO.azT - HERO.az) * (1 - Math.exp(-dt * 6));
+  if (Math.abs(HERO.az) > 1e-4) _d.applyAxisAngle(THREE.Object3D.DEFAULT_UP, HERO.az * heroA);
   if (!reduce) { const orbit = THREE.MathUtils.degToRad(3.5) * Math.sin(time * 0.22) * ramp(t, 15.95, 16.4); _d.applyAxisAngle(THREE.Object3D.DEFAULT_UP, orbit); }
   camera.position.copy(camTgt).add(_d); camera.lookAt(camTgt);
   camera.updateMatrixWorld();
 
   // lights
-  sunLight.intensity = 1.5 * sceneAlpha(t, 3) + 0.6 * sceneAlpha(t, 12);
+  sunLight.intensity = 1.5 * sceneAlpha(t, 3) + 0.6 * sceneAlpha(t, 12) + heroA * HERO.sun;
+  key.intensity = 2.1 - heroA * HERO.dark * 1.05;
+  {
+    const a = ((HERO.hour - 6) / 12.6) * Math.PI, el = Math.max(0.12, Math.sin(a));
+    _sun.set(-Math.cos(a) * 12, 3 + el * 11, 5 - Math.cos(a) * 2);
+    sunLight.position.lerp(_sun, heroA > 0.5 ? 0.08 : 1);
+    const night = heroA * HERO.dark;
+    hemi.intensity = 0.55 - night * 0.2; hemi.color.setRGB(1 - night * 0.3, 1 - night * 0.2, 1);
+    key.color.setRGB(1, 1 - night * 0.08, 1 - night * 0.02 + 0);
+  }
   sunLight.target = KEY['pv-array'][0];
 
   // flows + guides
@@ -737,39 +682,39 @@ function frame(now) {
   // ---- DOM overlays ----
   let cur = 0, best = -1;
   panels.forEach((p, i) => {
-    const a = sceneAlpha(t, i);
+    const a = chapterAlpha(t, +p.dataset.s, +p.dataset.e);
     if (a > best) { best = a; cur = i; }
     p.style.opacity = a.toFixed(3);
     const vis = a > 0.02; p.style.visibility = vis ? 'visible' : 'hidden';
     p.classList.toggle('live', a > 0.6);
   });
-  $('#oneSys').style.opacity = ramp(t, 14.35, 14.55).toFixed(3);
   stepEls.forEach((li, i) => li.classList.toggle('done', t >= STEP_T[i] + 0.2));
   railBtns.forEach((b, i) => b.classList.toggle('on', i === cur));
-  $('#sc').textContent = String(cur).padStart(2, '0');
-  $('#scn').textContent = SCN[cur];
+  document.documentElement.style.setProperty('--hero-a', heroA.toFixed(3));
+  condEl.style.opacity = heroA.toFixed(3); condEl.style.visibility = heroA > 0.02 ? 'visible' : 'hidden'; condEl.classList.toggle('live', heroA > 0.6);
 
   const live = [];
   for (const c of CALLOUTS) {
-    const a = (mobile && c.mh) ? 0 : sceneAlpha(t, c.s) * ramp(t, c.s + 0.12, c.s + 0.4);
+    const a = (mobile && c.mh) ? 0 : c.hero ? heroA * clamp((time - 1.4) / 0.8) * (c.show ? 1 : 0) : sceneAlpha(t, c.s) * ramp(t, c.s + 0.12, c.s + 0.4);
     if (a < 0.01) { if (c.on) { c.el.style.opacity = 0; c.g.style.opacity = 0; c.on = false; } continue; }
     if (!c.on || !c.hh) { c.hh = c.el.offsetHeight || 44; c.ww = c.el.offsetWidth || 160; }
     c.on = true; c.a = a;
     anchor(c.k, c.p, c.v).project(camera);
     c.x = (c.v.x * .5 + .5) * W; c.y = (-c.v.y * .5 + .5) * H;
-    let side = c.side; const dx = mobile ? 44 : 78;
+    let side = c.side; const dx = c.dx && !mobile ? c.dx : mobile ? 44 : 78;
     const labW = c.ww + 12;
     if (!mobile && side === 'l' && c.x - dx - labW < panelRight + 16) side = 'r';
     if (side === 'l' && c.x - dx - labW < 8) side = 'r';
     if (side === 'r' && c.x + dx + labW > W - (mobile ? 24 : 64) && c.x - dx - labW > (mobile ? 8 : panelRight + 16)) side = 'l';
+    if (side === 'r' && c.x + dx * 0.6 + 48 + labW > W - 12) side = 'l';
     c.sd = side; c.ly = c.y + c.dy * (mobile ? 0.6 : 1);
     live.push(c);
   }
   // keep labels from stacking on top of each other (either side)
-  const top = mobile ? 64 : 70, bot = H - (mobile ? H * 0.42 : 40);
+  const top = mobile ? 64 : 78, dockR = heroA > 0.5 && !mobile ? condEl.getBoundingClientRect().right + 12 : -1;
   const lw = mobile ? 150 : 200;
   for (const c of live) {
-    const dx = mobile ? 44 : 78, sg = c.sd === 'r' ? 1 : -1, lx = c.x + sg * (dx * 0.6 + 40);
+    const dx = c.dx && !mobile ? c.dx : mobile ? 44 : 78, sg = c.sd === 'r' ? 1 : -1, lx = c.x + sg * (dx * 0.6 + 40);
     c.x0 = c.sd === 'r' ? lx : lx - c.ww; c.x1 = c.x0 + c.ww;
   }
   live.sort((p, q) => p.ly - q.ly);
@@ -780,10 +725,10 @@ function frame(now) {
       const need = (A.hh + B.hh) / 2 + 6, gap = B.ly - A.ly;
       if (Math.abs(gap) < need) { const d = (need - Math.abs(gap)) / 2 * (gap >= 0 ? 1 : -1); A.ly -= d; B.ly += d; }
     }
-    live.forEach(c => c.ly = clamp(c.ly, top + c.hh / 2, Math.max(top + c.hh / 2, bot - c.hh / 2)));
+    live.forEach(c => { const bot = mobile ? H * 0.5 : heroA > 0.5 && (c.x0 < dockR || stacked) ? H - condH - 44 : H - 40; c.ly = clamp(c.ly, top + c.hh / 2, Math.max(top + c.hh / 2, bot - c.hh / 2)); });
   }
   for (const c of live) {
-    const { x, y, ly, a } = c, side = c.sd, sg = side === 'r' ? 1 : -1, dx = mobile ? 44 : 78;
+    const { x, y, ly, a } = c, side = c.sd, sg = side === 'r' ? 1 : -1, dx = c.dx && !mobile ? c.dx : mobile ? 44 : 78;
     const ex = x + sg * Math.min(Math.abs(ly - y), 40) * 0.8;
     const lx = ex + sg * dx * 0.6;
     c.path.setAttribute('d', `M${x.toFixed(1)} ${y.toFixed(1)}L${ex.toFixed(1)} ${ly.toFixed(1)}L${lx.toFixed(1)} ${ly.toFixed(1)}`);
@@ -791,17 +736,101 @@ function frame(now) {
     c.g.style.opacity = a.toFixed(3);
     c.el.classList.toggle('l', side === 'l');
     c.el.style.opacity = a.toFixed(3);
-    c.el.style.transform = `translate(${(lx + sg * 8).toFixed(1)}px, ${ly.toFixed(1)}px) translate(${side === 'l' ? '-100%' : '0'}, -50%)`;
+    // keep every label fully on screen
+    const w0 = c.el.offsetWidth || 120; let tx = lx + sg * 8;
+    if (side === 'l') tx = Math.max(8 + w0, tx); else tx = Math.min(W - 8 - w0, tx);
+    c.el.style.transform = `translate(${tx.toFixed(1)}px, ${ly.toFixed(1)}px) translate(${side === 'l' ? '-100%' : '0'}, -50%)`;
   }
 
-  lastLive = live;
-  updateRef(t);
 
-  // readout
-  const az = Math.atan2(_d.x, _d.z) * 180 / Math.PI, el = Math.asin(_d.y / _d.length()) * 180 / Math.PI;
-  $('#ro').textContent = `AZ ${az.toFixed(1)}°  EL ${el.toFixed(1)}°  T ${t.toFixed(2)}`;
+  updateHover();
 
   if (first) { first = false; $('#veil').classList.add('gone'); }
   requestAnimationFrame(frame);
 }
+
+/* ============ PART PICKING: select a part on the model to see what it is ============ */
+const STRUCT = {
+  'base-slab': { code: 'B01', name: 'Base frame and feet', category: 'Structure', role: 'Carries wind, weight and water loads into the roof through four feet.', evidence: 'Steel base plate and frame concept', status: 'Roof structural capacity and fixing design are checked per site.' },
+  'power-cabinet': { code: 'CAB', name: 'Power cabinet', category: 'Enclosure', role: 'Houses the battery, inverter and converters in a ventilated, IP-rated cabinet.', evidence: 'Serviceable cabinet concept', status: 'Thermal and ingress testing in UAE summer conditions required.' },
+};
+const PART_OF = k => {
+  if (!k) return null;
+  if (partById[k]) return partById[k];
+  if (k.startsWith('filter')) return partById['filter-train'];
+  if (k === 'enclosure-door') return partById['enclosure'];
+  if (k === 'pv-cable' || k === 'wind-cable') return partById['dc-bus'];
+  if (k === 'wind-mast') return partById['vawt-rotor'];
+  if (k === 'canopy') return partById['pv-racking'];
+  if (['base-slab', 'base-plate', 'foot', 'post'].includes(k)) return STRUCT['base-slab'];
+  if (k === 'power-cabinet') return STRUCT['power-cabinet'];
+  return null;
+};
+const SYSTEM_SCENE = { wind: 2, solar: 3, controller: 5, storage: 5, water: 6 };
+const SYSTEM_NAME = { wind: 'Wind', solar: 'Solar canopy', controller: 'Control core', storage: 'Energy core', water: 'Water system' };
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const card = $('#partcard');
+let hoverKey = null, pendingHover = null, lastFocus = null;
+function pickAt(cx, cy) {
+  ndc.set((cx / W) * 2 - 1, -(cy / H) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(meshes, false).find(h => PART_OF(h.object.userData.dimKey));
+  return hit ? hit.object.userData.dimKey : null;
+}
+const esc = x => String(x).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+function openCard(key) {
+  const part = PART_OF(key); if (!part) return;
+  lastFocus = document.activeElement;
+  const scene = SYSTEM_SCENE[part.system];
+  card.innerHTML = `<button type="button" class="pc-x" aria-label="Close part details">×</button>
+    <p class="pc-code"><span class="w-code">${esc(part.code)}</span>${esc(SYSTEM_NAME[part.system] || part.category)}</p>
+    <h3 id="pcName">${esc(part.name)}</h3>
+    <p class="pc-role">${esc(part.role)}</p>
+    <dl><dt>Basis</dt><dd>${esc(part.evidence)}</dd><dt>Still to prove</dt><dd>${esc(part.status)}</dd></dl>
+    ${scene != null ? `<button type="button" class="pc-go" data-scene="${scene}">See it in the story →</button>` : ''}`;
+  card.hidden = false;
+  card.querySelector('.pc-x').addEventListener('click', closeCard);
+  card.querySelector('.pc-go')?.addEventListener('click', e => { const sc = +e.currentTarget.dataset.scene; closeCard(); goTo(sc + 0.5); });
+  card.focus({ preventScroll: true });
+}
+function closeCard() {
+  if (card.hidden) return;
+  card.hidden = true;
+  if (lastFocus && document.contains(lastFocus)) lastFocus.focus?.({ preventScroll: true });
+}
+let downAt = null;
+canvas.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; dragAz = e.pointerType !== 'touch' && heroA > 0.5 ? [e.clientX, HERO.azT] : null; if (dragAz) canvas.setPointerCapture?.(e.pointerId); });
+let dragAz = null;
+canvas.addEventListener('pointermove', e => { if (!dragAz || !(e.buttons & 1)) return; HERO.azT = clamp((dragAz[1] - (e.clientX - dragAz[0]) * 0.006 + 0.49) / 0.98) * 0.98 - 0.49; canvas.style.cursor = 'grabbing'; });
+canvas.addEventListener('pointerup', () => { dragAz = null; canvas.style.cursor = ''; });
+canvas.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
+  const k = pickAt(e.clientX, e.clientY);
+  if (k) openCard(k); else closeCard();
+});
+canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') pendingHover = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerleave', () => { pendingHover = null; setHover(null); });
+addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
+function setHover(k) {
+  if (k === hoverKey) return;
+  hoverKey = k; canvas.style.cursor = k ? 'pointer' : '';
+  const target = PART_OF(k);
+  for (const m of meshes) {
+    const on = !!target && PART_OF(m.userData.dimKey) === target;
+    if (on) { m.userData.em ??= [m.material.emissive.clone(), m.material.emissiveIntensity]; m.material.emissive.set(0xffb800); m.material.emissiveIntensity = 0.22; }
+    else if (m.userData.em) { m.material.emissive.copy(m.userData.em[0]); m.material.emissiveIntensity = m.userData.em[1]; m.userData.em = null; }
+  }
+}
+function updateHover() {
+  if (!pendingHover) return;
+  const [x, y] = pendingHover; pendingHover = null;
+  setHover(past ? null : pickAt(x, y));
+}
+
+/* ============ HERO DOCK ============ */
+const condEl = $('#cond');
+let condH = 220;
+new ResizeObserver(() => { condH = condEl.offsetHeight; }).observe(condEl);
+if (window.__welosCondition) applyCondition(window.__welosCondition);
+
 requestAnimationFrame(frame);

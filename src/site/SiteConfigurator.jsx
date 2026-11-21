@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { panels, battery, bathtubs, payback, meter } from "../viz/explain.js";
+import { icon } from "../design/icons.js";
+import "../viz/explain.css";
 import { sizeSystem, ruleAdvice, TIERS, PACKAGES, hubWind, CURRENCY, RATES } from "./sizing.js";
 import { PRESETS, DEFAULT_PRESET, saveBuild, loadBuild } from "./presets.js";
 import "./site.css";
@@ -116,27 +119,27 @@ export default function SiteConfigurator() {
       <div className="cfg-studio">
         <div className="cfg-stage">
           <div className="cfg-visual">
-            <img src="/explore/ref-base.jpg" alt={`WELOS ${result.tier.id} configured for ${shortPlace(state.place)}`} />
+            <img src="/explore/poster.webp" alt={`The WELOS unit, configured as WELOS ${result.tier.id} for ${shortPlace(state.place)}`} />
             <div className="glass-card cfg-float">
               <span>WELOS {result.tier.id} · {result.package.name}</span>
               <strong>{money(t.totalAed)}</strong>
               <em>≈ {money(t.monthlyAed)}/mo financed · saves ≈ {money(t.monthlySavingsAed)}/mo</em>
             </div>
           </div>
-          <dl className="cfg-specs">
-            <div><dt>Solar</dt><dd>{fmt(by.solar.metrics.pvKwp, 1)}<small>kWp</small></dd></div>
-            <div><dt>Storage</dt><dd>{fmt(by.battery.metrics.batteryKwh)}<small>kWh</small></dd></div>
-            <div><dt>Water tank</dt><dd>{fmt(by.water.metrics.tankL)}<small>L</small></dd></div>
-            <div><dt>Payback</dt><dd>{t.paybackYears ? fmt(t.paybackYears, 1) : "—"}<small>yrs</small></dd></div>
+          <dl className="cfg-specs viz in">
+            <div><dt><Svg html={icon("sun")} />Solar</dt><dd>{fmt(by.solar.metrics.pvKwp, 1)}<small>kWp</small></dd><dd className="cfg-vis"><Svg html={panels(by.solar.metrics.modules, by.solar.metrics.maxModules)} /><span className="cfg-eq">{by.solar.metrics.modules} panels{by.solar.metrics.modules >= by.solar.metrics.maxModules ? " · roof full" : ""}</span></dd></div>
+            <div><dt><Svg html={icon("battery")} />Storage</dt><dd>{fmt(by.battery.metrics.batteryKwh)}<small>kWh</small></dd><dd className="cfg-vis"><Svg html={battery(by.battery.metrics.batteryKwh, by.battery.metrics.nightKwh)} /><span className="cfg-eq">{by.battery.metrics.batteryKwh >= by.battery.metrics.nightKwh ? "covers a night" : `night needs ${fmt(by.battery.metrics.nightKwh)} kWh`}</span></dd></div>
+            <div><dt><Svg html={icon("tank")} />Water tank</dt><dd>{fmt(by.water.metrics.tankL)}<small>L</small></dd><dd className="cfg-vis"><Svg html={bathtubs(by.water.metrics.tankL)} /><span className="cfg-eq">≈ {fmt(by.water.metrics.tankL / 150, 1)} bathtubs</span></dd></div>
+            <div><dt><Svg html={icon("coin")} />Payback</dt><dd>{t.paybackYears ? fmt(t.paybackYears, 1) : "—"}<small>yrs</small></dd><dd className="cfg-vis"><Svg html={payback(t.paybackYears, { compact: true })} /><span className="cfg-eq">{money(t.monthlySavingsAed)}/mo saved</span></dd></div>
           </dl>
           <div className="cfg-climate" aria-label={`Climate for ${state.place}`}>
             <p className="cfg-site"><strong>{shortPlace(state.place)}</strong><span>{state.source === "nasa" ? `NASA POWER · ${state.period || "long-term climatology"}` : "Built-in reference climate · approx."}</span></p>
             <div className="cfg-metrics">
-              <Metric label="Sun" value={fmt(climate.solarDailyKwhM2, 1)} unit="kWh/m²/day" />
-              <Metric label="Wind" value={fmt(climate.windMs, 1)} unit={`m/s · ${fmt(vHub, 1)} at ${result.tier.hubHeightM} m`} />
-              <Metric label="Rain" value={fmt(climate.rainMmYear)} unit="mm/yr" />
-              <Metric label="Humidity" value={fmt(climate.humidityPct)} unit="% RH" />
-              <Metric label="Temp" value={fmt(climate.tempC, 1)} unit="°C mean" />
+              <Svg html={meter("sun", fmt(climate.solarDailyKwhM2, 1), "kWh/m²/day", (climate.solarDailyKwhM2 - 1) / 6.5, "Sun")} />
+              <Svg html={meter("wind", fmt(vHub, 1), `m/s at ${result.tier.hubHeightM} m`, vHub / 8, "Wind")} />
+              <Svg html={meter("drop", fmt(climate.rainMmYear), "mm/yr", climate.rainMmYear / 2500, "Rain")} />
+              <Svg html={meter("drop", fmt(climate.humidityPct), "% RH", climate.humidityPct / 100, "Humidity")} />
+              <Svg html={meter("temp", fmt(climate.tempC, 1), "°C", climate.tempC / 40, "Temp")} />
             </div>
           </div>
         </div>
@@ -205,6 +208,8 @@ export default function SiteConfigurator() {
 
   </>;
 }
+
+function Svg({ html }) { return <span className="svgw" dangerouslySetInnerHTML={{ __html: html }} />; }
 
 function Metric({ label, value, unit }) {
   return <div className="metric"><span>{label}</span><strong>{value}</strong><small>{unit}</small></div>;

@@ -1,49 +1,46 @@
-import "../explore/exhibit.css";
+// Landing entry: design system, 3D story, hero conditions, sections, WELOS AI.
+import "../design/tokens.css";
 import "./landing.css";
-import "../ai/mount.jsx";
+import "../viz/explain.css";
+import { mountHero } from "./hero.js";
+import { mountSections } from "./sections.js";
+import { icon } from "../design/icons.js";
 
-// reveal-on-scroll for the post-exhibit sections
-const io = new IntersectionObserver((entries) => {
-  for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
-}, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
-document.querySelectorAll(".rv").forEach((el) => io.observe(el));
+// static markup marks icons with data-ico; draw them once
+document.querySelectorAll("[data-ico]").forEach((el) => { el.innerHTML = icon(el.dataset.ico); });
+import "../explore/why.js";
 
-// "System" returns to the start of the exhibit
-document.querySelector('[data-scene="0"]')?.addEventListener("click", (e) => {
-  e.preventDefault();
-  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+mountHero();
+mountSections();
+
+// WELOS AI (React) loads when idle, or at once if someone asks for it first
+let ai = null;
+const loadAI = () => (ai ||= import("../ai/mount.jsx"));
+document.addEventListener("click", (e) => {
+  const t = e.target.closest?.("[data-ai-open]");
+  if (!t || document.getElementById("welos-ai-root")) return;
+  e.preventDefault(); e.stopPropagation();
+  loadAI().then(() => setTimeout(() => t.click(), 60));
+}, true);
+const idle = (fn, t) => ("requestIdleCallback" in window ? requestIdleCallback(fn, { timeout: t }) : setTimeout(fn, 200));
+idle(loadAI, 2500);
+
+// the 3D story loads after first paint; it is the heaviest part of the page
+const loadStory = () => import("../explore/main.js").catch((e) => {
+  console.warn("3D story unavailable:", e?.message || e);
+  document.body.classList.add("no-gl");
+  document.getElementById("veil")?.classList.add("gone");
 });
+if ("requestIdleCallback" in window) requestIdleCallback(loadStory, { timeout: 600 }); else setTimeout(loadStory, 60);
 
-// highlight the section in view
-const links = [...document.querySelectorAll('.site-nav a[href^="#"]')];
-const secs = links.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+// header: mark the section in view
+const links = [...document.querySelectorAll('.nav-links a[href^="#"]')];
+const targets = links.map((a) => document.querySelector(a.getAttribute("href")));
 const mark = () => {
-  const y = innerHeight * 0.4;
-  let cur = links[0];
-  secs.forEach((s) => { if (s.id !== "top" && s.getBoundingClientRect().top < y) cur = links.find((a) => a.getAttribute("href") === `#${s.id}`); });
-  links.forEach((a) => a.classList.toggle("cur", a === cur));
+  const y = innerHeight * 0.35;
+  let cur = null;
+  targets.forEach((s, i) => { if (s && s.getBoundingClientRect().top < y && !s.classList.contains("panel")) cur = links[i]; });
+  links.forEach((a) => a.toggleAttribute("aria-current", a === cur));
+  document.body.classList.toggle("scrolled", scrollY > 8);
 };
 addEventListener("scroll", mark, { passive: true }); mark();
-
-// Products: three scales, priced by the same sizing engine as the Studio
-import { sizeSystem, TIERS } from "../site/sizing.js";
-import { DEFAULT_PRESET } from "../site/presets.js";
-const fmtN = (x, d = 0) => Number(x).toLocaleString("en-US", { maximumFractionDigits: d });
-const PRODUCTS = [
-  { id: "S", img: "/explore/ref-full.jpg", line: "A complete unit for one home: canopy, storage and water in one footprint." },
-  { id: "M", img: "/explore/ref-canopy.jpg", line: "Shared canopies for apartment blocks and villa clusters." },
-  { id: "L", img: "/explore/ref-power.jpg", line: "Commercial-scale storage and wind for offices, malls and campuses." },
-];
-const grid = document.getElementById("pgrid");
-if (grid) {
-  grid.innerHTML = PRODUCTS.map((p) => {
-    const rec = sizeSystem(DEFAULT_PRESET.climate, p.id, {}, {}, "recommended");
-    const ess = sizeSystem(DEFAULT_PRESET.climate, p.id, {}, {}, "essential");
-    const by = Object.fromEntries(rec.components.map((c) => [c.id, c]));
-    return `<article class="pcard rv"><div class="pmedia"><img src="${p.img}" alt="" loading="lazy"><span>WELOS ${p.id}</span></div>
-      <div class="pbody"><h3>${TIERS[p.id].name}<small>${TIERS[p.id].audience}</small></h3><p>${p.line}</p>
-      <ul><li><b>${fmtN(by.solar.metrics.pvKwp, 1)} kWp</b>solar</li><li><b>${fmtN(by.battery.metrics.batteryKwh)} kWh</b>storage</li><li><b>${fmtN(by.water.metrics.tankL)} L</b>water</li></ul>
-      <div class="pfoot"><span>From <b>AED ${fmtN(ess.totals.totalAed)}</b><small>Dubai · Essential · installed</small></span><a class="btn sun" href="/studio.html?tier=${p.id}#configure">Configure</a></div></div></article>`;
-  }).join("");
-  grid.querySelectorAll(".rv").forEach((el) => io.observe(el));
-}
