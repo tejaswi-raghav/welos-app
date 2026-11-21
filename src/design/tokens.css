@@ -1,0 +1,92 @@
+/* WELOS design tokens — shared by every page.
+   Colour is information: sun/ember = energy, water = water, ink = structure and control.
+   Contrast ratios are measured against --paper (#F4F1EA); see docs/DESIGN_DIRECTION.md. */
+
+@font-face {
+  font-family: "Mona Sans";
+  src: url("/fonts/mona-sans-wdth.woff2") format("woff2-variations");
+  font-weight: 200 900; font-stretch: 75% 125%; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono.woff2") format("woff2-variations");
+  font-weight: 100 800; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* surfaces */
+  --paper: #F4F1EA;          /* warm daylight, the page */
+  --paper-2: #EAE5DA;        /* recessed surfaces, tracks */
+  --card: #FBFAF6;           /* raised surfaces, used sparingly */
+  --haze: #FBE7C2;           /* hero atmosphere only */
+
+  /* ink */
+  --ink: #10151B;            /* 16.3:1 */
+  --ink-2: #3E4650;          /*  8.5:1 body secondary */
+  --ink-3: #5F6771;          /*  5.1:1 labels, captions */
+  --rule: rgba(16, 21, 27, .13);
+  --rule-strong: rgba(16, 21, 27, .28);
+
+  /* brand — sampled from the ring logo */
+  --sun: #FFB800;            /* fills, never text on paper */
+  --ember: #F86A00;          /* fills, never text on paper */
+  --sun-gradient: linear-gradient(90deg, #FFC400 0%, #F86A00 100%);
+  --energy-ink: #A34A00;     /* 5.3:1 energy labels as text */
+
+  /* function */
+  --water: #1386B5;          /* water fills and flows */
+  --water-ink: #0B6F93;      /* 5.0:1 water labels as text */
+  --grid: #8C949C;           /* utility grid, neutral on purpose */
+  --alert: #B42318;          /* faults only */
+
+  /* type */
+  --f: "Mona Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* rhythm (8 pt) */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px; --s10: 144px;
+  --radius: 6px;
+  --wrap: 1240px;
+
+  /* motion: one easing family, three durations */
+  --ease: cubic-bezier(.2, .7, .1, 1);
+  --ease-io: cubic-bezier(.65, 0, .35, 1);
+  --t-fast: 140ms; --t-med: 320ms; --t-slow: 720ms;
+
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; --t-med: 0ms; --t-slow: 0ms; }
+}
+
+/* shared primitives */
+.w-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 44px; padding: 0 20px; border-radius: var(--radius);
+  font: 600 15px/1 var(--f); font-stretch: 100%; letter-spacing: 0; text-decoration: none; cursor: pointer;
+  border: 1px solid transparent; transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.w-btn.primary { background: var(--sun); color: var(--ink); }
+.w-btn.primary:hover { background: #FFC633; }
+.w-btn.ink { background: var(--ink); color: var(--paper); }
+.w-btn.ink:hover { background: #262E37; }
+.w-btn.line { border-color: var(--rule-strong); color: var(--ink); background: transparent; }
+.w-btn.line:hover { border-color: var(--ink); }
+.w-btn:focus-visible, .w-focus:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.w-code { font: 500 11px/1 var(--mono); letter-spacing: .02em; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.w-eyebrow { font: 600 13px/1.2 var(--f); font-stretch: 100%; color: var(--ink-3); letter-spacing: 0; }
+.w-num { font-variant-numeric: tabular-nums; }
+
+/* data-status tags: every number says where it comes from */
+.w-src {
+  display: inline-flex; align-items: center; gap: 6px; font: 500 11px/1.3 var(--mono); color: var(--ink-3); letter-spacing: 0;
+}
+.w-src::before { content: ""; width: 7px; height: 7px; border-radius: 50%; border: 1px solid currentColor; flex: none; }
+.w-src.engine::before { background: var(--ink); border-color: var(--ink); }
+.w-src.sim::before { background: transparent; border-style: dashed; }
+.w-src.target::before { background: linear-gradient(90deg, var(--ink) 50%, transparent 50%); }
+
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
