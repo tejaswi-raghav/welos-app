@@ -22,6 +22,7 @@ const P = {
   cube: '<path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>',
   explode: '<path d="M12 3v5M12 16v5M3 12h5M16 12h5"/><path d="m9 5 3-2 3 2M9 19l3 2 3-2M5 9l-2 3 2 3M19 9l2 3-2 3"/><rect x="10" y="10" width="4" height="4"/>',
   reset: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>',
+  temp: '<path d="M10 4.5a2 2 0 1 1 4 0V14a4 4 0 1 1-4 0V4.5z"/><path d="M12 10v7"/>',
   villa: '<path d="M2.5 20.5h19"/><path d="M4 20.5V11l6-4.5 6 4.5v9.5"/><path d="M16 13h4.5v7.5"/><path d="M8 20.5v-4h4v4"/>',
   block: '<path d="M2.5 20.5h19"/><rect x="6" y="4" width="12" height="16.5"/><path d="M9 7.5h2M13 7.5h2M9 11h2M13 11h2M9 14.5h2M13 14.5h2"/>',
   plant: '<path d="M2.5 20.5h19"/><path d="M3.5 20.5v-8l5 3v-3l5 3v-3l5 3V20.5"/><path d="M18.5 15.5V5h2v15.5"/>',

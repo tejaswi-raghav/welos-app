@@ -94,18 +94,18 @@ export function dust(beforePct, afterPct) {
 }
 
 /** Break-even timeline: cost is repaid by yearly savings. */
-export function payback(years, { horizon } = {}) {
+export function payback(years, { horizon, compact = false } = {}) {
   if (!years) return "";
   const H = horizon || Math.max(15, Math.ceil(years * 1.6 / 5) * 5);
   const W = 300, x = (y) => 10 + (y / H) * (W - 20), be = x(years);
   let ticks = "";
-  for (let y = 0; y <= H; y += 5) ticks += `<line x1="${x(y)}" x2="${x(y)}" y1="34" y2="38" class="pb-tick"/><text x="${x(y)}" y="50" text-anchor="middle" class="pb-t">${y === 0 ? "install" : `yr ${y}`}</text>`;
-  return `<svg class="v-payback" viewBox="0 0 ${W} 56" role="img" aria-label="Pays back in about ${n1(years)} years">
+  if (!compact) for (let y = 0; y <= H; y += 5) ticks += `<line x1="${x(y)}" x2="${x(y)}" y1="34" y2="38" class="pb-tick"/><text x="${x(y)}" y="50" text-anchor="middle" class="pb-t">${y === 0 ? "install" : `yr ${y}`}</text>`;
+  return `<svg class="v-payback" viewBox="0 ${compact ? 10 : 0} ${W} ${compact ? 30 : 56}" role="img" aria-label="Pays back in about ${n1(years)} years">
     <line x1="10" x2="${W - 10}" y1="34" y2="34" class="pb-axis"/>
     <rect x="10" y="26" width="${be - 10}" height="8" class="pb-cost"/>
     <rect x="${be}" y="26" width="${W - 10 - be}" height="8" class="pb-gain"/>
     ${ticks}
-    <g transform="translate(${be} 0)"><line y1="8" y2="34" class="pb-mark"/><circle cy="8" r="4" class="pb-dot"/><text x="${be > W - 70 ? -8 : 8}" y="12" text-anchor="${be > W - 70 ? "end" : "start"}" class="pb-lbl">paid back</text></g>
+    <g transform="translate(${be} 0)"><line y1="${compact ? 18 : 8}" y2="34" class="pb-mark"/><circle cy="${compact ? 18 : 8}" r="${compact ? 6 : 4}" class="pb-dot"/>${compact ? "" : `<text x="${be > W - 70 ? -8 : 8}" y="12" text-anchor="${be > W - 70 ? "end" : "start"}" class="pb-lbl">paid back</text>`}</g>
   </svg>`;
 }
 

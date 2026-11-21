@@ -24,9 +24,9 @@
   <a class="nav-brand" href="/" aria-label="WELOS home"><img src="/brand/welos-header-ink.png" alt="welos" width="139" height="30"></a>
   <nav class="nav-links" aria-label="Site">
     <a href="#inside" data-goto="1">Inside</a>
+    <a href="#clean">Self-cleaning</a>
     <a href="#decide">How it decides</a>
     <a href="#demo">Size it</a>
-    <a href="#scales">Scales</a>
     <a href="#status">What's real</a>
   </nav>
   <div class="nav-tools">
@@ -159,14 +159,24 @@
 
 <div class="after" id="after">
 
+  <section class="sec clean" id="clean" aria-labelledby="cleanTitle">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="eyebrow">Self-cleaning</p>
+        <h2 id="cleanTitle">The panels clean themselves. Only when it's safe.</h2>
+      </header>
+      <div class="cl-app"></div>
+    </div>
+  </section>
+
   <section class="sec" id="problem" aria-labelledby="problemTitle">
     <div class="wrap">
       <header class="sec-head">
-        <p class="eyebrow">The problem</p>
-        <h2 id="problemTitle">A UAE roof is the sunniest surface a home owns, and it does nothing.</h2>
-        <p class="sec-lede">The same villa, before and after. Every figure is calculated by the WELOS sizing engine for the reference Dubai villa; the source of each number is marked.</p>
+        <p class="eyebrow">What it changes</p>
+        <h2 id="problemTitle">Four things a bare roof can't do.</h2>
       </header>
-      <div class="compare" id="compare"></div>
+      <div class="tiles" id="compare"></div>
+      <p class="cmp-foot" id="compareFoot"></p>
     </div>
   </section>
 
@@ -175,7 +185,7 @@
       <header class="sec-head">
         <p class="eyebrow">How it decides</p>
         <h2 id="decideTitle">Four steps, every control cycle.</h2>
-        <p class="sec-lede">WELOS OS is deterministic: the same conditions always give the same decision, and safety always runs first. Pick a condition and follow one real decision through the engine.</p>
+        <p class="sec-lede">Same inputs, same decision, safety first. Pick a condition and follow it through.</p>
       </header>
       <div class="trace" id="trace"></div>
       <details class="rules"><summary>See the full mode table</summary>
@@ -199,7 +209,7 @@
       <header class="sec-head">
         <p class="eyebrow">Size it</p>
         <h2 id="demoTitle">Your roof, sized and run for a day.</h2>
-        <p class="sec-lede">Choose a climate and a building. The sizing engine picks every component; then the control engine runs 24 hours of decisions on it.</p>
+        <p class="sec-lede">Pick a climate and a building. Every part is sized for it, then run for a day.</p>
       </header>
       <div class="demo-grid">
         <form class="controls" id="demoForm" aria-label="Site inputs"></form>
@@ -209,51 +219,27 @@
     </div>
   </section>
 
-  <section class="sec" id="scales" aria-labelledby="scalesTitle">
-    <div class="wrap">
-      <header class="sec-head">
-        <p class="eyebrow">Scales</p>
-        <h2 id="scalesTitle">One platform, three sizes.</h2>
-        <p class="sec-lede">Same chassis design and controller, sized by the same engine. Figures for Dubai's climate and each scale's typical roof and load.</p>
-      </header>
-      <div class="scales" id="scaleTable"></div>
-    </div>
-  </section>
-
   <section class="sec" id="status" aria-labelledby="statusTitle">
     <div class="wrap">
       <header class="sec-head">
         <p class="eyebrow">What's real today</p>
         <h2 id="statusTitle">Software that works. Hardware still to prove.</h2>
-        <p class="sec-lede">WELOS is at concept stage. Here is exactly what runs today and what still has to be built and measured.</p>
       </header>
       <div class="status-grid">
-        <div class="col">
-          <h3><span class="w-src engine">Working now</span></h3>
-          <ul>
-            <li><b>Sizing and pricing engine</b>Climate-specific build, AED price and payback, with the rule behind every part. <a href="/studio.html#configure">Studio</a></li>
-            <li><b>NASA POWER climate lookup</b>Twenty-year climate means for any address.</li>
-            <li><b>WELOS OS control engine</b>Modes, alarms and routing, unit-tested. <a href="/control.html">Control OS</a></li>
-            <li><b>ESP32-S3 reference firmware</b>The same state machine for real hardware, offline-first.</li>
-          </ul>
-        </div>
-        <div class="col">
-          <h3><span class="w-src target">Concept, needs validation</span></h3>
-          <ul>
-            <li><b>The integrated unit</b>3D model and concept bill of materials; no prototype measured yet.</li>
-            <li><b>Wind module</b>Noise, fatigue and real-roof yield untested.</li>
-            <li><b>Water treatment</b>Final treatment set by water testing; non-potable only.</li>
-            <li><b>Prices</b>Indicative 2026 UAE estimates, not a quotation.</li>
-          </ul>
-        </div>
-        <div class="col">
-          <h3><span class="w-src sim">Next</span></h3>
-          <ul>
-            <li><b>Pilot kit on 3–5 villas</b>Off-the-shelf inverter, sensors and first-flush, to measure energy, water and AED saved.</li>
-            <li><b>Forecast-driven control</b>Charge fully before a hazy or stormy day.</li>
-            <li><b>Utility approvals</b>With a DEWA-accredited contractor for Shams Dubai.</li>
-          </ul>
-        </div>
+        <div class="col"><h3><span class="w-src engine">Working now</span></h3><ul>
+          <li><i data-ico="coin" class="ic"></i>Sizing and pricing engine</li>
+          <li><i data-ico="sun" class="ic"></i>NASA climate lookup, any address</li>
+          <li><i data-ico="chip" class="ic"></i>Control engine and simulator</li>
+          <li><i data-ico="shield" class="ic"></i>ESP32 reference firmware</li></ul></div>
+        <div class="col"><h3><span class="w-src target">Concept, to validate</span></h3><ul>
+          <li><i data-ico="cube" class="ic"></i>The integrated unit: no prototype yet</li>
+          <li><i data-ico="wind" class="ic"></i>Wind: noise and real-roof yield</li>
+          <li><i data-ico="drop" class="ic"></i>Water treatment: set by water tests</li>
+          <li><i data-ico="bill" class="ic"></i>Prices: estimates, not quotes</li></ul></div>
+        <div class="col"><h3><span class="w-src sim">Next</span></h3><ul>
+          <li><i data-ico="villa" class="ic"></i>Pilot on 3–5 villas, measured</li>
+          <li><i data-ico="clock" class="ic"></i>Forecast-aware charging</li>
+          <li><i data-ico="grid" class="ic"></i>Utility approval with DEWA</li></ul></div>
       </div>
     </div>
   </section>

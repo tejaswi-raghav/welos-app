@@ -60,7 +60,7 @@
 @keyframes wipe { 0% { opacity: 1; transform: translateX(0); } 90% { opacity: 1; } 100% { opacity: 0; transform: translateX(95px); } }
 
 /* payback */
-.v-payback { width: 100%; }
+.v-payback { width: 100%; max-width: 460px; height: auto; }
 .pb-axis, .pb-tick { stroke: var(--rule-strong); }
 .pb-cost { fill: var(--paper-2); }
 .pb-gain { fill: var(--sun); }

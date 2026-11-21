@@ -1,6 +1,7 @@
 // Landing entry: design system, 3D story, hero conditions, sections, WELOS AI.
 import "../design/tokens.css";
 import "./landing.css";
+import "../viz/explain.css";
 import { mountHero } from "./hero.js";
 import { mountSections } from "./sections.js";
 import { icon } from "../design/icons.js";

@@ -6,6 +6,9 @@ import { simulateDay } from "../os/day.js";
 import { referenceBuild } from "../os/reference.js";
 import { DEFAULT_CONFIG } from "../control/engine.js";
 import { mountDayChart } from "../viz/dayChart.js";
+import { waffle, dust, cube, battery, hours, panels, bathtubs, payback, revealOnScroll } from "../viz/explain.js";
+import { icon } from "../design/icons.js";
+import { mountClean } from "./clean.js";
 
 const $ = (s) => document.querySelector(s);
 const n0 = (x) => Math.round(x).toLocaleString("en-US");
@@ -14,29 +17,25 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const byId = (r) => Object.fromEntries(r.components.map((c) => [c.id, c]));
 const SRC = { engine: '<span class="w-src engine">Engine output</span>', assume: '<span class="w-src target">Engine assumption</span>', sim: '<span class="w-src sim">Simulated day</span>' };
 
-/* ---------- the problem: same villa, before and after ---------- */
+/* ---------- what it changes: one picture, one number, one line each ---------- */
+const ESSENTIALS_KW = 0.6; // fridge, lights, router, fans: an illustrative essentials load
 function mountCompare() {
   const r = referenceBuild();
   const by = byId(r), T = r.totals, day = simulateDay(r);
-  const gridAed = r.site.loadKwhDay * 365 * RATES.tariffPerKwh;
-  const rows = [
-    { k: "Electricity",
-      before: `All ${n0(r.site.loadKwhDay)} kWh a day comes from the grid: about ${CURRENCY} ${n0(gridAed)} a year at ${CURRENCY} ${RATES.tariffPerKwh}/kWh.`, bs: SRC.assume,
-      after: `The canopy makes ${n0(Math.min(T.energyCoveragePct, 999))}% of a year's use. On an average day ${Math.round(day.totals.selfSufficiencyPct)}% of the home's power comes from the roof and battery.`, as: `${SRC.engine} ${SRC.sim}` },
-    { k: "Dust",
-      before: `In a dry climate dust quietly takes up to ${Math.round(by.cleaning.metrics.soilingRaw * 100)}% of a panel's output.`, bs: SRC.assume,
-      after: `A clean reference cell measures the loss; cleaning holds it near ${n1(by.cleaning.metrics.soilingManaged * 100)}%.`, as: SRC.assume },
-    { k: "Water",
-      before: `${n0(r.climate.rain)} mm of rain a year runs off the roof, and AC condensate goes down the drain.`, bs: SRC.engine,
-      after: `${n0(T.waterLYear)} L a year captured from rain and condensate, filtered for irrigation and rinsing.`, as: SRC.engine },
-    { k: "Outages",
-      before: "When the grid drops, the house goes dark.", bs: "",
-      after: `The ${n0(by.battery.metrics.batteryKwh)} kWh battery keeps a ${DEFAULT_CONFIG.batteryStormReserveSoc}% reserve whenever a storm or outage is detected.`, as: SRC.engine },
+  const reserveKwh = by.battery.metrics.batteryKwh * DEFAULT_CONFIG.batteryStormReserveSoc / 100;
+  const side = Math.cbrt(T.waterLYear / 1000);
+  const tiles = [
+    { ico: "sun", k: "Power", viz: waffle(day.totals.selfSufficiencyPct, { label: `${Math.round(day.totals.selfSufficiencyPct)} of 100 squares lit: share of a day's power from the roof and battery` }),
+      big: `${Math.round(day.totals.selfSufficiencyPct)}%`, line: "of an average day's power comes from your own roof and battery.", was: "Today: every unit is bought from the grid.", src: `${SRC.engine} ${SRC.sim}` },
+    { ico: "dust", k: "Dust", viz: dust(by.cleaning.metrics.soilingRaw, by.cleaning.metrics.soilingManaged),
+      big: `${n0(by.cleaning.metrics.recoveredKwhYear)} kWh`, line: "a year won back by cleaning at the right moment.", was: `Today: dust quietly takes up to ${Math.round(by.cleaning.metrics.soilingRaw * 100)}%.`, src: SRC.engine },
+    { ico: "drop", k: "Water", viz: cube(T.waterLYear),
+      big: `${n0(T.waterLYear)} L`, line: `a year from rain and AC condensate: a ${n1(side)} m cube beside a person.`, was: "Today: it runs down the drain.", src: SRC.engine },
+    { ico: "battery", k: "Outages", viz: `<div class="tile-row">${battery(by.battery.metrics.batteryKwh, 0, { reservePct: DEFAULT_CONFIG.batteryStormReserveSoc })}${hours(reserveKwh / ESSENTIALS_KW)}</div>`,
+      big: `${n0(reserveKwh)} kWh`, line: `always held back for storms and outages: about ${Math.round(reserveKwh / ESSENTIALS_KW)} hours of essentials.`, was: "Today: when the grid drops, the house goes dark.", src: `${SRC.engine} <span class="w-src target">Essentials at ${ESSENTIALS_KW} kW, assumed</span>` },
   ];
-  $("#compare").innerHTML = `
-    <div class="cmp-head" aria-hidden="true"><span></span><span>Roof today</span><span>With WELOS</span></div>
-    ${rows.map((x) => `<div class="cmp-row"><h3>${x.k}</h3><p class="b"><span class="cmp-m">Roof today</span>${x.before}${x.bs ? `<br>${x.bs}` : ""}</p><p class="a"><span class="cmp-m">With WELOS</span>${x.after}<br>${x.as}</p></div>`).join("")}
-    <p class="cmp-foot">Reference: ${esc(DEFAULT_PRESET.name)} villa, ${TIERS.S.roofM2} m² roof, ${n0(r.site.loadKwhDay)} kWh/day, ${esc(r.package.name)} build: ${n1(by.solar.metrics.pvKwp)} kWp solar, ${n0(by.battery.metrics.batteryKwh)} kWh battery, ${n0(by.water.metrics.tankL)} L tank. Installed estimate ${CURRENCY} ${n0(T.totalAed)}, payback about ${n1(T.paybackYears)} years.</p>`;
+  $("#compare").innerHTML = tiles.map((t) => `<article class="tile viz anim"><p class="tile-k">${icon(t.ico)}${t.k}</p><div class="tile-viz">${t.viz}</div><p class="tile-big">${t.big}</p><p class="tile-line">${t.line}</p><p class="tile-was">${t.was}</p><p class="tile-src">${t.src}</p></article>`).join("");
+  $("#compareFoot").textContent = `Reference: ${DEFAULT_PRESET.name} villa, ${n0(r.site.loadKwhDay)} kWh a day, ${n1(by.solar.metrics.pvKwp)} kWp solar, ${n0(by.battery.metrics.batteryKwh)} kWh battery.`;
 }
 
 /* ---------- sizing demo + day ---------- */
@@ -90,23 +89,22 @@ function renderResults() {
   $("#windTog").addEventListener("change", (e) => { state.wind = e.target.checked; update(); });
 
   const pct = (v) => Math.min(100, v);
+  const nightNeed = by.battery.metrics.nightKwh;
   $("#demoOut").innerHTML = `
-    <div class="build">
-      <div><span class="k">Solar</span><b>${n1(by.solar.metrics.pvKwp)} <small>kWp</small></b><span class="s">${by.solar.metrics.modules} modules${by.solar.metrics.modules >= by.solar.metrics.maxModules ? " · roof full" : ""}</span></div>
-      <div><span class="k">Battery</span><b>${n0(by.battery.metrics.batteryKwh)} <small>kWh</small></b><span class="s">LiFePO4</span></div>
-      <div><span class="k">Water tank</span><b>${n0(by.water.metrics.tankL)} <small>L</small></b><span class="s">${by.water.capacity.text.split("· ")[1] || ""}</span></div>
-      <div><span class="k">Wind</span><b>${w.included ? `${n0(w.capacity.value)} <small>kW</small>` : "—"}</b><span class="s">${w.included ? w.capacity.text : "Not fitted"}</span></div>
+    <div class="build viz in">
+      <div><span class="k">${icon("sun")}Solar</span><b>${n1(by.solar.metrics.pvKwp)} <small>kWp</small></b>${panels(by.solar.metrics.modules, by.solar.metrics.maxModules)}<span class="s">${by.solar.metrics.modules} panels${by.solar.metrics.modules >= by.solar.metrics.maxModules ? ", roof full" : ""}</span></div>
+      <div><span class="k">${icon("battery")}Battery</span><b>${n0(by.battery.metrics.batteryKwh)} <small>kWh</small></b>${battery(by.battery.metrics.batteryKwh, nightNeed)}<span class="s">${by.battery.metrics.batteryKwh >= nightNeed ? "covers a night's use" : `a night needs ${n0(nightNeed)}`}</span></div>
+      <div><span class="k">${icon("tank")}Water tank</span><b>${n0(by.water.metrics.tankL)} <small>L</small></b>${bathtubs(by.water.metrics.tankL)}<span class="s">≈ ${n1(by.water.metrics.tankL / 150)} bathtubs</span></div>
+      <div><span class="k">${icon("wind")}Wind</span><b>${w.included ? `${n0(w.capacity.value)} <small>kW</small>` : "Off"}</b><span class="windflag ${w.recommended ? "yes" : "no"}">${w.recommended ? "worth it here" : "not worth it here"}</span><span class="s">${n1(w.metrics.hubWindMs)} m/s at roof height</span></div>
     </div>
     <div class="cover">
       <div class="bar"><div class="bar-top"><span>Electricity made on the roof, per year</span><b>${n0(T.energyCoveragePct)}%</b></div><div class="track"><i class="e" style="width:${pct(T.energyCoveragePct)}%"></i></div></div>
       <div class="bar"><div class="bar-top"><span>Non-potable water covered, per year</span><b>${n0(T.waterCoveragePct)}%</b></div><div class="track"><i class="b" style="width:${pct(T.waterCoveragePct)}%"></i></div></div>
     </div>
-    <div class="money">
-      <div><span class="k">Installed estimate</span><b>${CURRENCY} ${n0(T.totalAed)}</b></div>
-      <div><span class="k">Saves per year</span><b>${CURRENCY} ${n0(T.annualSavingsAed)}</b></div>
-      <div><span class="k">Payback</span><b>${T.paybackYears ? n1(T.paybackYears) : "—"} <small>years</small></b></div>
+    <div class="money viz in">
+      <div class="money-top"><span>${icon("coin")}<b>${CURRENCY} ${n0(T.totalAed)}</b> installed</span><span>saves <b>${CURRENCY} ${n0(T.annualSavingsAed / 12)}</b> a month</span></div>
+      ${payback(T.paybackYears)}
     </div>
-    <p class="why">${esc(by.solar.why)}</p>
     <p class="res-foot"><span class="w-src engine">Engine output</span> Indicative 2026 UAE prices at ${CURRENCY} ${RATES.tariffPerKwh}/kWh, not a quotation. <a href="/studio.html?tier=${state.tier}#configure">Configure in detail →</a></p>`;
 
   chart.update(simulateDay(r));
@@ -140,34 +138,9 @@ export function setTier(id) {
   state.touched = true; renderForm(); renderResults();
 }
 
-/* ---------- scales ---------- */
-function mountScales() {
-  const c = DEFAULT_PRESET.climate;
-  const cols = Object.values(TIERS).map((t) => ({ t, rec: sizeSystem(c, t.id), ess: sizeSystem(c, t.id, {}, {}, "essential") }));
-  const row = (label, fn) => `<tr><th scope="row">${label}</th>${cols.map((x) => `<td>${fn(x)}</td>`).join("")}</tr>`;
-  $("#scaleTable").innerHTML = `<table>
-    <thead><tr><td></td>${cols.map(({ t }) => `<th scope="col"><span class="w-code">WELOS ${t.id}</span>${t.name}<small>${t.audience}</small></th>`).join("")}</tr></thead>
-    <tbody>
-      ${row("Typical roof", ({ t }) => `${n0(t.roofM2)} m²`)}
-      ${row("Electricity use", ({ t }) => `${n0(t.loadKwhDay)} kWh/day`)}
-      ${row("Solar", ({ rec }) => `${n1(byId(rec).solar.metrics.pvKwp)} kWp`)}
-      ${row("Battery", ({ rec }) => `${n0(byId(rec).battery.metrics.batteryKwh)} kWh`)}
-      ${row("Water tank", ({ rec }) => `${n0(byId(rec).water.metrics.tankL)} L`)}
-      ${row("Wind at roof height", ({ rec }) => { const w = byId(rec).wind; return `${n1(w.metrics.hubWindMs)} m/s · ${w.recommended ? "fitted" : "not worth it"}`; })}
-      ${row("Installed estimate", ({ rec, ess }) => `${CURRENCY} ${n0(rec.totals.totalAed)}<small>from ${CURRENCY} ${n0(ess.totals.totalAed)} as Essential</small>`)}
-      ${row("Payback", ({ rec }) => `${n1(rec.totals.paybackYears)} years`)}
-    </tbody>
-    <tfoot><tr><td></td>${cols.map(({ t }) => `<td><button type="button" class="w-btn line" data-tier="${t.id}">Size a ${t.name.toLowerCase()}</button></td>`).join("")}</tr></tfoot>
-  </table><p class="scales-foot"><span class="w-src engine">Engine output</span> Dubai climate, Recommended package. Indicative 2026 prices.</p>`;
-  $("#scaleTable").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-tier]"); if (!b) return;
-    setTier(b.dataset.tier);
-    $("#demo").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  });
-}
-
 export function mountSections() {
+  mountClean();
   mountCompare();
   mountDemo();
-  mountScales();
+  revealOnScroll();
 }

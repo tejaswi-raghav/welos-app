@@ -44,7 +44,7 @@ body{font-family:var(--f);-webkit-font-smoothing:antialiased}
   .studio-head{grid-template-columns:auto 1fr auto;padding:0 10px;gap:8px}
   .seg{justify-self:center}.seg button{padding:0 10px;font-size:13px}.seg .l{display:none}.seg .s{display:inline}
   .page-brand img{height:20px}
-  .ai-btn{padding:0 10px;margin:0}
+  .ai-btn{padding:0 10px;margin:0;font-size:0}.ai-btn::after{content:"Ask";font-size:13px}
   .pane-config .cfg{padding:28px 16px 48px}
   .pane-model{height:78vh;min-height:460px}
 }
