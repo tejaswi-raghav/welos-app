@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { sizeSystem, ruleAdvice, ruleAnswer, PRESET_QUESTIONS, TIERS, PACKAGES } from "../src/site/sizing.js";
+import { UTILITIES } from "../src/site/regions.js";
 
 // WELOS AI advisor. The deterministic engine owns every number; an LLM explains
 // the build for this specific site, suggests improvements and answers questions.
@@ -76,7 +77,7 @@ function readBody(req) {
   const climate = body.climate || {};
   const inputs = body.inputs || {};
   const choices = {};
-  for (const id of ["wind", "condensate"]) if (typeof body.choices?.[id] === "boolean") choices[id] = body.choices[id];
+  for (const id of ["battery", "wind", "condensate", "cleaning", "treatment"]) if (typeof body.choices?.[id] === "boolean") choices[id] = body.choices[id];
   const preset = PRESET_QUESTIONS.find((q) => q.id === body.preset);
   return {
     place: clean(body.place || "this site", 120),
@@ -97,6 +98,11 @@ function readBody(req) {
       waterLDay: finite(inputs.waterLDay, 0, 5000000),
     },
     choices,
+    context: {
+      utilityId: Object.hasOwn(UTILITIES, body.context?.utilityId) ? body.context.utilityId : "dewa",
+      customer: body.context?.customer === "national" ? "national" : "expat",
+      backup: body.context?.backup === true,
+    },
   };
 }
 
@@ -150,7 +156,7 @@ export default async function handler(req, res) {
   } catch {
     return res.status(400).json({ error: "Invalid JSON body." });
   }
-  const result = sizeSystem(input.climate, input.tier, input.inputs, input.choices, input.packageId);
+  const result = sizeSystem(input.climate, input.tier, input.inputs, input.choices, input.packageId, input.context);
   const asking = input.question.length > 0;
   const fallback = (reason) => res.status(200).json(asking
     ? { source: "rules", answer: (input.preset && ruleAnswer(result, input.preset)) || null, fallbackReason: reason }

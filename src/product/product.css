@@ -110,6 +110,14 @@
 .ad-cap { margin: 0; font-size: 12.5px; }
 .ad-out { margin: 0; font-size: 13px; color: var(--text-2); }
 .addon .t-fine { margin: 0; }
+.pd-addon-link { justify-self: start; font-size: 14px; text-underline-offset: 3px; }
+.pd-addon-total { margin: 0; font-size: 15px; color: var(--text-2); }
+.pd-addon-total strong { color: var(--text); }
+.ad-state { margin: 0; font-size: 14px; font-weight: 600; }
+.ad-detail { margin: 0; font-size: 14px; color: var(--text-2); line-height: 1.5; }
+.addon .ad-cap, .addon .ad-out { font-size: 14px; }
+.addon .toggle { flex: none; }
+#h-add { scroll-margin-top: calc(var(--head-h) + 24px); }
 .addon details summary { cursor: pointer; font-size: 12.5px; font-weight: 600; }
 .addon details p { font-size: 12.5px; color: var(--text-2); margin: 6px 0 0; }
 

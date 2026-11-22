@@ -160,7 +160,8 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   const cellTemp = c.temp + 22;
   const thermalDerate = 1 - tempCoef * Math.max(0, cellTemp - 25);
   const soilingRaw = dusty ? 0.08 : 0.03;
-  const autoClean = pkg.cleaning === "auto";
+  const autoClean = typeof choices.cleaning === "boolean" ? choices.cleaning : pkg.cleaning === "auto";
+  const fullTreatment = typeof choices.treatment === "boolean" ? choices.treatment : !pkg.waterLite;
   const soilingManaged = autoClean ? (dusty ? 0.025 : 0.01) : (dusty ? 0.045 : 0.018);
   const pr = BOS_EFFICIENCY * thermalDerate * (1 - soilingManaged);
   const maxModules = Math.max(1, Math.floor((site.roofM2 * ROOF_PACKING) / MODULE_M2));
@@ -204,15 +205,15 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
     spec: !autoClean ? "Soiling reference cell tells you when a manual clean pays off" : dusty ? "Dry microfibre brush robot, triggered by the soiling reference cell" : "Low-flow spray rail fed from the rain tank",
     output: `Soiling loss ${Math.round(soilingRaw * 100)}% → ${(soilingManaged * 100).toFixed(1)}%`,
     why: !autoClean
-      ? `Essential skips the cleaning hardware. The controller still measures soiling and alerts you when output has dropped enough that a manual wash is worth it, recovering most of the loss.`
+      ? `Automatic cleaning hardware is excluded. The controller still measures soiling and alerts you when a manual clean is worthwhile. The output estimate assumes those manual cleans happen.`
       : dusty
       ? `Low rain (${fmt(c.rain)} mm/yr) means dust builds up and is rarely washed off, and water is too scarce to spend on rinsing. A waterless robot keeps the array clean without using the tank.`
       : `Enough rain (${fmt(c.rain)} mm/yr) to refill the tank, so harvested water can rinse the panels whenever the soiling sensor crosses its threshold.`,
     rules: [
       rule(`Rain < 300 mm/yr (site: ${fmt(c.rain)})`, dusty, dusty ? "Waterless robot, 0 L of water used" : "Rinse rail using harvested rain"),
-      rule("Soiling loss ≥ 15% on the reference cell", true, "Controller starts a cleaning cycle (18% forces one)"),
+      rule("Automatic cleaning selected", autoClean, autoClean ? "Controller schedules cleaning within its safe operating limits" : "Soiling alerts remain; cleaning is manual"),
     ],
-    metrics: { recoveredKwhYear: recovered, soilingRaw, soilingManaged },
+    metrics: { recoveredKwhYear: recovered, soilingRaw, soilingManaged, autoClean },
     costAed: !autoClean ? 0 : dusty ? Math.max(RATES.robotMin, pvKwp * RATES.robotPerKwp) : Math.max(RATES.rinseMin, pvKwp * RATES.rinsePerKwp),
   });
 
@@ -333,7 +334,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   components.push({
     id: "water", group: "water", name: "Rain storage + treatment", core: true, recommended: true,
     capacity: { value: tankL, unit: "L", text: `${fmt(tankL)} L tank · ${tier.treatmentLpm} L/min treatment` },
-    spec: pkg.waterLite ? "First flush → sediment filter → pump (irrigation and flushing only)" : "First flush → sediment + carbon filters → UV-C → variable-speed pump (non-potable)",
+    spec: !fullTreatment ? "First flush → sediment filter → pump (suitable non-potable uses only; not drinking water)" : "First flush → sediment + carbon filters → UV-C → variable-speed pump (non-potable)",
     output: `${fmt(rainLYear)} L/yr of rain${condensateIncluded ? ` + ${fmt(condensateLYear)} L/yr condensate` : ""}`,
     why: lowRain
       ? `Only ${fmt(c.rain)} mm/yr of rain, arriving in a few short storms. The tank is kept small (${fmt(tankL)} L) to catch one design storm${condensateIncluded ? " and buffer three days of AC condensate" : ""}, instead of paying for a large tank that would sit empty.`
@@ -345,9 +346,10 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
       rule(`Design storm = 6% of annual rain, clamped 6–40 mm (site: ${fmt(designEventMm)} mm)`, true, `Captures ${fmt(eventCaptureL)} L per storm`),
       rule(`Tank ≤ 7 days of demand (${fmt(site.waterLDay * 7)} L)`, tankTarget >= site.waterLDay * 7, tankTarget >= site.waterLDay * 7 ? "Capped by demand" : "Below the demand cap"),
       rule("Condensate recovery included", condensateIncluded, condensateIncluded ? `Tank also buffers 3 days of condensate (${fmt(condensateBufferL)} L)` : "Rain only"),
+      rule("Advanced treatment selected", fullTreatment, fullTreatment ? "Carbon filtration and UV-C added; non-potable use only" : "First flush, tank, sediment filter and pump retained; intended use must suit the lighter treatment"),
     ],
-    metrics: { tankL, rainLYear, designEventMm, eventCaptureL },
-    costAed: (pkg.waterLite ? RATES.treatmentLite[t] : RATES.treatment[t]) + tankL * RATES.tankPerL,
+    metrics: { tankL, rainLYear, designEventMm, eventCaptureL, fullTreatment },
+    costAed: (fullTreatment ? RATES.treatment[t] : RATES.treatmentLite[t]) + tankL * RATES.tankPerL,
   });
 
   // ---------- Control core ----------
@@ -502,9 +504,10 @@ export function ruleAnswer(result, presetId) {
   const r = result.request;
   switch (presetId) {
     case "cheaper": {
-      if (result.package.id === "essential") return `You're already on Essential at ${CURRENCY} ${fmt(t.totalAed)}. To go lower, reduce the daily electricity target or roof area. The array and battery scale down with them, and the canopy stays ready to expand.`;
+      if (result.package.id === "essential") return `You're on Essential at ${CURRENCY} ${fmt(t.totalAed)}. Review any selected add-ons on the product page before reducing the solar target. Automatic cleaning can be replaced by soiling alerts and manual cleaning; the lighter water kit retains first flush, storage and pumping for suitable non-potable uses.`;
       const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential", r.context);
-      return `Switch to Essential: ${CURRENCY} ${fmt(lean.totals.totalAed)} instead of ${CURRENCY} ${fmt(t.totalAed)}. It sizes solar to about 60% of your load with standard modules, replaces the cleaning robot with soiling alerts and uses a lighter water kit. That covers about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity, at roughly ${CURRENCY} ${fmt(lean.totals.monthlyAed)}/month financed against ${CURRENCY} ${fmt(lean.totals.monthlySavingsAed)}/month saved.`;
+      const leanParts = Object.fromEntries(lean.components.map((p) => [p.id, p]));
+      return `Essential with your current add-on choices: ${CURRENCY} ${fmt(lean.totals.totalAed)} instead of ${CURRENCY} ${fmt(t.totalAed)}. It targets about 60% of daily electricity use with standard modules. ${leanParts.cleaning.metrics.autoClean ? "Automatic cleaning stays selected." : "Soiling alerts stay included; cleaning is manual."} ${leanParts.water.metrics.fullTreatment ? "Advanced treatment stays selected." : "It uses the lighter non-potable water kit."} Modelled annual electricity coverage is ${fmt(lean.totals.energyCoveragePct)}%. Compare the add-ons on the product page to reduce cost without changing the package.`;
     }
     case "water":
       return by.water.why;

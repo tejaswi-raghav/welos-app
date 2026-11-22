@@ -31,7 +31,8 @@ export default function AdvisorSidebar() {
   const instant = useMemo(() => ruleAdvice(result, place), [result, place]);
   const shown = advice || instant;
   const t = result.totals;
-  const body = { place, tier: build.tier, package: build.package, climate: build.climate, inputs: build.inputs || {}, choices: build.choices || {} };
+  const body = { place, tier: build.tier, package: build.package, climate: build.climate, inputs: build.inputs || {}, choices: build.choices || {},
+    context: { utilityId: regionById[build.region]?.utility || "dewa", customer: build.customer, backup: build.backup === true } };
   const key = JSON.stringify(body);
 
   // open / close from anywhere on the page

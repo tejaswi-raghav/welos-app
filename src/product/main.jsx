@@ -5,6 +5,7 @@ import "./product.css";
 import { useStage, useAnnotations } from "../twin/useStage.js";
 import { simulateDay } from "../twin/sim.js";
 import { sizeSystem, PACKAGES, RATES, CURRENCY } from "../site/sizing.js";
+import { getAddOns } from "../site/addons.js";
 import { REGIONS, regionById, UTILITIES, MONTHS, VAT } from "../site/regions.js";
 import { BUILDING_TYPES, buildingById, recommend } from "../site/recommend.js";
 import { saveBuild, loadBuild } from "../site/presets.js";
@@ -19,7 +20,7 @@ const INPUTS = [["roofM2", "Usable roof", "m²", 5, 200000, 1], ["loadKwhDay", "
 function initial() {
   const q = new URLSearchParams(location.search);
   const saved = loadBuild();
-  const base = { region: "dubai", building: "villa", customer: "expat", backup: false, battery: null, package: null, inputs: {}, wind: null, condensate: null };
+  const base = { region: "dubai", building: "villa", customer: "expat", backup: false, battery: null, package: null, inputs: {}, wind: null, condensate: null, cleaning: null, treatment: null };
   const s = saved?.region ? { ...base, ...saved } : base;
   if (buildingById[q.get("building")]) s.building = q.get("building");
   if (regionById[q.get("region")]) s.region = q.get("region");
@@ -40,11 +41,17 @@ function Product() {
   const rec = useMemo(() => recommend(st.region, st.building, { customer: st.customer, backup: st.backup, inputs: st.inputs }), [st.region, st.building, st.customer, st.backup, st.inputs]);
   const battery = st.battery ?? rec.battery;
   const pkg = st.package ?? rec.packageId;
-  const choices = { battery, ...(st.wind != null ? { wind: st.wind } : {}), ...(st.condensate != null ? { condensate: st.condensate } : {}) };
+  const choices = { battery, ...Object.fromEntries(["wind", "condensate", "cleaning", "treatment"].filter((id) => typeof st[id] === "boolean").map((id) => [id, st[id]])) };
   const result = useMemo(() => sizeSystem(region.climate, B.tier, st.inputs, choices, pkg, ctx), [st, battery, pkg]);
   const by = Object.fromEntries(result.components.map((c) => [c.id, c]));
   const t = result.totals;
-  const isRec = battery === rec.battery && pkg === rec.packageId;
+  const isRec = pkg === rec.packageId && result.components.every((c) => {
+    const recommended = rec.result.components.find((p) => p.id === c.id);
+    return c.included === recommended.included && c.metrics.autoClean === recommended.metrics.autoClean && c.metrics.fullTreatment === recommended.metrics.fullTreatment;
+  });
+  const addOns = useMemo(() => getAddOns(result), [result]);
+  const storageOptions = [false, true].map((withBattery) => sizeSystem(region.climate, B.tier, st.inputs, { ...choices, battery: withBattery }, pkg, ctx));
+  const resetAddOns = { wind: null, condensate: null, cleaning: null, treatment: null };
 
   // keep the owner OS and AI in step with this build
   useEffect(() => {
@@ -113,7 +120,7 @@ function Product() {
           <p className="pd-sub">{B.sub}. Solar canopy, rain catchment and the WELOS controller, sized to {region.name}'s sun and {utility.name}'s tariff.</p>
 
           <fieldset className="pd-field"><legend className="t-label">Building</legend>
-            <div className="pd-opts three">{BUILDING_TYPES.map((b) => <button key={b.id} type="button" className="opt" aria-pressed={st.building === b.id} onClick={() => set({ building: b.id, battery: null, package: null, inputs: {}, wind: null, condensate: null })}><b>{b.label}</b><small>{b.sub}</small></button>)}</div>
+            <div className="pd-opts three">{BUILDING_TYPES.map((b) => <button key={b.id} type="button" className="opt" aria-pressed={st.building === b.id} onClick={() => set({ building: b.id, battery: null, package: null, inputs: {}, ...resetAddOns })}><b>{b.label}</b><small>{b.sub}</small></button>)}</div>
           </fieldset>
 
           <fieldset className="pd-field"><legend className="t-label">Location</legend>
@@ -127,7 +134,7 @@ function Product() {
           <fieldset className="pd-field"><legend className="t-label">Storage</legend>
             <div className="pd-opts two">
               {[false, true].map((bat) => {
-                const r = bat ? rec.withBattery : rec.without;
+                const r = storageOptions[bat ? 1 : 0];
                 return <button key={String(bat)} type="button" className="opt" aria-pressed={battery === bat} onClick={() => set({ battery: bat })}>
                   <b>{bat ? "With battery" : "Without battery"} {rec.battery === bat && <em className="rec">Recommended</em>}</b>
                   <span className="t-num">{money(r.totals.totalAed)}</span>
@@ -139,8 +146,9 @@ function Product() {
           </fieldset>
 
           <fieldset className="pd-field"><legend className="t-label">Package</legend>
-            <div className="seg pd-pkg">{Object.values(PACKAGES).map((p) => <button key={p.id} type="button" aria-pressed={pkg === p.id} onClick={() => set({ package: p.id })}>{p.name}{rec.packageId === p.id ? " ·" : ""}</button>)}</div>
+            <div className="seg pd-pkg">{Object.values(PACKAGES).map((p) => <button key={p.id} type="button" aria-pressed={pkg === p.id} onClick={() => set({ package: p.id, ...resetAddOns })}>{p.name}{rec.packageId === p.id ? " ·" : ""}</button>)}</div>
             <p className="t-fine">{PACKAGES[pkg].blurb}</p>
+            <a className="pd-addon-link" href="#h-add">Customize optional add-ons</a>
           </fieldset>
 
           <div className="pd-price">
@@ -156,7 +164,7 @@ function Product() {
           <div className={`pd-rec ${isRec ? "on" : ""}`}>
             <p className="t-label">{isRec ? "You're on the recommended build" : "Recommended for this building"}</p>
             <ul>{rec.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
-            {!isRec && <button type="button" className="btn btn--sm" onClick={() => set({ battery: null, package: null })}>Use the recommended build</button>}
+            {!isRec && <button type="button" className="btn btn--sm" onClick={() => set({ battery: null, package: null, ...resetAddOns })}>Use the recommended build</button>}
           </div>
 
           <div className="pd-cta">
@@ -174,7 +182,7 @@ function Product() {
             <span role="rowheader"><b>{b.label}</b><small>{fmt(cells[0].components[0].metrics.pvKwp, 1)} kWp · {fmt(cells[0].site.loadKwhDay)} kWh/day typical</small></span>
             {cells.map((res, k) => {
               const bat = k === 1, cur = st.building === b.id && battery === bat, isR = r.battery === bat;
-              return <button role="cell" type="button" key={k} className={`vcell ${cur ? "cur" : ""}`} onClick={() => set({ building: b.id, battery: bat, package: null, inputs: {}, wind: null, condensate: null })}>
+              return <button role="cell" type="button" key={k} className={`vcell ${cur ? "cur" : ""}`} onClick={() => set({ building: b.id, battery: bat, package: null, inputs: {}, ...resetAddOns })}>
                 {isR && <em className="rec">Recommended</em>}
                 <span className="vlab t-label">{bat ? "With battery" : "Without battery"}</span>
                 <b className="t-num">{money(res.totals.totalAed)}</b>
@@ -187,20 +195,20 @@ function Product() {
       </section>
 
       <section className="pd-sec" aria-labelledby="h-add">
-        <header><p className="t-label">02 · Add-ons</p><h2 id="h-add" className="t-h2">Add only what earns its place.</h2><p className="t-body">Prices are for this build. Each add-on says whether the engine recommends it here, and why.</p></header>
+        <header><p className="t-label">02 · Add-ons</p><h2 id="h-add" className="t-h2">Add only what earns its place.</h2><p className="t-body">Start with the package defaults, then choose each extra independently. Solar canopy, inverter, controller, soiling alerts, first flush, tank and basic water kit stay included.</p></header>
+        <p className="pd-addon-total" aria-live="polite"><strong>{money(t.totalAed)}</strong> installed with your selected add-ons. Hardware differences below exclude installation; installed differences include it.</p>
         <div className="addons">
-          {[
-            { id: "battery", c: by.battery, on: by.battery.included, toggle: () => set({ battery: !by.battery.included }) },
-            { id: "wind", c: by.wind, on: by.wind.included, toggle: () => set({ wind: !by.wind.included }) },
-            { id: "condensate", c: by.condensate, on: by.condensate.included, toggle: () => set({ condensate: !by.condensate.included }) },
-            { id: "cleaning", c: by.cleaning, on: true, fixed: pkg === "essential" ? "Upgrade to Recommended for automatic cleaning" : "Included with this package" },
-            { id: "water", c: by.water, on: true, fixed: pkg === "essential" ? "Light kit (sediment filter). Recommended adds carbon + UV-C" : "Full treatment train included" },
-          ].map(({ id, c, on, toggle, fixed }) => <article key={id} className={`addon ${on ? "on" : ""}`}>
-            <div className="ad-top"><h3>{c.name}</h3>{toggle ? <button type="button" className="toggle" role="switch" aria-checked={on} aria-label={`Include ${c.name}`} onClick={toggle} /> : <span className="t-label">{on ? "Included" : ""}</span>}</div>
-            <p className="ad-cap t-num">{c.capacity.text} · {money(c.costAed)}</p>
-            <p className="ad-out">{c.output}</p>
-            {c.core === false && <span className={`comp-tag ${c.recommended ? "yes" : ""}`}>{c.recommended ? "Recommended here" : "Not recommended here"}</span>}
-            {fixed && <p className="t-fine">{fixed}</p>}
+          {addOns.map(({ id, name, part: c, on, recommended, detail, hardwareAed, installedAed, energyKwhYear, waterLYear, waterDemandPct }) => <article key={id} className={`addon ${on ? "on" : ""}`}>
+            <div className="ad-top"><h3>{name}</h3><button type="button" className="toggle" role="switch" aria-checked={on} aria-label={`Include ${name}`} onClick={() => set({ [id]: !on })} /></div>
+            <p className="ad-state">{on ? "Selected" : "Not selected"}</p>
+            <p className="ad-cap t-num">{money(hardwareAed)} hardware difference</p>
+            <p className="ad-out">{on ? "Remove to save" : "Add for"} {money(installedAed)} installed</p>
+            {id === "condensate" ? <p className="ad-out">Est. {fmt(waterLYear)} L/yr recovered{waterDemandPct > 0 ? ` · ${fmt(waterDemandPct, 1)}% of your non-potable demand` : ""}</p>
+              : id === "cleaning" ? <p className="ad-out">{c.name} · est. {fmt(energyKwhYear)} kWh/yr more than manual cleaning for this build</p>
+              : id === "treatment" ? <p className="ad-out">Carbon filtration + UV-C upgrade</p>
+              : <p className="ad-out">{c.capacity.text} · {c.output}</p>}
+            <span className={`comp-tag ${recommended ? "yes" : ""}`}>{recommended ? "Recommended here" : "Optional here"}</span>
+            <p className="ad-detail">{detail}</p>
             <details><summary>Why</summary><p>{c.why}</p></details>
           </article>)}
         </div>
