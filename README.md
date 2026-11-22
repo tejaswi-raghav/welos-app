@@ -1,44 +1,62 @@
 # WELOS
 
-WELOS is an integrated renewable-energy and rainwater product concept with a local, offline-first control OS. This repository contains the public site, an interactive 3D product model, a browser control simulator and ESP32-S3 reference firmware.
+WELOS is an integrated rooftop resource system: a solar canopy that is also a rain catchment, an optional vertical-axis wind module, LiFePO4 storage, a first-flush / filter / UV water train, and a deterministic, offline-first edge controller. This repository contains the website (a shared 3D digital twin), the browser control engine, the sizing engine, the WELOS AI advisor API and ESP32-S3 reference firmware.
 
 ## Run
+
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local URL shown by Vite. Entry points:
+## The site
 
-- `/` — **exploded view landing**: scroll the appliance apart; each part says what it does, how it works and what energy or resource it captures, with UAE notes and its capacity sized for the visitor's configured site. Below: what each module captures, the three product scales (priced by the sizing engine), what comes next, and links into the tools.
-- `/studio.html` — **Studio**: the 3D model and the **Design yours** configurator side by side, with buttons for *Side by side*, *3D model* and *Configure* (`#both`, `#model`, `#configure`; `?tier=M` opens a scale). Modules switched on or off in the configurator appear on the model.
-- `/control.html` — live WELOS OS simulator
-- **WELOS AI** — the site advisor lives in a slide-out sidebar (`src/ai/`) opened from every page's header, so it never interrupts the page. It follows the build saved by the configurator.
-- `/model.html`, `/configure.html` and `/explore.html` redirect to the new pages.
+Every page shows the same digital twin in a different context. See [docs/EXPERIENCE.md](docs/EXPERIENCE.md) for the architecture and design decisions.
 
-Brand: the amber ring logo with the `welos™` wordmark (`public/brand/`) and the palette Night `#090D12`, Deep `#111A24`, Paper `#F5F3ED`, Sun `#FFB800`, Steel `#C7D0D9`, Sky `#00BFEA`.
+| Page | What it is |
+| --- | --- |
+| `/` Story | Seven-scene scroll story: rooftop reveal, sun / wind / rain, the integrated network, the controller's rulebook, the exploded machine, a combined-stress day, and the transition into the OS. |
+| `/explorer.html` System Explorer | Select any of the 27 parts, isolate layers, separate the assembly, trace power and water connections, switch physical ↔ schematic. Deep links: `/explorer.html#water-pump`. |
+| `/lab.html` Simulation Lab | Scrub a 24-hour operating day over the rooftop (sun, shadows, dust, rain, flows, controller modes), change conditions, compare scenarios, read the event log. `#cleaning` opens the ten-step self-cleaning sequence. |
+| `/control.html` Control OS | Operator view: SVG topology with upstream/downstream tracing, decision trace, supervisor requests, scenario replay and activity log. |
+| `/studio.html` Studio | Configure a system for a location and roof with the sizing engine; compare packages; export a JSON summary or print. |
 
-## Product foundation
+`/model.html`, `/configure.html` and `/explore.html` redirect to the new pages.
 
-- Solar photovoltaic canopy with integrated rain catchment
-- Compact vertical-axis wind module with independent braking
-- First-flush, filtration, UV, tank, pumping and water-quality instrumentation
-- 48 V LiFePO4 storage, MPPT, wind rectification and hybrid inverter
-- ESP32-S3 edge controller, local API, authenticated commands and offline operation
-- Deterministic safety-oriented control modes and fault handling
+## Where the numbers come from
 
-See [hardware/bom.json](hardware/bom.json) for the structured concept BOM and [docs/HARDWARE_ARCHITECTURE.md](docs/HARDWARE_ARCHITECTURE.md) for interfaces and prototype gates. The 3D model and BOM are an engineering concept, not production CAD or a substitute for licensed structural, electrical, grid and water-safety design.
+- **Controller decisions**: `src/control/engine.js` (unchanged rules, mirrored by `firmware/src/ControlEngine.cpp`).
+- **Operating-day simulation**: `src/twin/sim.js` drives the engine with a deterministic environment (solar geometry for Dubai, clear-sky irradiance, scenario shapes for wind, rain, dust and load). It is labelled as a simulation of a concept reference unit everywhere it appears; there is no random number and no real telemetry.
+- **Sizing and prices**: `src/site/sizing.js` (indicative AED estimates, not a quotation).
 
-## Site configurator and AI advisor
+The 3D model and BOM are an engineering concept, not production CAD or a substitute for licensed structural, electrical, grid and water-safety design.
 
-- `src/site/sizing.js` is the deterministic sizing and pricing engine. Tiers (S villa, M residential, L commercial), climate thresholds and AED rates are all in that file; `RATES` holds every price and tariff assumption.
-- `src/site/presets.js` holds built-in reference climates so the demo works instantly and offline; live values come from NASA POWER via `/api/climate`.
-- `api/advisor.js` asks an LLM to explain the engine's build for the site. It never changes the numbers. Provider order: Groq (free tier) → Claude (optional) → rule-based advice. On any error it falls through, and the page labels which one is showing.
-- To enable the AI advisor on Vercel: create a free key at console.groq.com → Vercel Project → Settings → Environment Variables → add `GROQ_API_KEY` (optionally `GROQ_MODEL` to pin a model), then redeploy. `ANTHROPIC_API_KEY` is optional. For local dev, export the key before `npm run dev`; the Vite dev server serves `/api/*` too.
+## Code map
+
+```
+src/twin/       sim.js (day simulation) · model.js (assembly, layers, routes) · rooftop.js · stage.js (renderer)
+                topology.js (nodes/edges shared by Explorer and Control OS) · useStage.js (React hook)
+src/ui/         base.css (design system) · chrome-html.js (header/footer injected at build) · chrome.js
+src/home/       scroll story
+src/explorer/   System Explorer
+src/lab/        Simulation Lab and self-cleaning sequence
+src/control/    engine.js, simulator.js (legacy live simulator, kept for tests), Control OS UI
+src/studio/     Studio configurator
+src/site/       sizing.js, presets.js
+src/ai/         WELOS AI sidebar
+api/            Vercel functions: advisor, climate (NASA POWER), location (OSM)
+firmware/       ESP32-S3 reference firmware
+```
+
+Brand: the amber ring mark with the `welos™` wordmark (`public/brand/`; `*-ink.png` are the same marks with the wordmark in ink for light backgrounds). Site palette: Paper `#F3F1EC`, Ink `#14191F`, Amber `#F2A007` (power), Ember `#EF6A12`, Sky `#1AA7E0` (water).
+
+## WELOS AI
+
+`api/advisor.js` explains the sizing engine's build; it never changes the numbers. Provider order: Groq → Claude (optional) → rule-based advice. Set `GROQ_API_KEY` (and optionally `ANTHROPIC_API_KEY`) in Vercel to enable it.
 
 ## Verify
 
 ```bash
-npm run check
-npm run firmware:build  # requires PlatformIO
+npm run check            # engine, parts, sizing, twin simulation + topology tests, production build
+npm run firmware:build   # requires PlatformIO
 ```
