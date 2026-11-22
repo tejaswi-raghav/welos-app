@@ -59,7 +59,7 @@ function Product() {
   }, [st, battery, pkg]);
 
   const bays = Math.max(1, Math.ceil(by.solar.metrics.modules / 6));
-  useEffect(() => { if (stage) { stage.setFrame(VIEW_FRAME); stage.setFlows("off"); } }, [stage]);
+  useEffect(() => { if (stage) { stage.setFrame(VIEW_FRAME); stage.setFlows("off"); stage.setEnvironment(0, true); stage.setRim(0.8, true); } }, [stage]);
   useEffect(() => {
     if (!stage) return;
     const shown = stage.setBays(Math.max(0, bays - 1));
@@ -102,6 +102,7 @@ function Product() {
     <div className="product">
       <section className="pd-hero">
         <div className="pd-stage twin-stage">
+          <i className="stage-sun" aria-hidden="true" />
           <canvas ref={canvasRef} aria-label={`3D preview of WELOS ${B.tier} for a ${B.label.toLowerCase()} in ${region.name}${by.battery.included ? " with battery storage" : " without a battery"}`} />
           <div className="annos" ref={annoRef} aria-hidden="true">
             {annos.map((a) => <div key={a.id} data-id={a.id} className={`dimtag ${a.water ? "water" : ""} ${a.ghost ? "ghost" : ""}`}><i /><div><b className="t-num">{a.title}</b><span>{a.sub}</span></div></div>)}
