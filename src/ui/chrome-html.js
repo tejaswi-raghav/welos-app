@@ -9,7 +9,8 @@ export const PAGES = [
 
 export const headTags = `
 <meta name="theme-color" content="#fff5e6">
-<link rel="icon" href="/brand/welos-icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
