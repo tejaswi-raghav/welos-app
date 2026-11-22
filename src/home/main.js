@@ -349,8 +349,9 @@ function applyScene(id) {
   stage.setExplode(s.explode || 0);
   stage.setSchematic(s.schem || 0);
   const first = !applyScene.done; applyScene.done = true;
-  stage.setEnvironment(s.env ?? 1, first);
-  stage.setRim(s.rim || 0, first);
+  // the whole story plays in front of the landing page's ember field: rooftop context stays off
+  stage.setEnvironment(s.env ?? 0, first);
+  stage.setRim(s.rim ?? 0.7, first);
   stage.setFlows(s.flows || "off", s.filter ? new Set(s.filter) : null);
   stage.setFocus(s.focus || null);
   stage.setHoverEnabled(!!s.pick);

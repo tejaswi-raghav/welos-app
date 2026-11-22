@@ -23,7 +23,7 @@ export const COLORS = {
   amber: new THREE.Color("#f0a010"),
   ember: new THREE.Color("#d9480f"),
   sky: new THREE.Color("#1a8fd0"),
-  ink: new THREE.Color("#2a1712"),
+  ink: new THREE.Color("#e8d5c2"),
   paper: new THREE.Color("#fff5e6"),
   ghost: new THREE.Color("#eadfd2"),
   dust: new THREE.Color("#c4a679"),
@@ -195,12 +195,12 @@ export class Stage {
   }
 
   #exhibitGround() {
-    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.14 }));
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.38 }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = GROUND_Y; shadow.receiveShadow = true;
     this.scene.add(shadow);
     const gridMat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false,
-      uniforms: { uColor: { value: new THREE.Color(0x3a2219) }, uAlpha: { value: 0.1 } },
+      uniforms: { uColor: { value: new THREE.Color(0xffe7c8) }, uAlpha: { value: 0.13 } },
       vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
       fragmentShader: `uniform vec3 uColor; uniform float uAlpha; varying vec3 vW;
         float line(float v, float s){ float c = v/s; float d = abs(fract(c-.5)-.5)/fwidth(c); return 1.-min(d,1.); }
@@ -506,7 +506,7 @@ export class Stage {
   #ensureEdges() {
     if (this.edges) return;
     this.edges = [];
-    const mat = new THREE.LineBasicMaterial({ color: 0x2a1712, transparent: true, opacity: 0, depthWrite: false });
+    const mat = new THREE.LineBasicMaterial({ color: 0xffe7c8, transparent: true, opacity: 0, depthWrite: false });
     this.edgeMat = mat;
     for (const m of this.meshes) {
       if (m.geometry.attributes.position.count > 6000) continue;
@@ -617,7 +617,7 @@ export class Stage {
     u.uSunDir.value.copy(dir); u.uSunGlow.value = day * clear;
     const ef = this.envFade.v;
     u.uAlpha.value = ef; this.sky.visible = ef > 0.01;
-    if (this.catcher) { this.catcher.visible = ef < 0.98; this.catcher.material.opacity = 0.2 * (1 - ef); }
+    if (this.catcher) { this.catcher.visible = ef < 0.98; this.catcher.material.opacity = 0.38 * (1 - ef); }
     this.rim.intensity = this.rimFade.v * 2.4;
     if (this.scene.fog) { this.scene.fog.color.copy(u.uHorizon.value); this.scene.fog.near = 34 - w.dust * 18; this.scene.fog.far = 250 - w.dust * 150 - w.rain * 110; }
 

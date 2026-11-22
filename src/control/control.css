@@ -36,8 +36,8 @@
 .edge .base { fill: none; stroke: var(--line-2); stroke-width: 1.6; transition: stroke 0.4s, opacity 0.4s; }
 .edge.water .base { stroke-dasharray: 5 4; }
 .edge.signal .base { stroke: var(--text-2); stroke-width: 1; stroke-dasharray: 1 4; stroke-linecap: round; opacity: 0.6; }
-.edge.on.power .base { stroke: #f7c97a; }
-.edge.on.water .base { stroke: #93c9ea; }
+.edge.on.power .base { stroke: #8a5a12; }
+.edge.on.water .base { stroke: #1f5778; }
 .edge .flow { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 16; animation: os-flow 1.4s linear infinite; }
 .edge.power .flow { stroke: var(--power); }
 .edge.water .flow { stroke: var(--water); }
@@ -75,7 +75,7 @@
 .os-decision { margin: 0; font-size: 15px; font-weight: 550; letter-spacing: -0.01em; }
 .trace { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .trace li { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; padding: 6px 9px 7px 11px; border-radius: 8px; background: var(--bg); box-shadow: inset 2px 0 0 var(--ok), inset 0 0 0 1px var(--line); font-size: 12.5px; animation: tr-in 0.45s var(--e-out) both; }
-.trace li.fail { box-shadow: inset 2px 0 0 var(--warn), inset 0 0 0 1px #f2c3a6; background: var(--warn-soft); }
+.trace li.fail { box-shadow: inset 2px 0 0 var(--warn), inset 0 0 0 1px #8a3f1e; background: var(--warn-soft); }
 .trace li.flag { box-shadow: inset 2px 0 0 var(--water-ink), inset 0 0 0 1px var(--line); }
 .trace .tr-sig { font-weight: 550; }
 .trace b { font-weight: 500; font-size: 12px; }
@@ -112,7 +112,7 @@
 .rp-incidents { display: flex; gap: 5px; overflow-x: auto; flex: 1; padding-bottom: 2px; }
 .inc { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--bg); font-size: 12px; color: var(--text-2); }
 .inc .t-num { font-size: 11px; color: var(--muted); }
-.inc.warning { border-color: #f2c3a6; }
+.inc.warning { border-color: #8a3f1e; }
 .inc.critical { border-color: var(--critical); color: var(--critical); }
 .inc.action { border-color: var(--water); }
 .inc:hover { border-color: var(--text-2); color: var(--text); }
