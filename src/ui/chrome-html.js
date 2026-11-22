@@ -5,7 +5,7 @@ export const PAGES = [
   { id: "explorer", href: "/explorer.html", label: "Explorer", n: "02" },
   { id: "lab", href: "/lab.html", label: "Simulation Lab", n: "03" },
   { id: "control", href: "/control.html", label: "Control OS", n: "04" },
-  { id: "studio", href: "/studio.html", label: "Studio", n: "05" },
+  { id: "product", href: "/product.html", label: "Product", n: "05" },
 ];
 
 export const headTags = `
@@ -25,6 +25,7 @@ export function headerHtml(page) {
   <div class="head-right">
     <span class="sim-chip" title="Every value on this site comes from a deterministic simulation of a concept reference unit">Simulated · concept unit</span>
     <button type="button" class="ai-btn" data-ai-open><i aria-hidden="true"></i><span>WELOS AI</span></button>
+    <a class="signin-btn" href="/signin.html">Sign in</a>
     <button type="button" class="menu-btn" aria-controls="site-nav" aria-expanded="false" aria-label="Menu"><span></span></button>
   </div>
 </header>`;
