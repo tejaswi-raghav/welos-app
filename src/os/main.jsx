@@ -12,7 +12,8 @@ const who = session();
 if (!who) location.replace("/signin.html");
 
 const money = (x, d = 0) => `AED ${fmt(x, d)}`;
-const C = { amber: "#f2a007", ember: "#ef6a12", sky: "#1aa7e0", ink: "#1b232c", stone: "#cfc8bb", green: "#34a36b" };
+// chart colours = Solar Ember semantic tokens (power amber, warn ember, water blue, use obsidian, ok green)
+const C = { amber: "#f0a010", ember: "#d9480f", sky: "#1a8fd0", ink: "#3a2a22", stone: "#d6c0ab", green: "#2f7a4d" };
 
 const I = {
   overview: <path d="M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z" />,
@@ -77,7 +78,7 @@ function App() {
     <div className="mac" onClick={() => setMenu(null)}>
       <header className="menubar" role="menubar" aria-label="welOS menu bar">
         <div className="mb-left">
-          <img src="/brand/welos-mark.png" alt="" className="mb-logo" />
+          <img src="/brand/welos-icon.svg" alt="" className="mb-logo" />
           {Object.keys(MENUS).map((m) => <div key={m} className="mb-item">
             <button type="button" role="menuitem" aria-haspopup="true" aria-expanded={menu === m} className={m === "welOS" ? "app" : ""} onClick={(e) => { e.stopPropagation(); setMenu(menu === m ? null : m); }} onMouseEnter={() => menu && setMenu(m)}>{m}</button>
             {menu === m && <ul className="dropdown" role="menu" onClick={(e) => e.stopPropagation()}>{MENUS[m].map((it, i) => (it ? <li key={i}><button type="button" role="menuitem" onClick={() => { setMenu(null); it[1](); }}><span>{it[0]}</span>{it[2] && <kbd>{it[2]}</kbd>}</button></li> : <li key={i} className="sep" role="separator" />))}</ul>}
@@ -133,7 +134,7 @@ function App() {
       <nav className="dock" aria-label="Dock">
         {secs.map((s) => <button key={s.id} type="button" className={`dk ${s.id}`} onClick={() => go(s.id)} aria-label={s.label}><span className="tile"><Glyph name={s.id} size={26} /></span><em>{s.label}</em>{sec === s.id && !mini && <i className="run" />}</button>)}
         <span className="dk-sep" aria-hidden="true" />
-        <a className="dk product" href="/product.html" aria-label="Product page"><span className="tile img"><img src="/brand/welos-mark.png" alt="" /></span><em>Product</em></a>
+        <a className="dk product" href="/product.html" aria-label="Product page"><span className="tile img"><img src="/brand/welos-icon.svg" alt="" /></span><em>Product</em></a>
         <a className="dk ctrl" href="/control.html" aria-label="Engineering Control OS"><span className="tile"><Glyph name="activity" size={26} /></span><em>Control OS</em></a>
       </nav>
 
@@ -204,7 +205,7 @@ function Overview({ D, period, go }) {
       </Card>
       <Card title="Where your power comes from" className="span2" info={D.utility.netMetering === "yes" ? `Under net metering your solar is counted against your use across the whole month, whether you used it as it was made or exported it. "Banked credit" is surplus from earlier months drawn back at no cost. Only "Bought from grid" is billed.` : `Only solar you use on site counts here. Surplus exported to ${D.utility.name} isn't credited in this model.`}>
         <div className="row-split">
-          <Donut parts={[{ label: D.utility.netMetering === "yes" ? "Offset by this month's solar" : "Solar used on site", value: D.utility.netMetering === "yes" ? direct : m.selfUsed + m.batteryShift, color: C.amber }, ...(D.utility.netMetering === "yes" ? [{ label: "Offset by banked credit", value: credit, color: C.sky }] : []), { label: "Bought from grid", value: grid, color: C.stone }]} center={`${fmt(m.load)}`} sub={`kWh used in ${MONTHS[D.mo]}`} />
+          <Donut parts={[{ label: D.utility.netMetering === "yes" ? "Offset by this month's solar" : "Solar used on site", value: D.utility.netMetering === "yes" ? direct : m.selfUsed + m.batteryShift, color: C.amber }, ...(D.utility.netMetering === "yes" ? [{ label: "Offset by banked credit", value: credit, color: C.ink }] : []), { label: "Bought from grid", value: grid, color: C.stone }]} center={`${fmt(m.load)}`} sub={`kWh used in ${MONTHS[D.mo]}`} />
           <ul className="insights">
             <li><b>{fmt(D.by.solar.metrics.pvKwp, 1)} kWp</b> on your roof is producing {fmt(((m.pv / m.days) / D.by.solar.metrics.pvKwp), 2)} kWh per kW per day this month.</li>
             {D.utility.netMetering === "yes" && <li><b>{fmt(m.creditBank)} kWh</b> of credit is banked for the months when your use outruns the sun.</li>}
@@ -304,7 +305,7 @@ function Water({ D }) {
     </div>
     <div className="grid two">
       <Card title="Water captured, by month" className="span2" info={`UAE rain falls mostly between November and March, so the tank fills in winter.${D.by.condensate.included ? " AC condensate is steadier and peaks in summer, when cooling runs hardest." : ""} Monthly split is an assumption spread over the annual estimate.`}>
-        <MonthBars data={data} a="rain" b={D.by.condensate.included ? "cond" : null} labels={["Rain", "Condensate"]} colors={[C.sky, "#7fd0f2"]} unit="L" current={D.mo} />
+        <MonthBars data={data} a="rain" b={D.by.condensate.included ? "cond" : null} labels={["Rain", "Condensate"]} colors={[C.sky, "#8cc8ea"]} unit="L" current={D.mo} />
       </Card>
       <Card title="Tank" info="Water passes the first-flush diverter and filters before it reaches the tank. It's for irrigation, flushing and panel cleaning, not drinking.">
         <div className="tankviz"><div className="tank"><i style={{ height: `${level}%` }} /><span>{fmt(level)}%</span></div><p>{fmt((level / 100) * tank)} of {fmt(tank)} L<br /><small>simulated level</small></p></div>
@@ -341,7 +342,7 @@ function Storage({ D }) {
     </div>
     <div className="grid one">
       <Card title="Your credit bank" info={D.utility.netMetering === "yes" ? `${D.utility.scheme}: ${D.utility.schemeNote} The bars show credit building through the sunny months and being drawn down when your use is higher than your output. That is why a battery isn't needed for savings.` : `${D.utility.schemeNote}`}>
-        <MonthBars data={data} a="bank" b="exp" labels={["Credit banked", "Exported that month"]} colors={[C.sky, C.amber]} unit="kWh" current={D.mo} />
+        <MonthBars data={data} a="bank" b="exp" labels={["Credit banked", "Exported that month"]} colors={[C.ink, C.amber]} unit="kWh" current={D.mo} />
       </Card>
     </div>
   </>;
@@ -385,7 +386,7 @@ function Activity({ D }) {
 }
 
 function About({ D }) {
-  return <div className="about"><img src="/brand/welos-mark.png" alt="" /><h2>welOS</h2><p>Version 2.4 (demo)</p><dl>
+  return <div className="about"><img src="/brand/welos-icon.svg" alt="" /><h2>welOS</h2><p>Version 2.4 (demo)</p><dl>
     <div><dt>System</dt><dd>WELOS {D.B.tier} · {D.B.label}</dd></div><div><dt>Location</dt><dd>{D.region.name} · {D.utility.name}</dd></div>
     <div><dt>Solar</dt><dd>{fmt(D.by.solar.metrics.pvKwp, 1)} kWp</dd></div><div><dt>Storage</dt><dd>{D.totals.withBattery ? `${fmt(D.by.battery.metrics.batteryKwh)} kWh` : "None (grid-tied)"}</dd></div>
     <div><dt>Data</dt><dd>Simulated from the WELOS sizing, tariff and control engines</dd></div></dl></div>;

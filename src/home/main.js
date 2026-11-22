@@ -37,8 +37,11 @@ const WIND = ["vawt-rotor", "wind-brake", "wind-generator", "wind-mast", "wind-r
 const WATER = LAYERS.find((l) => l.id === "water").keys.concat(["pv-array"]);
 
 const SCENES = {
-  hero: { pose: { pos: [15.5, 5.6, 18.5], target: [0.2, 0.7, 0], fov: 30 }, shift: 0.17, frame: FR.hero, flows: "off",
-    annos: [] },
+  hero: { pose: { pos: [15.5, 5.6, 18.5], target: [0.2, 0.7, 0], fov: 30 }, shift: 0.17, frame: FR.hero, flows: "off", env: 0, rim: 1,
+    annos: [
+      { key: "pv-array", at: [1.6, 1.75, 0.6], cls: "power", label: "Canopy", title: "Solar PV + rain catchment", dx: -210, dy: -70 },
+      { key: "vawt-rotor", at: [3.25, 3.0, -0.4], cls: "power", label: "Optional", title: "Vertical-axis wind rotor", dx: 46, dy: -40 },
+    ] },
   sun: { pose: { pos: [3.5, 11.5, 11], target: [-0.4, 1.0, -0.2], fov: 30 }, shift: 0.16, frame: FR.sun, flows: "active", filter: ["pv", "mpptBus", "battery", "loads"], focus: SOLAR,
     annos: [
       { key: "pv-array", at: [1.6, 1.75, 0.6], cls: "power", label: "S01 · Canopy", title: "6 × PV modules", v: (f) => `${f2(f.result.power.pvKw)} kW from ${f.sensors.solarIrradianceWm2} W/m²`, dx: 50, dy: -70 },
@@ -93,14 +96,14 @@ const annoLayer = $("#annos");
 let liveAnnos = [];
 function mountAnnos(list, frame) {
   annoLayer.innerHTML = "";
-  const max = isMobile() ? 1 : list.length;
+  const max = isMobile() ? (currentScene === "hero" ? 0 : 1) : list.length;
   liveAnnos = list.slice(0, max).map((a) => {
     const el = document.createElement("div");
     el.className = `anno ${a.cls || ""}`;
     el.innerHTML = `<i class="lead"></i><i class="dot"></i><div class="card"><span class="t-label">${esc(a.label)}</span><b>${esc(a.title)}</b><span class="v"></span></div>`;
     annoLayer.appendChild(el);
     const card = el.querySelector(".card"), lead = el.querySelector(".lead"), v = el.querySelector(".v");
-    if (frame) v.textContent = a.v(frame);
+    if (frame && a.v) v.textContent = a.v(frame);
     if (!v.textContent) v.remove();
     requestAnimationFrame(() => el.classList.add("on"));
     return { ...a, el, card, lead, out: {} };
@@ -151,11 +154,7 @@ function fillChains() {
     ["Capture", `${r.result.water.captureRateLpm} L/min`],
     ["Tank", `${r.tank.toFixed(0)}%`],
   ]);
-  const h = FR.hero;
-  $("#heroReadout").innerHTML = [
-    ["Simulated", `${h.clock}`], ["Solar", `${f2(h.result.power.pvKw)} kW`], ["Wind", `${f1(h.sensors.windSpeedMs)} m/s`],
-    ["Battery", `${h.soc.toFixed(0)}%`],
-  ].map(([k, v]) => `<div><dt class="t-label">${k}</dt><dd class="t-num">${esc(v)}</dd></div>`).join("");
+
 }
 fillChains();
 
@@ -349,7 +348,9 @@ function applyScene(id) {
   stage.setFrame(s.frame || FR.hero);
   stage.setExplode(s.explode || 0);
   stage.setSchematic(s.schem || 0);
-  stage.setEnvironment(s.env ?? 1);
+  const first = !applyScene.done; applyScene.done = true;
+  stage.setEnvironment(s.env ?? 1, first);
+  stage.setRim(s.rim || 0, first);
   stage.setFlows(s.flows || "off", s.filter ? new Set(s.filter) : null);
   stage.setFocus(s.focus || null);
   stage.setHoverEnabled(!!s.pick);
@@ -358,8 +359,10 @@ function applyScene(id) {
   stage.setShift(isMobile() ? 0 : s.shift || 0);
   mountAnnos(s.annos || [], s.frame);
 }
+const sunfield = $("#sunfield");
 function onScroll() {
   const y = scrollY, h = innerHeight, probe = y + h * 0.5;
+  if (sunfield) sunfield.style.setProperty("--hp", clamp(y / (h * 0.9)).toFixed(3));
   let i = 0;
   const tops = sceneEls.map((el) => el.offsetTop);
   while (i < tops.length - 1 && probe >= tops[i + 1]) i++;

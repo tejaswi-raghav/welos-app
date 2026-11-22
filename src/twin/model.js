@@ -74,8 +74,17 @@ export function buildModel() {
     }
   });
   const cellTex = pvCellTexture();
+  // Solar Ember finishes: the reference CAD used cool blue-greys; the product is shown in warm graphite,
+  // champagne aluminium and ivory powder-coat. Water parts stay blue, power parts amber, the E-stop red.
+  const FINISH = {
+    "2a323c": "2f2824", "1a2129": "1f1916", "7d8893": "8a7f78", "0d1218": "14100e", "5e6a76": "5f544e",
+    "9aa6b2": "a89d95", "707c88": "73685f", "808c98": "857a72", "dfe4e9": "efe7de", "d2d9e0": "e4dad0",
+    "bcc6cf": "cbbfb4", "141b23": "1a1512", "1f2630": "241d19", "1d242d": "221b18", "f5f3ed": "fbf3e8",
+    "00bfea": "2aa3e0", "00a9d4": "1a8fd0", "d99a00": "e0901a", "d9a000": "e0961a", "ffb800": "f5a623",
+  };
   const mats = mTxt.split("\n").map((line, idx) => {
-    const [hex, metal, rough, em, ei, side] = line.split(",");
+    const [raw, metal, rough, em, ei, side] = line.split(",");
+    const hex = FINISH[raw] || raw;
     const m = new THREE.MeshStandardMaterial({
       color: "#" + hex, metalness: +metal, roughness: +rough,
       emissive: em ? "#" + em : 0x000000, emissiveIntensity: em ? +ei : 1,
@@ -118,9 +127,9 @@ export function buildModel() {
 
   // data-bound instruments
   const tank = KEY["water-tank"][0];
-  const gaugeTrack = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.3, 0.02), new THREE.MeshStandardMaterial({ color: "#dfe4e9", roughness: 0.3 }));
+  const gaugeTrack = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.3, 0.02), new THREE.MeshStandardMaterial({ color: "#efe7de", roughness: 0.3 }));
   gaugeTrack.position.set(0, 0.0, 0.69); tank.add(gaugeTrack);
-  const gaugeFill = new THREE.Mesh(new THREE.BoxGeometry(0.044, 1, 0.024), new THREE.MeshStandardMaterial({ color: "#1aa7e0", emissive: "#1aa7e0", emissiveIntensity: 0.35, roughness: 0.3 }));
+  const gaugeFill = new THREE.Mesh(new THREE.BoxGeometry(0.044, 1, 0.024), new THREE.MeshStandardMaterial({ color: "#1a8fd0", emissive: "#1a8fd0", emissiveIntensity: 0.35, roughness: 0.3 }));
   gaugeFill.position.set(0, -0.63, 0.695); tank.add(gaugeFill);
   const battery = KEY["lifepo4-battery"][0];
   const leds = battery.children.filter((m) => m.isMesh && Math.abs(m.position.z - 0.33) < 0.01).sort((a, b) => a.position.x - b.position.x);

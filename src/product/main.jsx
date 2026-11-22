@@ -109,7 +109,7 @@ function Product() {
 
         <aside className="pd-buy" aria-label="Choose your WELOS">
           <p className="t-label">WELOS {B.tier} · product</p>
-          <h1 className="t-h1">{B.label}<span className="t-serif"> system.</span></h1>
+          <h1 className="t-h1">{B.label}<span className="t-soft"> system.</span></h1>
           <p className="pd-sub">{B.sub}. Solar canopy, rain catchment and the WELOS controller, sized to {region.name}'s sun and {utility.name}'s tariff.</p>
 
           <fieldset className="pd-field"><legend className="t-label">Building</legend>
@@ -149,7 +149,7 @@ function Product() {
               <div><dt className="t-label">Output</dt><dd className="t-num">{fmt(t.energyKwhYear)} <small>kWh/yr</small></dd></div>
               <div><dt className="t-label">Bill</dt><dd className="t-num">{money(t.billBeforeAed)} → {money(t.billAfterAed)} <small>/yr</small></dd></div>
               <div><dt className="t-label">Payback</dt><dd className="t-num">{yrs(t.paybackYears)}</dd></div>
-              <div><dt className="t-label">25-yr net</dt><dd className={`t-num ${t.lifetimeNetAed < 0 ? "c-ember" : ""}`}>{money(t.lifetimeNetAed)}</dd></div>
+              <div><dt className="t-label">25-yr net</dt><dd className={`t-num ${t.lifetimeNetAed < 0 ? "c-warn" : ""}`}>{money(t.lifetimeNetAed)}</dd></div>
             </dl>
           </div>
 

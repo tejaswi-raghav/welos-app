@@ -7,13 +7,14 @@
 <meta name="description" content="WELOS is one rooftop system for sun, wind and rain, run by a deterministic local controller. Walk through its digital twin: the hardware, the flows, and every decision the controller makes.">
 <meta property="og:title" content="WELOS — Energy above. Water within.">
 <meta property="og:description" content="A rooftop that captures sun, wind and rain, and explains every decision it makes.">
-<meta property="og:image" content="/brand/welos-lockup.png">
+<meta property="og:image" content="/brand/welos-og.jpg">
 <!--head-->
 </head>
-<body class="home">
+<body class="home" data-scene="hero">
 <!--header-->
 
 <div class="twin-stage stage-fixed" id="stage" aria-hidden="true">
+  <div class="sunfield" id="sunfield"><i class="sun-disc"></i></div>
   <canvas id="gl"></canvas>
   <div class="annos" id="annos"></div>
   <div class="loader stage-loader" id="loader"><svg viewBox="0 0 72 40" aria-hidden="true"><path d="M4 36 Q36 -8 68 36"/><path class="sun" d="M4 36 Q36 -8 68 36"/></svg><span>Building the rooftop</span></div>
@@ -27,14 +28,18 @@
   <!-- 01 — Reveal -->
   <section class="scene hero" data-scene="hero" aria-labelledby="h-hero">
     <div class="panel hero-panel">
-      <p class="t-label kick">welOS · rooftop resource system · UAE</p>
-      <h1 id="h-hero" class="t-display hero-title"><span class="ln"><span>Energy above.</span></span><span class="ln"><span class="t-serif">Water within.</span></span></h1>
-      <p class="t-lede hero-lede">One rooftop unit captures sun, wind and rain, stores what it gathers, and runs on a local controller that can explain every decision it makes.</p>
+      <p class="t-label kick">Rooftop energy &amp; water system · UAE</p>
+      <h1 id="h-hero" class="t-display hero-title"><span class="ln"><span>Energy above.</span></span><span class="ln"><span class="t-soft">Water within.</span></span></h1>
+      <p class="t-lede hero-lede">WELOS is a solar canopy that also catches rain. It powers the building, stores what it gathers, and runs on a local controller that explains every decision it makes.</p>
       <div class="hero-cta">
-        <a class="btn" href="/explorer.html">Explore the digital twin <span class="arr" aria-hidden="true">→</span></a>
-        <a class="btn btn--line" href="#ch-sun">Follow the story</a>
+        <a class="btn btn--sun" href="/product.html">Configure a system <span class="arr" aria-hidden="true">→</span></a>
+        <a class="btn btn--ghost-dark" href="/explorer.html">Explore the hardware</a>
       </div>
-      <dl class="readout" id="heroReadout" aria-label="Simulated state at this moment"></dl>
+      <dl class="hero-spec" aria-label="What the unit does">
+        <div><dt class="t-label">Generates</dt><dd>Solar PV canopy, optional wind rotor</dd></div>
+        <div><dt class="t-label">Captures</dt><dd>Rain and AC condensate, filtered</dd></div>
+        <div><dt class="t-label">Decides</dt><dd>Offline edge controller, 250 ms loop</dd></div>
+      </dl>
     </div>
     <p class="scroll-cue t-label" aria-hidden="true"><i></i>Scroll</p>
   </section>
@@ -42,8 +47,8 @@
   <!-- 02 — Three resources -->
   <section class="scene res" data-scene="sun" id="ch-sun" aria-labelledby="h-sun">
     <div class="panel">
-      <p class="t-label kick c-amber"><b>01</b> Sunlight</p>
-      <h2 id="h-sun" class="t-h1">The canopy is the <span class="t-serif">power plant</span> and the roof.</h2>
+      <p class="t-label kick c-power"><b>01</b> Sunlight</p>
+      <h2 id="h-sun" class="t-h1">The canopy is the <span class="t-soft">power plant</span> and the roof.</h2>
       <p class="t-body">Six modules convert irradiance into DC power. A maximum-power-point tracker holds them at their best operating voltage and feeds the 48 V bus. The same glass shades the roof below and catches the rain.</p>
       <ol class="chain" data-chain="sun"></ol>
       <p class="notice">Clear-day simulation, 12:30. Values computed by the engine for the concept reference unit.</p>
@@ -52,8 +57,8 @@
 
   <section class="scene res" data-scene="wind" aria-labelledby="h-wind">
     <div class="panel">
-      <p class="t-label kick c-amber"><b>02</b> Wind</p>
-      <h2 id="h-wind" class="t-h1">Wind takes over <span class="t-serif">when the sun leaves.</span></h2>
+      <p class="t-label kick c-power"><b>02</b> Wind</p>
+      <h2 id="h-wind" class="t-h1">Wind takes over <span class="t-soft">when the sun leaves.</span></h2>
       <p class="t-body">A helical vertical-axis rotor accepts wind from any direction with no yaw mechanism. Its direct-drive generator is rectified onto the same bus. Below 1.5 m/s or above 15 m/s, a fail-safe brake holds it still, independently of the cloud.</p>
       <ol class="chain" data-chain="wind"></ol>
       <p class="notice">High-wind simulation, 17:30. The turbine is an add-on, fitted only where a site measurement supports it.</p>
@@ -62,8 +67,8 @@
 
   <section class="scene res" data-scene="rain" aria-labelledby="h-rain">
     <div class="panel">
-      <p class="t-label kick c-sky"><b>03</b> Rain</p>
-      <h2 id="h-rain" class="t-h1">Rare rain, <span class="t-serif">never wasted.</span></h2>
+      <p class="t-label kick c-water"><b>03</b> Rain</p>
+      <h2 id="h-rain" class="t-h1">Rare rain, <span class="t-soft">never wasted.</span></h2>
       <p class="t-body">Rain runs off the canopy into a perimeter gutter. The first flush of each storm, carrying the dust, is diverted to drain. Only then does the storage valve open, through sediment, carbon and UV-C stages into an opaque tank.</p>
       <ol class="chain water" data-chain="rain"></ol>
       <p class="notice">Rainfall simulation, 16:45. Non-potable use only; potable supply needs separate certification.</p>
@@ -74,7 +79,7 @@
   <section class="scene" data-scene="network" aria-labelledby="h-net">
     <div class="panel">
       <p class="t-label kick">Integrated rooftop</p>
-      <h2 id="h-net" class="t-h1">Two networks. <span class="t-serif">One chassis.</span></h2>
+      <h2 id="h-net" class="t-h1">Two networks. <span class="t-soft">One chassis.</span></h2>
       <p class="t-body">Every line starts at a real component. Power runs from the canopy and rotor through the DC bus to the battery, the building and the pump. Water runs from the gutter through first flush, storage and treatment, and back up to rinse the panels.</p>
       <div class="keys"><span class="key">Electrical power</span><span class="key water">Water</span><span class="key signal">Control signal</span></div>
       <p class="t-fine">Bright segments are moving right now in the simulation; faint ones are available but idle.</p>
@@ -85,7 +90,7 @@
   <section class="scene coord" data-scene="coord" aria-labelledby="h-coord">
     <div class="panel">
       <p class="t-label kick">Intelligent coordination</p>
-      <h2 id="h-coord" class="t-h1">Not a black box. <span class="t-serif">A rulebook.</span></h2>
+      <h2 id="h-coord" class="t-h1">Not a black box. <span class="t-soft">A rulebook.</span></h2>
       <p class="t-body">Every 250 ms the controller reads its sensors, checks them against fixed limits, then permits or blocks each action. Pick a moment and follow the reasoning.</p>
       <div class="seg moments" id="moments" role="group" aria-label="Choose a moment"></div>
     </div>
@@ -96,7 +101,7 @@
   <section class="scene" data-scene="exploded" aria-labelledby="h-exp">
     <div class="panel">
       <p class="t-label kick">Inside the machine</p>
-      <h2 id="h-exp" class="t-h1">Twenty-seven parts, <span class="t-serif">each with one job.</span></h2>
+      <h2 id="h-exp" class="t-h1">Twenty-seven parts, <span class="t-soft">each with one job.</span></h2>
       <p class="t-body">Each part moves out along the path it would take for service. Select any part, on the model or in the list, to see what it does and what it connects to.</p>
       <div class="part-card" id="partCard" aria-live="polite"></div>
       <div class="part-list" id="partList" role="group" aria-label="Parts"></div>
@@ -107,7 +112,7 @@
   <section class="pressure" data-scene="pressure" id="ch-pressure" aria-labelledby="h-press">
     <header class="press-head">
       <p class="t-label kick">A system under pressure</p>
-      <h2 id="h-press" class="t-h1">One day. <span class="t-serif">Dust, a storm, a blackout.</span></h2>
+      <h2 id="h-press" class="t-h1">One day. <span class="t-soft">Dust, a storm, a blackout.</span></h2>
       <p class="t-lede">A combined-stress day for the reference unit: dust settles at midday, the wind builds, a storm breaks at dusk and then the grid drops. Step through what the controller sees and does.</p>
     </header>
     <div class="press-body">
@@ -123,7 +128,7 @@
   <section class="scene os" data-scene="os" aria-labelledby="h-os">
     <div class="panel os-panel">
       <p class="t-label kick">From rooftop to operating system</p>
-      <h2 id="h-os" class="t-h1">The same rooftop, <span class="t-serif">as a network.</span></h2>
+      <h2 id="h-os" class="t-h1">The same rooftop, <span class="t-soft">as a network.</span></h2>
       <p class="t-body">Strip away the material and what is left is the topology the controller works on: sources, a bus, stores, loads and the rules between them.</p>
       <div class="hero-cta"><a class="btn" href="/explorer.html">Explore the digital twin <span class="arr" aria-hidden="true">→</span></a><a class="btn btn--line" href="/control.html">Open Control OS</a></div>
     </div>

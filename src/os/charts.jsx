@@ -46,7 +46,7 @@ export function DayChart({ curve, nowIdx, height = 220, battery }) {
     <div className="ch-day">
       <svg ref={ref} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Today's solar production against household use" onPointerMove={onMove} onPointerLeave={() => setHi(null)}>
         <defs>
-          <linearGradient id={`g${id}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#f6b632" stopOpacity="0.55" /><stop offset="1" stopColor="#f6b632" stopOpacity="0.04" /></linearGradient>
+          <linearGradient id={`g${id}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#f0a010" stopOpacity="0.32" /><stop offset="1" stopColor="#f0a010" stopOpacity="0.02" /></linearGradient>
           <clipPath id={`c${id}`}><rect x="0" y="0" width={x(nowIdx)} height={H} className="reveal-clip" /></clipPath>
         </defs>
         {[0, 6, 12, 18, 24].map((h) => <line key={h} x1={(h / 24) * W} x2={(h / 24) * W} y1={pt} y2={H - pb} className="grid" />)}
@@ -143,7 +143,7 @@ export function Donut({ parts, size = 150, center, sub }) {
 }
 
 /** Progress ring. */
-export function Ring({ value, label, color = "#f2a007", size = 92 }) {
+export function Ring({ value, label, color = "#f0a010", size = 92 }) {
   const r = 38, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, value));
   return (
     <svg className="ring" viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`${label} ${Math.round(v)}%`}>
