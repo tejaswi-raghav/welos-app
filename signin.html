@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-page="signin">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in — welOS (demo)</title>
+<meta name="description" content="Sign in to the welOS owner demo with the demo account shown on the page.">
+<meta name="robots" content="noindex">
+<!--head-->
+</head>
+<body class="signin-page">
+<!--header-->
+<main id="main" class="signin">
+  <section class="si-art" aria-hidden="true">
+    <img src="/brand/welos-mark.png" alt="" class="si-ring">
+    <div class="si-copy">
+      <p class="t-label">welOS · owner app</p>
+      <p class="si-big">Your rooftop,<br><span class="t-serif">in plain numbers.</span></p>
+      <p class="si-lede">Output, savings, water and storage for the system you configured, explained as you go.</p>
+    </div>
+  </section>
+  <section class="si-panel">
+    <form class="si-card" id="signin" novalidate>
+      <p class="t-label">Demo account</p>
+      <h1 class="t-h2">Sign in to welOS</h1>
+      <div class="si-demo" role="note">
+        <p><b>This is a demo.</b> There are no real accounts. Use the demo credentials below; nothing you type is sent anywhere.</p>
+        <dl><div><dt>Email</dt><dd class="t-num">demo@welos.ae</dd></div><div><dt>Password</dt><dd class="t-num">welos-demo</dd></div></dl>
+        <button type="button" class="btn btn--line btn--sm" id="fill">Fill demo credentials</button>
+      </div>
+      <label class="si-field"><span>Email</span><input type="email" id="email" autocomplete="off" spellcheck="false" placeholder="demo@welos.ae" required></label>
+      <label class="si-field"><span>Password</span><input type="password" id="password" autocomplete="off" placeholder="••••••••••" required></label>
+      <p class="si-error" id="err" role="alert" aria-live="assertive"></p>
+      <button type="submit" class="btn si-submit" id="go"><span>Sign in</span><i aria-hidden="true"></i></button>
+      <p class="t-fine">Your configuration from the <a href="/product.html">product page</a> is what welOS shows. No configuration yet? The demo uses a recommended Dubai villa.</p>
+    </form>
+  </section>
+</main>
+<script type="module" src="/src/account/signin.js"></script>
+</body>
+</html>

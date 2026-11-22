@@ -7,6 +7,15 @@
 //
 // All prices are indicative UAE market estimates in AED (2026) for concept
 // planning only. Edit RATES to update them. They are not a quotation.
+//
+// Calibration (checked 22 Nov 2026): UAE installer guides put a 10 kW villa system at
+// AED 40,000–55,000 installed (5 kW at 20,000–30,000); panels sell at AED 0.85–1.45/W;
+// LiFePO4 battery modules retail at about AED 410–530/kWh before installation.
+// Electricity savings use the utility's real slab tariff, fuel surcharge, VAT and
+// net-metering rules (see economics.js and regions.js), not a flat rate.
+
+import { annualEconomics, LOAD_SHAPE, monthlySun, marginalRate } from "./economics.js";
+import { UTILITIES, DAYS } from "./regions.js";
 
 export const CURRENCY = "AED";
 
@@ -44,12 +53,14 @@ export const PACKAGES = Object.freeze({
 });
 
 export const RATES = Object.freeze({
-  moduleStandardPerW: 0.8,      // mono PERC module, AED/W
-  modulePremiumPerW: 1.05,      // N-type bifacial glass-glass, AED/W
-  canopyPerW: 0.45,             // canopy, racking and integrated rain gutter, AED/W
+  moduleStandardPerW: 0.85,     // mono PERC module, AED/W (market 0.85–1.45)
+  modulePremiumPerW: 1.1,       // N-type bifacial glass-glass, AED/W
+  canopyPerW: 1.6,              // elevated canopy structure, racking and integrated rain gutter, AED/W
+  electricalPerW: 0.45,         // DC/AC cabling, protection, utility NOC and bidirectional meter, AED/W
   reinforcedCanopyFactor: 1.15, // high-wind structure uplift
-  inverterPerKw: 480,
-  batteryPerKwh: 1050,          // LiFePO4 with BMS
+  inverterPerKw: 480,           // hybrid (battery-ready) inverter
+  gridTieInverterPerKw: 380,    // string inverter without battery port (ASSUMPTION: ~20% below hybrid)
+  batteryPerKwh: 750,           // LiFePO4 with BMS, rack, cabling and commissioning (retail modules ~AED 410–530/kWh)
   batteryCoolingFactor: 0.08,   // active-cooled enclosure as share of battery cost
   batteryCoolingMin: 2000,
   turbinePerKw: 9500,           // VAWT incl. mast, brake, rectifier and dump load
@@ -62,7 +73,9 @@ export const RATES = Object.freeze({
   rinsePerKwp: 90, rinseMin: 1500,              // rain-fed rinse rail
   controller: { S: 4500, M: 14000, L: 38000 },  // WELOS edge OS, sensors, metering
   installRate: { S: 0.15, M: 0.13, L: 0.12 },   // engineering, install, commissioning
-  tariffPerKwh: 0.38,           // UAE upper-slab electricity incl. fuel surcharge
+  tariffPerKwh: 0.38,           // legacy flat rate; savings now come from the utility tariff model
+  degradation: 0.005,           // module output loss per year
+  lifeYears: 25,
   waterPerL: 0.0095,            // UAE water + sewerage, AED per litre
   gridKgCo2PerKwh: 0.41,
   financeApr: 0.0499,           // illustrative green-finance rate
@@ -122,7 +135,10 @@ export function resolveInputs(tierId, inputs = {}) {
  * @param {object} choices optional { [componentId]: boolean } user include/exclude overrides
  * @param {"essential"|"recommended"|"max"} packageId
  */
-export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, packageId = "recommended") {
+export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, packageId = "recommended", context = {}) {
+  const utility = UTILITIES[context.utilityId] || UTILITIES.dewa;
+  const customer = context.customer === "national" ? "national" : "expat";
+  const wantsBackup = !!context.backup;
   const tier = TIERS[tierId] || TIERS.S;
   const pkg = PACKAGES[packageId] || PACKAGES.recommended;
   const t = tier.id;
@@ -177,7 +193,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
       rule(`Mean wind ≥ 6 m/s (site: ${fmt(c.wind, 1)} m/s)`, windy, windy ? "Reinforced canopy, +15% structure cost" : "Standard canopy structure"),
     ],
     metrics: { pvKwp, modules, maxModules, performanceRatio: pr, thermalDerate, cellTemp },
-    costAed: pvKwp * 1000 * (moduleRate + canopyRate),
+    costAed: pvKwp * 1000 * (moduleRate + canopyRate + RATES.electricalPerW),
   });
 
   // ---------- Panel cleaning ----------
@@ -227,26 +243,48 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
     costAed: turbines * tier.turbineKw * RATES.turbinePerKw * (stormRated ? RATES.stormRatedFactor : 1),
   });
 
-  // ---------- Battery ----------
+  // ---------- Battery (optional) ----------
   const pvKwhDay = pvKwhYear / 365;
   const share = tier.batteryShare * pkg.batteryShareFactor;
   const nightKwh = Math.min(site.loadKwhDay * share, pvKwhDay * 0.6);
   const batteryKwh = Math.max(tier.batteryModuleKwh, ceilTo(nightKwh, tier.batteryModuleKwh));
   const coolBattery = c.temp >= 27;
   const batteryBase = batteryKwh * RATES.batteryPerKwh;
+  const batteryCost = batteryBase + (coolBattery ? Math.max(RATES.batteryCoolingMin, batteryBase * RATES.batteryCoolingFactor) : 0);
+  // monthly economics with and without the battery, on this utility's real tariff
+  const sun = monthlySun(climate);
+  const sunMean = sun.reduce((a, b) => a + b, 0) / 12;
+  const pvMonthly = sun.map((x, m) => pvKwp * pr * x * DAYS[m] * (c.solar / Math.max(0.1, sunMean)));
+  const loadMonthly = LOAD_SHAPE.map((k, m) => site.loadKwhDay * k * DAYS[m]);
+  const dwelling = t === "S" ? "villa" : "villa";
+  const econArgs = { utility, customer, dwelling, tierId: t };
+  const econNo = annualEconomics({ ...econArgs, pvMonthly, loadMonthly, batteryKwh: 0 });
+  const econYes = annualEconomics({ ...econArgs, pvMonthly, loadMonthly, batteryKwh });
+  const batteryAnnualValue = econYes.saving - econNo.saving;
+  const batteryPayback = batteryAnnualValue > 1 ? (batteryCost * (1 + RATES.installRate[t])) / batteryAnnualValue : null;
+  const batteryPays = batteryPayback != null && batteryPayback <= 10;
+  const criticalKw = (site.loadKwhDay / 24) * 0.4; // fridge, lights, network, a little cooling (ASSUMPTION)
+  const backupHours = (batteryKwh * 0.8) / Math.max(0.1, criticalKw);
+  const netMetered = utility.netMetering === "yes";
   components.push({
-    id: "battery", group: "energy", name: "LiFePO4 storage", core: true, recommended: true,
+    id: "battery", group: "energy", name: "LiFePO4 battery storage", core: false,
+    recommended: wantsBackup || batteryPays,
+    defaultOn: wantsBackup || batteryPays || pkg.id === "max",
     capacity: { value: batteryKwh, unit: "kWh", text: `${fmt(batteryKwh)} kWh` },
-    spec: `48 V LiFePO4 with BMS${coolBattery ? ", active-cooled enclosure" : ""}`,
-    output: `Covers ~${fmt(Math.min(100, (batteryKwh / Math.max(1, site.loadKwhDay)) * 100))}% of a day's load after dark`,
-    why: `Sized to shift about ${Math.round(share * 100)}% of daily use into the evening${t === "L" ? " and shave daytime peaks" : ""}, limited by what the array can actually refill (${fmt(pvKwhDay)} kWh/day). Rounded up to ${tier.batteryModuleKwh} kWh modules.${coolBattery ? ` At ${fmt(c.temp, 1)} °C average, an active-cooled enclosure protects cycle life, which roughly halves for every 10 °C of sustained heat.` : ""}`,
+    spec: `48 V LiFePO4 with BMS${coolBattery ? ", active-cooled enclosure" : ""} · about ${fmt(backupHours)} h of essential-load backup`,
+    output: netMetered ? `Backup ~${fmt(backupHours)} h · bill saving ≈ ${CURRENCY} ${fmt(Math.max(0, batteryAnnualValue))}/yr` : `Shifts ${fmt(econYes.selfUsed - econNo.selfUsed)} kWh/yr into the evening · ≈ ${CURRENCY} ${fmt(batteryAnnualValue)}/yr`,
+    why: netMetered
+      ? `${utility.name} credits exported solar at the same rate you pay for imports, so storing solar in a battery saves almost nothing on the bill (≈ ${CURRENCY} ${fmt(Math.max(0, batteryAnnualValue))}/yr). Its value is backup: about ${fmt(backupHours)} hours of essential loads during an outage. ${wantsBackup ? "You asked for backup, so it is included." : "Leave it out unless outages matter to you; the grid is the cheaper battery."}`
+      : `${utility.name} export credit is not verified, so surplus solar is worth nothing unless you use it. The battery moves ${fmt(econYes.selfUsed - econNo.selfUsed)} kWh/yr of daytime surplus into the evening, worth ≈ ${CURRENCY} ${fmt(batteryAnnualValue)}/yr${batteryPayback ? `, paying back in about ${fmt(batteryPayback, 1)} years` : ""}.`,
     rules: [
-      rule(`${Math.round(share * 100)}% of load (${fmt(site.loadKwhDay * share)} kWh) vs 60% of solar (${fmt(pvKwhDay * 0.6)} kWh)`, true, `Takes the smaller: ${fmt(nightKwh)} kWh → ${fmt(batteryKwh)} kWh installed`),
+      rule(`Net metering available with ${utility.name}`, netMetered, netMetered ? "Battery adds backup, not bill savings" : "Battery raises self-consumption"),
+      rule(`Battery pays back within 10 years`, batteryPays, batteryPayback ? `${fmt(batteryPayback, 1)} years` : "Does not pay back on bill savings"),
+      rule("You need backup during outages", wantsBackup, wantsBackup ? "Included for resilience" : "Not requested"),
+      rule(`${Math.round(share * 100)}% of load (${fmt(site.loadKwhDay * share)} kWh) vs 60% of solar (${fmt(pvKwhDay * 0.6)} kWh)`, true, `Sized at ${fmt(batteryKwh)} kWh in ${tier.batteryModuleKwh} kWh modules`),
       rule(`Average temperature ≥ 27 °C (site: ${fmt(c.temp, 1)} °C)`, coolBattery, coolBattery ? "Active-cooled enclosure added" : "Passive enclosure"),
-      rule("Storm or grid outage", true, "Controller holds a 35% reserve (20% in normal operation)"),
     ],
-    metrics: { batteryKwh, nightKwh },
-    costAed: batteryBase + (coolBattery ? Math.max(RATES.batteryCoolingMin, batteryBase * RATES.batteryCoolingFactor) : 0),
+    metrics: { batteryKwh, nightKwh, backupHours, batteryAnnualValue, batteryPayback },
+    costAed: batteryCost,
   });
 
   // ---------- Hybrid inverter ----------
@@ -255,8 +293,8 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   components.push({
     id: "inverter", group: "energy", name: "Hybrid inverter", core: true, recommended: true,
     capacity: { value: inverterKw, unit: "kW", text: `${fmt(inverterKw)} kW` },
-    spec: "Grid-interactive hybrid inverter with anti-islanding and backup output",
-    output: "Solar, wind, battery and grid on one protected 48 V DC bus",
+    spec: "Grid-interactive inverter with anti-islanding",
+    output: "Solar, wind and grid on one protected bus",
     why: `Must carry the larger of 85% of the array (${fmt(pvKwp * 0.85, 1)} kW) and estimated peak demand (${fmt(peakKw, 1)} kW, 2.5 × average).`,
     rules: [rule(`Array × 0.85 vs peak demand`, pvKwp * 0.85 >= peakKw, pvKwp * 0.85 >= peakKw ? "Sized to the array" : "Sized to peak demand")],
     metrics: { inverterKw, peakKw },
@@ -334,12 +372,27 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   }
 
   const included = (id) => components.find((p) => p.id === id)?.included;
+  // inverter type follows the battery choice
+  const inv = components.find((p) => p.id === "inverter");
+  const withBattery = included("battery");
+  inv.name = withBattery ? "Hybrid inverter" : "Grid-tie inverter";
+  inv.spec = withBattery ? "Hybrid inverter with battery port, anti-islanding and backup output" : "String inverter with anti-islanding (no battery port; swap to hybrid to add storage later)";
+  inv.output = withBattery ? "Solar, wind, battery and grid on one protected 48 V DC bus" : "Solar and wind straight to the building and grid";
+  inv.costAed = roundTo(inverterKw * (withBattery ? RATES.inverterPerKw : RATES.gridTieInverterPerKw), 10);
+  const econ = withBattery ? econYes : econNo;
   const hardwareAed = components.filter((p) => p.included).reduce((sum, p) => sum + p.costAed, 0);
   const installAed = roundTo(hardwareAed * RATES.installRate[t], 10);
   const totalAed = hardwareAed + installAed;
   const energyKwhYear = pvKwhYear + (included("wind") ? windKwhYear : 0);
   const waterLYear = rainLYear + (included("condensate") ? condensateLYear : 0);
-  const annualSavingsAed = energyKwhYear * RATES.tariffPerKwh + Math.min(waterLYear, site.waterLDay * 365) * RATES.waterPerL;
+  // electricity: real bills before and after (wind adds a flat monthly share)
+  const windMonthly = included("wind") ? windKwhYear / 12 : 0;
+  const econFinal = windMonthly ? annualEconomics({ ...econArgs, pvMonthly: pvMonthly.map((x) => x + windMonthly), loadMonthly, batteryKwh: withBattery ? batteryKwh : 0 }) : econ;
+  const waterSavingsAed = Math.min(waterLYear, site.waterLDay * 365) * RATES.waterPerL;
+  const annualSavingsAed = econFinal.saving + waterSavingsAed;
+  let lifetimeSavingsAed = 0;
+  for (let y = 0; y < RATES.lifeYears; y++) lifetimeSavingsAed += econFinal.saving * (1 - RATES.degradation) ** y + waterSavingsAed;
+  const avgLoadMonth = (site.loadKwhDay * 365) / 12;
 
   const monthlyRate = RATES.financeApr / 12;
   const months = RATES.financeYears * 12;
@@ -348,7 +401,10 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   return {
     tier,
     package: pkg,
-    request: { climate, tierId: t, inputs, choices, packageId: pkg.id },
+    request: { climate, tierId: t, inputs, choices, packageId: pkg.id, context },
+    utility,
+    customer,
+    monthly: econFinal.months,
     site,
     climate: c,
     components,
@@ -359,6 +415,18 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
       energyKwhYear,
       waterLYear,
       annualSavingsAed,
+      electricitySavingsAed: econFinal.saving,
+      waterSavingsAed,
+      billBeforeAed: econFinal.billBefore,
+      billAfterAed: econFinal.billAfter,
+      exportKwh: econFinal.exported,
+      importKwh: econFinal.imported,
+      selfSufficiencyPct: (1 - econFinal.imported / Math.max(1, econFinal.load)) * 100,
+      lifetimeSavingsAed,
+      lifetimeNetAed: lifetimeSavingsAed - totalAed,
+      marginalRate: marginalRate(avgLoadMonth, utility, { customer, dwelling, days: 30 }),
+      withBattery: !!withBattery,
+      backupHours: withBattery ? backupHours : 0,
       paybackYears: annualSavingsAed > 0 ? totalAed / annualSavingsAed : null,
       monthlyAed,
       monthlySavingsAed: annualSavingsAed / 12,
@@ -401,7 +469,7 @@ export function ruleAdvice(result, placeName = "your site") {
   if (totals.energyCoveragePct < 60) upgrades.push({ title: "Cut the load before adding hardware", text: "Efficient cooling and smart scheduling through WELOS OS are usually cheaper per kWh than more panels.", impact: "cost" });
   if (result.package.id !== "essential") {
     const r = result.request;
-    const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential");
+    const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential", r.context);
     upgrades.unshift({ title: `Start with Essential at ${CURRENCY} ${fmt(lean.totals.totalAed)}`, text: `Same site, ${CURRENCY} ${fmt(totals.totalAed - lean.totals.totalAed)} less upfront: about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity now, with the canopy and controller ready to expand later.`, impact: "cost" });
   }
   if (upgrades.length < 2) upgrades.push({ title: "Enable demand-aware scheduling", text: "Let WELOS OS run pumps, water heating and EV charging at solar peak to raise self-consumption.", impact: "cost" });
@@ -413,7 +481,7 @@ export function ruleAdvice(result, placeName = "your site") {
   return {
     source: "rules",
     headline,
-    summary: `${fmt(by.solar.metrics.pvKwp, 1)} kWp of solar, ${fmt(by.battery.metrics.batteryKwh)} kWh of storage and a ${fmt(by.water.metrics.tankL)} L water system, covering about ${fmt(Math.min(totals.energyCoveragePct, 100))}% of your electricity and ${fmt(Math.min(totals.waterCoveragePct, 100))}% of your non-potable water. Indicative payback is ${totals.paybackYears ? fmt(totals.paybackYears, 1) : "—"} years at UAE tariffs.`,
+    summary: `${fmt(by.solar.metrics.pvKwp, 1)} kWp of solar, ${by.battery.included ? `${fmt(by.battery.metrics.batteryKwh)} kWh of storage` : "no battery (the grid stores your surplus)"} and a ${fmt(by.water.metrics.tankL)} L water system, covering about ${fmt(Math.min(totals.energyCoveragePct, 100))}% of your electricity and ${fmt(Math.min(totals.waterCoveragePct, 100))}% of your non-potable water. Indicative payback is ${totals.paybackYears ? fmt(totals.paybackYears, 1) : "—"} years on ${result.utility.name} tariffs.`,
     reasons,
     upgrades: upgrades.slice(0, 3),
     questions,
@@ -435,15 +503,15 @@ export function ruleAnswer(result, presetId) {
   switch (presetId) {
     case "cheaper": {
       if (result.package.id === "essential") return `You're already on Essential at ${CURRENCY} ${fmt(t.totalAed)}. To go lower, reduce the daily electricity target or roof area. The array and battery scale down with them, and the canopy stays ready to expand.`;
-      const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential");
-      return `Switch to Essential: ${CURRENCY} ${fmt(lean.totals.totalAed)} instead of ${CURRENCY} ${fmt(t.totalAed)}. It sizes solar to about 60% of your load with standard modules, keeps one battery module, replaces the cleaning robot with soiling alerts and uses a lighter water kit. That covers about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity, at roughly ${CURRENCY} ${fmt(lean.totals.monthlyAed)}/month financed against ${CURRENCY} ${fmt(lean.totals.monthlySavingsAed)}/month saved.`;
+      const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential", r.context);
+      return `Switch to Essential: ${CURRENCY} ${fmt(lean.totals.totalAed)} instead of ${CURRENCY} ${fmt(t.totalAed)}. It sizes solar to about 60% of your load with standard modules, replaces the cleaning robot with soiling alerts and uses a lighter water kit. That covers about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity, at roughly ${CURRENCY} ${fmt(lean.totals.monthlyAed)}/month financed against ${CURRENCY} ${fmt(lean.totals.monthlySavingsAed)}/month saved.`;
     }
     case "water":
       return by.water.why;
     case "wind":
       return `${by.wind.why} ${by.wind.included ? `It adds ${by.wind.output} for ${CURRENCY} ${fmt(by.wind.costAed)}.` : `If you add it anyway it costs ${CURRENCY} ${fmt(by.wind.costAed)} for about ${by.wind.output}.`}`;
     case "payback":
-      return `About ${t.paybackYears ? fmt(t.paybackYears, 1) : "—"} years: ${CURRENCY} ${fmt(t.totalAed)} installed against ${CURRENCY} ${fmt(t.annualSavingsAed)} a year in electricity and water at UAE tariffs. Financed over ${RATES.financeYears} years at ${(RATES.financeApr * 100).toFixed(2)}% that is roughly ${CURRENCY} ${fmt(t.monthlyAed)}/month, against ${CURRENCY} ${fmt(t.monthlySavingsAed)}/month saved.`;
+      return `About ${t.paybackYears ? fmt(t.paybackYears, 1) : "—"} years: ${CURRENCY} ${fmt(t.totalAed)} installed against ${CURRENCY} ${fmt(t.annualSavingsAed)} a year in electricity and water on ${result.utility.name} tariffs. Financed over ${RATES.financeYears} years at ${(RATES.financeApr * 100).toFixed(2)}% that is roughly ${CURRENCY} ${fmt(t.monthlyAed)}/month, against ${CURRENCY} ${fmt(t.monthlySavingsAed)}/month saved.`;
     default:
       return null;
   }

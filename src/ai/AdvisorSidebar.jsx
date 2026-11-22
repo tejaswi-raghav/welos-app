@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { sizeSystem, ruleAdvice, ruleAnswer, PRESET_QUESTIONS, CURRENCY } from "../site/sizing.js";
 import { loadBuild, DEFAULT_PRESET } from "../site/presets.js";
+import { regionById } from "../site/regions.js";
 
 const fmt = (x, d = 0) => Number(x).toLocaleString("en-US", { maximumFractionDigits: d });
 const shortPlace = (name) => String(name).split(",").slice(0, 2).join(",").trim();
 const fallbackBuild = () => ({ place: DEFAULT_PRESET.name, climate: DEFAULT_PRESET.climate, tier: "S", package: "recommended", inputs: {}, choices: {}, example: true });
 const currentBuild = () => loadBuild() || fallbackBuild();
-const onStudio = () => /studio\.html$/.test(location.pathname);
+const onStudio = () => /product\.html$/.test(location.pathname);
 
 /**
  * WELOS AI — the site advisor, kept in a slide-out sidebar so it never interrupts
@@ -26,7 +27,7 @@ export default function AdvisorSidebar() {
   const lastFocus = useRef(null);
 
   const place = shortPlace(build.place);
-  const result = useMemo(() => sizeSystem(build.climate, build.tier, build.inputs || {}, build.choices || {}, build.package), [build]);
+  const result = useMemo(() => sizeSystem(build.climate, build.tier, build.inputs || {}, build.choices || {}, build.package, build.region ? { utilityId: regionById[build.region]?.utility, customer: build.customer, backup: build.backup } : {}), [build]);
   const instant = useMemo(() => ruleAdvice(result, place), [result, place]);
   const shown = advice || instant;
   const t = result.totals;
@@ -136,7 +137,7 @@ export default function AdvisorSidebar() {
               <button type="submit" disabled={asking || !question.trim()}>{asking ? "…" : "Ask"}</button>
             </form>
           </div>
-          {!onStudio() && <a className="wai-link" href="/studio.html#configure">{build.example ? "Configure your own site" : "Change this build"} in the Studio →</a>}
+          {!onStudio() && <a className="wai-link" href="/product.html">{build.example ? "Configure your own site" : "Change this build"} on the product page →</a>}
           <p className="wai-fine">The sizing engine sets every number and price; WELOS AI explains them. Indicative UAE estimates, not a quotation.</p>
         </div>
       </div>
