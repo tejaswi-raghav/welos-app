@@ -13,7 +13,7 @@ if (!who) location.replace("/signin.html");
 
 const money = (x, d = 0) => `AED ${fmt(x, d)}`;
 // chart colours = Solar Ember semantic tokens (power amber, warn ember, water blue, use obsidian, ok green)
-const C = { amber: "#f0a010", ember: "#d9480f", sky: "#1a8fd0", ink: "#3a2a22", stone: "#d6c0ab", green: "#2f7a4d" };
+const C = { amber: "#f0a010", ember: "#ef6a2a", sky: "#2a9fe0", ink: "#e8d5c2", stone: "#7d6456", green: "#5cc28a" };
 
 const I = {
   overview: <path d="M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z" />,

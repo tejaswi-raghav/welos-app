@@ -105,6 +105,7 @@ function Explorer() {
   return (
     <div className={`explorer view-${view} panel-${panel}`}>
       <div className="ex-stage twin-stage">
+        <i className="stage-sun" aria-hidden="true" />
         <canvas ref={canvasRef} aria-label="Interactive 3D model of the WELOS unit. Use the parts list to select components without the model." />
         <div className="annos" ref={annoRef} aria-hidden="true">
           {values && VALUE_ANNOS.map((a) => {

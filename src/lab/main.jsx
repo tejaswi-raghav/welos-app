@@ -8,7 +8,7 @@ import { nodeById } from "../twin/topology.js";
 import { DayChart, ModeStrip } from "./charts.jsx";
 
 // Solar Ember semantic tokens: power amber, warn ember, water blue, obsidian ink
-const C = { amber: "#f0a010", ember: "#d9480f", sky: "#1a8fd0", ink: "#1d0d09", muted: "#8a7a6f", dust: "#b8915c" };
+const C = { amber: "#f0a010", ember: "#ef6a2a", sky: "#2a9fe0", ink: "#fff5e6", muted: "#b9a28f", dust: "#c9a66e" };
 const f2 = (x) => Number(x).toFixed(2), f1 = (x) => Number(x).toFixed(1), pct = (x) => `${(x * 100).toFixed(1)}%`;
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const DAY_POSE = { pos: [11.8, 6.4, 13.8], target: [0.8, 0.5, -0.2], fov: 32 };
@@ -35,6 +35,8 @@ function useDebounced(value, ms) {
 
 function Lab() {
   const [canvasRef, stage] = useStage({ env: "rooftop", orbit: true });
+  // same ember showroom as the rest of the site; time of day and weather read from light, shadows, rain and dust
+  useEffect(() => { if (stage) { stage.setEnvironment(0, true); stage.setRim(0.6, true); } }, [stage]);
   const [tab, setTab] = useState(location.hash === "#cleaning" ? "clean" : "day");
   const [scenario, setScenario] = useState("dust");
   const [inputs, setInputs] = useState(() => defaultInputs("dust"));
@@ -81,6 +83,7 @@ function Lab() {
     <div className="lab">
       <section className="lab-top">
         <div className="lab-stage twin-stage">
+          <i className="stage-sun" aria-hidden="true" />
           <canvas ref={canvasRef} aria-label="3D rooftop responding to the simulated conditions" />
           <div className="annos" ref={annoRef} aria-hidden="true">
             {tab === "day" && ANNOS.map((a) => { const n = nodeById[a.node]; return <div key={a.id} data-id={a.id} className={`vtag ${a.cls} ${n.on(frame) ? "on" : ""}`}><i /><span className="t-label">{n.label}</span><b className="t-num">{n.value(frame)}</b></div>; })}

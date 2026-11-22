@@ -1,4 +1,6 @@
-# Solar Ember — WELOS design system
+# Solar Ember — WELOS design system (dark)
+
+The whole site uses the landing page's palette: obsidian and burnt-ember grounds with a soft ember atmosphere (`--field`), ivory type, solar orange for actions and sun gold for labels. Every 3D view stands in front of the same ember field and sun disc.
 
 Source of truth: `src/ui/base.css` (tokens and primitives). Page stylesheets use tokens only; the 3D stage mirrors the semantic colours in `src/twin/stage.js` (`COLORS`) and maps the CAD finishes to warm materials in `src/twin/model.js` (`FINISH`).
 
@@ -28,17 +30,19 @@ Signature gradient `--grad-sun`: `linear-gradient(115deg, #8E2E0F 0%, #F47616 52
 
 ## Semantic roles (never swap meaning)
 
-| Meaning | Graphic | Text (AA on ivory) | Soft fill |
-| --- | --- | --- | --- |
-| Brand / CTA / current page | `--brand` #F47616 (obsidian text on it, 6.7:1) | `--brand-ink` #A23B0A (6.1:1) | `--brand-soft` |
-| Electrical power, solar output, battery | `--power` #F0A010 | `--power-ink` #8A5300 (5.9:1) | `--power-soft` |
-| Water | `--water` #1A8FD0 | `--water-ink` #0B5E8A (6.5:1) | `--water-soft` |
-| Warning / blocked | `--warn` #D9480F | `--warn-ink` #9C330A (6.7:1) | `--warn-soft` |
-| Critical / fault | `--critical` #B3261E (6.1:1) | | `--critical-soft` |
-| OK / success | `--ok` #2F7A4D (4.9:1) | | `--ok-soft` |
-| Control signal | obsidian, dotted | | |
+Values are tuned for dark grounds; every text colour is at least 4.5:1 on `--bg`, `--bg-2`, `--surface` and `--surface-2`.
 
-Body text is obsidian (17.5:1); secondary text `--text-2` #46352D (10.8:1); muted `--muted` #75665D (5.1:1).
+| Meaning | Graphic | Text on dark | Soft fill |
+| --- | --- | --- | --- |
+| Brand / CTA / current page | `--brand` #F47616 (obsidian text on it) | `--brand-ink` #FF9D57 | `--brand-soft` |
+| Electrical power, solar output, battery | `--power` #F0A010 | `--power-ink` #FFC65A | `--power-soft` |
+| Water | `--water` #2A9FE0 | `--water-ink` #8CCDF3 | `--water-soft` |
+| Warning / blocked | `--warn` #EF6A2A | `--warn-ink` #FFA077 | `--warn-soft` |
+| Critical / fault | `--critical` #FF6B5E | | `--critical-soft` |
+| OK / success | `--ok` #5CC28A | | `--ok-soft` |
+| Control signal | ivory, dotted | | |
+
+Surfaces: `--bg` obsidian #1D0D09, `--bg-2` #26110A, `--surface` #2C150D, `--surface-2` #3A1A0E, lines #452719 / #613A27. Text: ivory #FFF5E6 (17.5:1), `--text-2` #E8D5C2, `--muted` #B9A28F (7:1 on surface). A control filled with `--text` (ivory) carries `--on-text` (obsidian).
 
 ## Type
 
@@ -46,7 +50,7 @@ Geist for words, Geist Mono for numbers, labels and engineering data. Two famili
 
 ## Surfaces and shape
 
-Ivory page, `--surface` #FFFBF4 for raised cards, `--bg-2` canvas for wells and segmented controls. Radii: 6 / 8 / 12 / 18 px. Two shadows, both warm. No glass: overlays are solid surfaces; blur is kept only for the header (10 px) and the macOS-style welOS shell, where vibrancy is part of the metaphor.
+Obsidian page with the ember atmosphere, `--surface` for raised cards, `--bg-2` for wells and segmented controls. Radii: 6 / 8 / 12 / 18 px. Two shadows, both warm. No glass: overlays are solid surfaces; blur is kept only for the header (10 px) and the macOS-style welOS shell, where vibrancy is part of the metaphor.
 
 ## Motion
 
@@ -54,4 +58,4 @@ Ivory page, `--surface` #FFFBF4 for raised cards, `--bg-2` canvas for wells and 
 
 ## 3D
 
-The product is shown in warm graphite, champagne aluminium and ivory powder-coat. Water parts stay blue; power parts amber. On the home hero the rooftop context and sky fade out so the product stands in front of the CSS sun disc; a shadow catcher keeps it grounded and a warm back-light traces its edges. Elsewhere the sky dome is tinted toward desert haze while keeping night and storm states legible.
+The product is shown in warm graphite, champagne aluminium and ivory powder-coat. Water parts stay blue; power parts amber. On the home story, Explorer, Product and Simulation Lab the rooftop context and sky are faded out so the product stands in front of the ember field and sun disc; a shadow catcher keeps it grounded and a warm back-light traces its edges. Elsewhere the sky dome is tinted toward desert haze while keeping night and storm states legible.

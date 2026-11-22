@@ -1,6 +1,6 @@
 .app-page { overflow: hidden; }
 .explorer { position: fixed; inset: var(--head-h) 0 0 0; }
-.ex-stage { position: absolute; inset: 0; background: radial-gradient(120% 95% at 55% 38%, #fffaf2 0%, var(--bg) 52%, #efdfcc 100%); }
+.ex-stage { position: absolute; inset: 0; background: linear-gradient(100deg, #1d0d09 0%, #2e1109 30%, #5c1d0b 62%, #8e2e0f 100%); }
 .ex-stage canvas { width: 100%; height: 100%; touch-action: none; }
 .ex-loader { position: absolute; inset: 0; }
 .ex-nogl { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 0 380px 0 340px; text-align: center; color: var(--muted); }
