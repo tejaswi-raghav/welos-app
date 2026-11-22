@@ -1,7 +1,7 @@
 // Owner data for the welOS demo. Built from the visitor's saved configuration through the
 // same sizing, tariff and day-simulation engines as the rest of the site. Nothing here is
 // measured: it is a deterministic demonstration of what the owner app would show.
-import { sizeSystem } from "../site/sizing.js";
+import { sizeSystem, packageKey, RATES } from "../site/sizing.js";
 import { loadBuild } from "../site/presets.js";
 import { regionById, DEFAULT_REGION, UTILITIES, MONTHS, DAYS } from "../site/regions.js";
 import { recommend, buildingById } from "../site/recommend.js";
@@ -29,7 +29,7 @@ export function ownerData() {
   }
   const B = buildingById[build.building] || buildingById.villa;
   const utility = UTILITIES[region.utility];
-  const result = sizeSystem(region.climate, build.tier || B.tier, build.inputs || {}, build.choices || { battery: build.battery }, build.package || "recommended", { utilityId: region.utility, customer: build.customer, backup: build.backup });
+  const result = sizeSystem(region.climate, build.tier || B.tier, build.inputs || {}, build.choices || { battery: build.battery }, packageKey(build.package), { utilityId: region.utility, customer: build.customer, backup: build.backup, waterSavings: build.waterSavings !== false });
   const by = Object.fromEntries(result.components.map((c) => [c.id, c]));
   const now = dubaiNow();
   const mo = now.mo;
@@ -71,7 +71,7 @@ export function ownerData() {
 
   // water
   const t = result.totals;
-  const rainY = by.water.metrics.rainLYear;
+  const rainY = by.water.included ? by.water.metrics.rainLYear : 0;
   const condY = by.condensate.included ? by.condensate.metrics.condensateLYear : 0;
   const water = MONTHS.map((_, m) => ({ rain: rainY * RAIN_SHAPE[m], condensate: (condY * LOAD_SHAPE[m]) / 12 }));
 
@@ -79,7 +79,7 @@ export function ownerData() {
   const cash = [];
   let acc = -t.totalAed;
   for (let y = 0; y <= 25; y++) {
-    if (y > 0) acc += t.electricitySavingsAed * (1 - 0.005) ** (y - 1) + t.waterSavingsAed;
+    if (y > 0) acc += t.electricitySavingsAed * (1 - RATES.degradation) ** (y - 1) + t.waterSavingsAed;
     cash.push({ y, v: acc });
   }
 

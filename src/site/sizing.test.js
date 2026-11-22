@@ -151,7 +151,8 @@ test("installed solar price sits in the market range for a 10 kW villa", () => {
   const r = regionById.dubai;
   const res = sizeSystem(r.climate, "S", {}, { battery: false }, "recommended", { utilityId: r.utility });
   const kwp = part(res, "solar").metrics.pvKwp;
-  const solarInstalled = (part(res, "solar").costAed + part(res, "inverter").costAed) * 1.15;
+  // modules + canopy, grid connection/protection and inverter, installed
+  const solarInstalled = (part(res, "solar").costAed + part(res, "grid").costAed + part(res, "inverter").costAed) * 1.15;
   const per10 = (solarInstalled / kwp) * 10;
   assert.ok(per10 >= 38000 && per10 <= 60000, String(per10));
 });

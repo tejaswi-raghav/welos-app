@@ -5,7 +5,7 @@ import { regionById } from "../site/regions.js";
 
 const fmt = (x, d = 0) => Number(x).toLocaleString("en-US", { maximumFractionDigits: d });
 const shortPlace = (name) => String(name).split(",").slice(0, 2).join(",").trim();
-const fallbackBuild = () => ({ place: DEFAULT_PRESET.name, climate: DEFAULT_PRESET.climate, tier: "S", package: "recommended", inputs: {}, choices: {}, example: true });
+const fallbackBuild = () => ({ place: DEFAULT_PRESET.name, climate: DEFAULT_PRESET.climate, tier: "S", package: "complete", inputs: {}, choices: {}, example: true });
 const currentBuild = () => loadBuild() || fallbackBuild();
 const onStudio = () => /product\.html$/.test(location.pathname);
 
@@ -27,12 +27,12 @@ export default function AdvisorSidebar() {
   const lastFocus = useRef(null);
 
   const place = shortPlace(build.place);
-  const result = useMemo(() => sizeSystem(build.climate, build.tier, build.inputs || {}, build.choices || {}, build.package, build.region ? { utilityId: regionById[build.region]?.utility, customer: build.customer, backup: build.backup } : {}), [build]);
+  const result = useMemo(() => sizeSystem(build.climate, build.tier, build.inputs || {}, build.choices || {}, build.package, build.region ? { utilityId: regionById[build.region]?.utility, customer: build.customer, backup: build.backup, waterSavings: build.waterSavings !== false } : {}), [build]);
   const instant = useMemo(() => ruleAdvice(result, place), [result, place]);
   const shown = advice || instant;
   const t = result.totals;
   const body = { place, tier: build.tier, package: build.package, climate: build.climate, inputs: build.inputs || {}, choices: build.choices || {},
-    context: { utilityId: regionById[build.region]?.utility || "dewa", customer: build.customer, backup: build.backup === true } };
+    context: { utilityId: regionById[build.region]?.utility || "dewa", customer: build.customer, backup: build.backup === true, waterSavings: build.waterSavings !== false } };
   const key = JSON.stringify(body);
 
   // open / close from anywhere on the page

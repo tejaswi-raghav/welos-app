@@ -10,7 +10,9 @@ const part = (r, id) => r.components.find((p) => p.id === id);
 
 test("current Dubai quote reproduces the verified costs and water demand share", () => {
   const r = run();
-  assert.equal(r.totals.totalAed, 58890);
+  // AED 58,880: the canopy, gutter and grid-protection costs are now separate lines, each rounded to AED 10
+  // (was 58,890 as one line). Same rates, same hardware.
+  assert.equal(r.totals.totalAed, 58880);
   assert.equal(run({}, "essential").totals.totalAed, 31840);
   assert.equal(part(r, "battery").included, false);
   assert.equal(part(r, "wind").included, false);
@@ -53,7 +55,7 @@ test("extras can be added to Essential independently and survive serialized requ
 test("removing condensate and automatic cleaning saves AED 6,300 before installation", () => {
   const full = run(), lean = run({ cleaning: false, condensate: false });
   assert.equal(full.totals.hardwareAed - lean.totals.hardwareAed, 6300);
-  assert.equal(lean.totals.totalAed, 51650);
+  assert.equal(lean.totals.totalAed, 51640);
   assert.ok(lean.totals.waterLYear < full.totals.waterLYear);
 });
 

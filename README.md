@@ -17,13 +17,12 @@ Every page shows the same digital twin in a different context. See [docs/EXPERIE
 | --- | --- |
 | `/` Story | Seven-scene scroll story: rooftop reveal, sun / wind / rain, the integrated network, the controller's rulebook, the exploded machine, a combined-stress day, and the transition into the OS. |
 | `/explorer.html` System Explorer | Select any of the 27 parts, isolate layers, separate the assembly, trace power and water connections, switch physical ↔ schematic. Deep links: `/explorer.html#water-pump`. |
-| `/lab.html` Simulation Lab | Scrub a 24-hour operating day over the rooftop (sun, shadows, dust, rain, flows, controller modes), change conditions, compare scenarios, read the event log. `#cleaning` opens the ten-step self-cleaning sequence. |
 | `/control.html` Control OS | Operator view: SVG topology with upstream/downstream tracing, decision trace, supervisor requests, scenario replay and activity log. |
-| `/product.html` Product | Product page with the 3D canopy: building type (villa / residential / commercial), emirate, with or without battery, package, add-ons, a variations matrix, a per-emirate table, monthly bills and a full specification. Recommends a build for the building type. |
+| `/product.html` Product | Configurator with the 3D canopy: building type, emirate, your usage, package (Solar-first, Essential, Complete, Max), battery and add-ons. Shows the price breakdown and the full savings arithmetic (electricity and water kept separate), a variations matrix and a per-emirate table built from the same inputs, monthly bills and the specification. |
 | `/signin.html` Sign in | Demo sign-in. Credentials are shown on the page: `demo@welos.ae` / `welos-demo`. Session lives in sessionStorage only. |
 | `/os.html` welOS | Owner OS demo (macOS-style): savings, output, bills, payback, water, storage or grid credit, system health and activity for the build chosen on the product page. Simulated data, labelled as such. |
 
-`/model.html`, `/configure.html`, `/explore.html` and `/studio.html` redirect to the new pages.
+`/model.html`, `/configure.html`, `/explore.html`, `/studio.html` and `/lab.html` (the retired Simulation Lab) redirect to current pages.
 
 ## Where the numbers come from
 
@@ -31,7 +30,9 @@ Every page shows the same digital twin in a different context. See [docs/EXPERIE
 - **Operating-day simulation**: `src/twin/sim.js` drives the engine with a deterministic environment (solar geometry for Dubai, clear-sky irradiance, scenario shapes for wind, rain, dust and load). It is labelled as a simulation of a concept reference unit everywhere it appears; there is no random number and no real telemetry.
 - **Sizing and prices**: `src/site/sizing.js` (indicative AED estimates, not a quotation). Calibrated to UAE market ranges in Nov 2026 (10 kW villa installed ≈ AED 40–55k; LiFePO4 ≈ AED 410–530/kWh retail).
 - **Bills and savings**: `src/site/economics.js` with tariffs in `src/site/regions.js` — DEWA, SEWA and EtihadWE slabs (23/28/32/38 fils + fuel surcharge + 5% VAT) and TAQA daily bands (expat / UAE national). DEWA (Shams Dubai) and Abu Dhabi net metering are modelled as monthly netting with credit rollover. SEWA and EtihadWE export credit is not verified, so exports are valued at zero there; that is why a battery pays off in those emirates and not under net metering. Monthly sun per emirate is NASA POWER climatology. Household load shape is an assumption.
-- **Recommendations**: `src/site/recommend.js` picks package and battery per building type and emirate, and says why.
+- **Packages**: Solar-first (solar sized to 100% of use, no water system; grid protection, inverter and controller kept), Essential (integrated, ~60% of use, lighter water kit), Complete (integrated, 100% of use; called "Recommended" before 22 Nov 2026, old saved builds migrate) and Max (fills the roof).
+- **Savings**: electricity = bill before − bill after. Water is valued only when it replaces metered utility water, up to your stated use, at AED 9.24/m³ (DEWA green slab + fuel surcharge + VAT; a proxy outside Dubai). Payback = installed price ÷ (electricity + water) in year one; 25-year net applies 0.5%/yr ageing to electricity and excludes maintenance, replacements, tariff changes, financing interest and discounting. `explainSavings()` in `sizing.js` produces the exact sentences used by the page, the downloaded summary and the advisor.
+- **Suggestions**: `src/site/recommend.js` suggests the integrated package with the highest modelled 25-year net savings and compares Solar-first beside it; a battery is suggested for outage backup or a ≤ 10-year battery payback.
 
 The 3D model and BOM are an engineering concept, not production CAD or a substitute for licensed structural, electrical, grid and water-safety design.
 
@@ -43,12 +44,11 @@ src/twin/       sim.js (day simulation) · model.js (assembly, layers, routes) �
 src/ui/         base.css (design system) · chrome-html.js (header/footer injected at build) · chrome.js
 src/home/       scroll story
 src/explorer/   System Explorer
-src/lab/        Simulation Lab and self-cleaning sequence
 src/control/    engine.js, simulator.js (legacy live simulator, kept for tests), Control OS UI
 src/product/    product page
 src/account/    demo sign-in session
 src/os/         welOS owner OS (data.js, charts.jsx, main.jsx)
-src/site/       sizing.js, economics.js, regions.js, recommend.js, presets.js
+src/site/       sizing.js, economics.js, regions.js, recommend.js, addons.js, presets.js
 src/ai/         WELOS AI sidebar
 api/            Vercel functions: advisor, climate (NASA POWER), location (OSM)
 firmware/       ESP32-S3 reference firmware

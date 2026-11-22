@@ -261,7 +261,7 @@ function Savings({ D }) {
   const data = D.months.map((m, i) => ({ label: MONTHS[i], before: m.billBefore, after: m.billAfter }));
   return <>
     <div className="kpis">
-      <div className="kpi"><span>Saved per year</span><b><Count value={t.annualSavingsAed} prefix="AED " /></b><em>{money(t.electricitySavingsAed)} power + {money(t.waterSavingsAed)} water</em></div>
+      <div className="kpi"><span>Saved per year</span><b><Count value={t.annualSavingsAed} prefix="AED " /></b><em>{D.result.hasWater && t.waterCounted ? `${money(t.electricitySavingsAed)} electricity + ${money(t.waterSavingsAed)} water` : `${money(t.electricitySavingsAed)} electricity only`}</em></div>
       <div className="kpi"><span>Bill per year</span><b><Count value={t.billAfterAed} prefix="AED " /></b><em>down from {money(t.billBeforeAed)}</em></div>
       <div className="kpi"><span>Payback</span><b><Count value={t.paybackYears || 0} digits={1} /><small>years</small></b><em>on {money(t.totalAed)} installed</em></div>
       <div className="kpi"><span>25-year net</span><b className={t.lifetimeNetAed < 0 ? "neg" : ""}><Count value={t.lifetimeNetAed} prefix="AED " /></b><em>savings minus price, 0.5%/yr panel ageing</em></div>
@@ -292,6 +292,14 @@ function Tariff({ D }) {
 }
 
 function Water({ D }) {
+  if (!D.result.hasWater) return (
+    <div className="grid two">
+      <Card title="No water system in this build" className="span2" info="Solar-first leaves out rain capture, storage, treatment, condensate recovery and water routing, so there is nothing to measure here and no water savings are counted.">
+        <p className="empty-note">Your build is {D.result.package.name}. To capture rain and AC condensate for irrigation and flushing, choose Essential, Complete or Max on the product page.</p>
+        <a className="link" href="/product.html">Change the build →</a>
+      </Card>
+    </div>
+  );
   const data = D.water.map((w, i) => ({ label: MONTHS[i], rain: w.rain, cond: w.condensate }));
   const yr = D.water.reduce((a, w) => a + w.rain + w.condensate, 0);
   const tank = D.by.water.metrics.tankL;
