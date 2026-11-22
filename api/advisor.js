@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { sizeSystem, ruleAdvice, ruleAnswer, PRESET_QUESTIONS, TIERS, PACKAGES } from "../src/site/sizing.js";
+import { sizeSystem, ruleAdvice, ruleAnswer, PRESET_QUESTIONS, TIERS, PACKAGES, packageKey, explainSavings } from "../src/site/sizing.js";
+import { UTILITIES } from "../src/site/regions.js";
 
 // WELOS AI advisor. The deterministic engine owns every number; an LLM explains
 // the build for this specific site, suggests improvements and answers questions.
@@ -21,6 +22,8 @@ You receive a site's climate and a build that a deterministic sizing engine has 
 
 Rules:
 - Never change, recompute or contradict the engine's numbers, sizes or prices. Quote them exactly when you use them.
+- Keep electricity and water savings separate and say which a figure includes. Prices and paybacks are estimates, never quotes or guaranteed returns.
+- Solar-first has no water system: never describe rain capture, tanks or water savings for it.
 - Tie every point to this site's actual climate values.
 - Be realistic. Do not invent products, certifications, subsidies, tariffs or regulations.
 - Be direct and specific. No hype, no filler, no emojis.`;
@@ -76,12 +79,12 @@ function readBody(req) {
   const climate = body.climate || {};
   const inputs = body.inputs || {};
   const choices = {};
-  for (const id of ["wind", "condensate"]) if (typeof body.choices?.[id] === "boolean") choices[id] = body.choices[id];
+  for (const id of ["battery", "wind", "condensate", "cleaning", "treatment"]) if (typeof body.choices?.[id] === "boolean") choices[id] = body.choices[id];
   const preset = PRESET_QUESTIONS.find((q) => q.id === body.preset);
   return {
     place: clean(body.place || "this site", 120),
     tier: TIERS[body.tier] ? body.tier : "S",
-    packageId: PACKAGES[body.package] ? body.package : "recommended",
+    packageId: packageKey(body.package),
     question: clean(preset?.text || body.question, 300),
     preset: preset?.id,
     climate: {
@@ -97,14 +100,20 @@ function readBody(req) {
       waterLDay: finite(inputs.waterLDay, 0, 5000000),
     },
     choices,
+    context: {
+      utilityId: Object.hasOwn(UTILITIES, body.context?.utilityId) ? body.context.utilityId : "dewa",
+      customer: body.context?.customer === "national" ? "national" : "expat",
+      backup: body.context?.backup === true,
+      waterSavings: body.context?.waterSavings !== false,
+    },
   };
 }
 
 function compact(result, input) {
   const r = (x, d = 1) => Math.round(x * 10 ** d) / 10 ** d;
   const packages = Object.fromEntries(Object.keys(PACKAGES).map((id) => {
-    const alt = sizeSystem(input.climate, input.tier, input.inputs, input.choices, id);
-    return [id, { totalAed: alt.totals.totalAed, energyCoveragePct: r(alt.totals.energyCoveragePct, 0), monthlyAed: r(alt.totals.monthlyAed, 0) }];
+    const alt = sizeSystem(input.climate, input.tier, input.inputs, input.choices, id, input.context);
+    return [id, { name: alt.package.name, includesWaterSystem: alt.hasWater, totalAed: alt.totals.totalAed, annualSavingsAed: alt.totals.annualSavingsAed, paybackYears: alt.totals.paybackYears && r(alt.totals.paybackYears), energyCoveragePct: r(alt.totals.energyCoveragePct, 0), monthlyAed: alt.totals.monthlyAed }];
   }));
   return {
     site: input.place,
@@ -124,6 +133,9 @@ function compact(result, input) {
       energyCoveragePct: r(result.totals.energyCoveragePct, 0), waterCoveragePct: r(result.totals.waterCoveragePct, 0),
       co2TonnesYear: r(result.totals.co2TonnesYear),
     },
+    // the exact arithmetic shown on the product page; quote these sentences rather than recomputing
+    savingsExplained: (({ electricity, water, annual, payback, lifetime, finance, exclusions }) => ({ electricity: electricity.text, water: water.text, annualUsedForPayback: annual.text, payback: payback.text, lifetime: lifetime.text, finance: finance.text, exclusions }))(explainSavings(result)),
+    includesWaterSystem: result.hasWater,
     samesiteByPackage: packages,
   };
 }
@@ -150,7 +162,7 @@ export default async function handler(req, res) {
   } catch {
     return res.status(400).json({ error: "Invalid JSON body." });
   }
-  const result = sizeSystem(input.climate, input.tier, input.inputs, input.choices, input.packageId);
+  const result = sizeSystem(input.climate, input.tier, input.inputs, input.choices, input.packageId, input.context);
   const asking = input.question.length > 0;
   const fallback = (reason) => res.status(200).json(asking
     ? { source: "rules", answer: (input.preset && ruleAnswer(result, input.preset)) || null, fallbackReason: reason }

@@ -110,6 +110,14 @@
 .ad-cap { margin: 0; font-size: 12.5px; }
 .ad-out { margin: 0; font-size: 13px; color: var(--text-2); }
 .addon .t-fine { margin: 0; }
+.pd-addon-link { justify-self: start; font-size: 14px; text-underline-offset: 3px; }
+.pd-addon-total { margin: 0; font-size: 15px; color: var(--text-2); }
+.pd-addon-total strong { color: var(--text); }
+.ad-state { margin: 0; font-size: 14px; font-weight: 600; }
+.ad-detail { margin: 0; font-size: 14px; color: var(--text-2); line-height: 1.5; }
+.addon .ad-cap, .addon .ad-out { font-size: 14px; }
+.addon .toggle { flex: none; }
+#h-add { scroll-margin-top: calc(var(--head-h) + 24px); }
 .addon details summary { cursor: pointer; font-size: 12.5px; font-weight: 600; }
 .addon details p { font-size: 12.5px; color: var(--text-2); margin: 6px 0 0; }
 
@@ -171,3 +179,46 @@ button.lrow:hover { background: var(--surface); }
   .pd-hero { display: block; }
 }
 .vcell .vlab { font-size: 10px; color: var(--muted); }
+
+/* ---- usage, evidence and the savings arithmetic ---- */
+.pd-evidence { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font: 500 11px var(--f-mono); letter-spacing: 0.02em; color: var(--muted); }
+.pd-evidence .ok { color: var(--ok); } .pd-evidence .warn { color: var(--warn-ink); }
+.st-inputs label > span:first-child { display: grid; gap: 1px; }
+.st-inputs label small { font-size: 11px; color: var(--muted); }
+.st-in.typ { border-style: dashed; }
+.pd-warnline { margin: 0; padding: 8px 10px; border-radius: var(--r-s); background: var(--warn-soft); color: var(--warn-ink); font-size: 12.5px; line-height: 1.45; }
+.pd-switch span { line-height: 1.35; }
+.sugdot { display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--sun-gold); vertical-align: middle; }
+.pd-excl { padding: 12px 14px; border-radius: var(--r-s); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line), inset 3px 0 0 var(--water); display: grid; gap: 6px; }
+.pd-excl .t-label { margin: 0; color: var(--water-ink); }
+.pd-excl ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; font-size: 13px; color: var(--text-2); }
+
+.pd-price .pd-money { display: grid; grid-template-columns: 1fr; gap: 0; padding: 0; border-top: 1px solid var(--line); }
+.pd-money > div { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 14px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.pd-money dt { font-size: 13.5px; font-weight: 600; display: grid; gap: 1px; }
+.pd-money dt em { font-style: normal; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.pd-money dd { margin: 0; font-size: 13px; color: var(--text-2); }
+.pd-money dd.sum { font-size: 14px; color: var(--text); text-align: right; min-width: 104px; }
+.pd-money .tot { border-bottom: 0; border-top: 1px solid var(--text-2); }
+.pd-money .tot dt { font-weight: 600; } .pd-money .tot dd.sum { font-weight: 600; color: var(--sun-gold); }
+.pd-calc { margin: -6px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.pd-price .pd-kpis { grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.pd-kpis > div { display: grid; gap: 2px; align-content: start; }
+.pd-kpis dd { margin: 2px 0 0; font-size: 1.15rem; letter-spacing: -0.02em; }
+.pd-kpis dd small { font-size: 11px; color: var(--muted); margin-left: 2px; }
+.pd-kpis > div > small { font-size: 11px; line-height: 1.4; color: var(--muted); }
+.pd-caveat { margin: 0; padding-top: 10px; border-top: 1px solid var(--line); line-height: 1.5; }
+.pd-rec .t-fine { margin: 0; }
+.req { display: inline-block; margin-left: 8px; font: 600 9.5px var(--f-mono); font-style: normal; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ok); vertical-align: middle; }
+.bk li.sub { color: var(--text-2); border-top: 1px solid var(--line-2); }
+.addon.na { opacity: 0.6; }
+.addon .toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+.lrow { grid-template-columns: 1fr 1.25fr 1fr 0.8fr 0.9fr 1fr 1fr 0.9fr; }
+.pd-sources { display: grid; gap: 8px; }
+.pd-sources p b { color: var(--text); font-weight: 600; }
+@media (max-width: 1100px) { .lrow { grid-template-columns: 1fr 1fr 1fr; } }
+@media (max-width: 620px) {
+  .pd-money > div { grid-template-columns: 1fr auto; }
+  .pd-money > div dd:not(.sum) { grid-column: 1 / -1; grid-row: 2; }
+  .st-inputs label { grid-template-columns: 1fr 140px; }
+}

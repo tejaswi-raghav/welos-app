@@ -31,6 +31,15 @@ export const COLORS = {
 
 export { webglAvailable } from "../ui/gl.js";
 
+/** Parts that the product page can show or hide (optional modules, and the whole water system for Solar-first). */
+const MODULE_GROUPS = {
+  wind: ["vawt-rotor", "wind-generator", "wind-brake", "wind-mast"],
+  rinse: ["cleaning-manifold"],
+  battery: ["lifepo4-battery"],
+  water: ["rain-gutter", "first-flush", "water-tank", "filter-train", "filter-header", "filter-stage-1", "filter-stage-2", "filter-stage-3", "filter-cap-1", "filter-cap-2", "filter-cap-3", "water-pump", "pipe-0", "pipe-1", "pipe-2", "pipe-3", "pipe-4", "water-sensors"],
+};
+const MODULE_KEYS = [...new Set(Object.values(MODULE_GROUPS).flat())];
+
 /* ---------------------------------------------------------------- sky dome */
 const skyVS = `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`;
 const skyFS = `uniform vec3 uTop, uHorizon, uGround, uSunDir, uSunCol; uniform float uSunGlow, uAlpha; varying vec3 vW;
@@ -399,7 +408,7 @@ export class Stage {
   /** Show or hide optional modules (Studio). keys → visible. Scales in/out along y. */
   setModules(mods) {
     this.modVis ||= {};
-    const groups = { wind: ["vawt-rotor", "wind-generator", "wind-brake", "wind-mast"], rinse: ["cleaning-manifold"], battery: ["lifepo4-battery"] };
+    const groups = MODULE_GROUPS;
     for (const [m, on] of Object.entries(mods)) for (const k of groups[m] || []) for (const o of this.KEY[k] || []) { o.userData.visT = on ? 1 : 0; o.userData.visV ??= 1; }
     this.modVis = { ...this.modVis, ...mods };
   }
@@ -540,7 +549,7 @@ export class Stage {
     }
 
     this.#updateExplode();
-    if (this.modVis) for (const key of ["vawt-rotor", "wind-generator", "wind-brake", "wind-mast", "cleaning-manifold", "lifepo4-battery"]) for (const o of this.KEY[key] || []) {
+    if (this.modVis) for (const key of MODULE_KEYS) for (const o of this.KEY[key] || []) {
       if (o.userData.visT == null) continue;
       o.userData.visV += (o.userData.visT - o.userData.visV) * k * 1.2;
       const v = Math.max(0.001, o.userData.visV);

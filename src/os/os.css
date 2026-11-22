@@ -311,3 +311,5 @@
   .ch-day .load, .ch-cash .cash, .ch-day .soc { animation: none; stroke-dashoffset: 0; }
   .flow .fl.on { animation: none; }
 }
+
+.empty-note { margin: 0; font-size: 14px; color: var(--txt-2); line-height: 1.5; }

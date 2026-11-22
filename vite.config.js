@@ -55,7 +55,6 @@ export default defineConfig({
       input: {
         landing: resolve(__dirname, "index.html"),
         explorer: resolve(__dirname, "explorer.html"),
-        lab: resolve(__dirname, "lab.html"),
         control: resolve(__dirname, "control.html"),
         product: resolve(__dirname, "product.html"),
         signin: resolve(__dirname, "signin.html"),

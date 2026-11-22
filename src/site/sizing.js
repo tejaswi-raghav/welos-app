@@ -37,26 +37,41 @@ export const TIERS = Object.freeze({
   },
 });
 
+// Packages. `water: false` (Solar-first) removes every water part and every water saving;
+// the electrical safety chain (inverter, protection, metering, utility connection) and the
+// controller stay in every package.
 export const PACKAGES = Object.freeze({
+  "solar-first": {
+    id: "solar-first", name: "Solar-first", water: false,
+    blurb: "Solar sized to 100% of your electricity, without the water system. Inverter, grid protection and the WELOS controller stay included.",
+    coverage: 1, batteryShareFactor: 1, modules: "climate", cleaning: "auto", waterLite: false, optionalDefault: "recommended",
+  },
   essential: {
-    id: "essential", name: "Essential", blurb: "Lowest upfront cost. Covers the essentials, upgrade later.",
+    id: "essential", name: "Essential", water: true,
+    blurb: "Lowest-cost integrated build: solar for about 60% of your electricity with standard modules, plus the lighter water kit.",
     coverage: 0.6, batteryShareFactor: 0.25, modules: "standard", cleaning: "alerts", waterLite: true, optionalDefault: "off",
   },
-  recommended: {
-    id: "recommended", name: "Recommended", blurb: "Sized to your load and climate. Best value over its life.",
+  complete: {
+    id: "complete", name: "Complete", water: true, formerly: "Recommended",
+    blurb: "Integrated build: solar sized to 100% of your electricity, automatic cleaning and full water treatment. (This package was called “Recommended” until 22 Nov 2026.)",
     coverage: 1, batteryShareFactor: 1, modules: "climate", cleaning: "auto", waterLite: false, optionalDefault: "recommended",
   },
   max: {
-    id: "max", name: "Max", blurb: "Fills the roof, deeper storage, every viable module.",
+    id: "max", name: "Max", water: true,
+    blurb: "Integrated build that fills the usable roof, with deeper storage and every viable module.",
     coverage: Infinity, batteryShareFactor: 1.5, modules: "premium", cleaning: "auto", waterLite: false, optionalDefault: "viable",
   },
 });
+/** Old package ids that saved builds and links may still carry. */
+export const PACKAGE_ALIASES = Object.freeze({ recommended: "complete" });
+export const packageKey = (id) => (PACKAGES[id] ? id : PACKAGE_ALIASES[id] || "complete");
 
 export const RATES = Object.freeze({
   moduleStandardPerW: 0.85,     // mono PERC module, AED/W (market 0.85–1.45)
   modulePremiumPerW: 1.1,       // N-type bifacial glass-glass, AED/W
-  canopyPerW: 1.6,              // elevated canopy structure, racking and integrated rain gutter, AED/W
-  electricalPerW: 0.45,         // DC/AC cabling, protection, utility NOC and bidirectional meter, AED/W
+  canopyPerW: 1.48,             // elevated canopy structure and racking, AED/W (was 1.6 incl. gutter; gutter split out below)
+  gutterPerW: 0.12,             // integrated perimeter rain gutter + downpipes, AED/W (ASSUMPTION; part of the water system)
+  electricalPerW: 0.45,         // DC/AC cabling, isolation, surge/earth-fault protection, utility NOC and bidirectional meter, AED/W
   reinforcedCanopyFactor: 1.15, // high-wind structure uplift
   inverterPerKw: 480,           // hybrid (battery-ready) inverter
   gridTieInverterPerKw: 380,    // string inverter without battery port (ASSUMPTION: ~20% below hybrid)
@@ -73,10 +88,12 @@ export const RATES = Object.freeze({
   rinsePerKwp: 90, rinseMin: 1500,              // rain-fed rinse rail
   controller: { S: 4500, M: 14000, L: 38000 },  // WELOS edge OS, sensors, metering
   installRate: { S: 0.15, M: 0.13, L: 0.12 },   // engineering, install, commissioning
-  tariffPerKwh: 0.38,           // legacy flat rate; savings now come from the utility tariff model
   degradation: 0.005,           // module output loss per year
   lifeYears: 25,
-  waterPerL: 0.0095,            // UAE water + sewerage, AED per litre
+  // Value of a litre of captured water that replaces metered utility water: DEWA residential green
+  // slab AED 7.70/m³ + water fuel surcharge AED 1.10/m³, + 5% VAT = AED 9.24/m³ (checked 22 Nov 2026).
+  // Sewerage fees are excluded (they are not charged on every account). Used as a proxy outside Dubai.
+  waterPerL: 0.00924,
   gridKgCo2PerKwh: 0.41,
   financeApr: 0.0499,           // illustrative green-finance rate
   financeYears: 10,
@@ -133,14 +150,18 @@ export function resolveInputs(tierId, inputs = {}) {
  * @param {"S"|"M"|"L"} tierId
  * @param {object} inputs optional { roofM2, loadKwhDay, waterLDay }
  * @param {object} choices optional { [componentId]: boolean } user include/exclude overrides
- * @param {"essential"|"recommended"|"max"} packageId
+ * @param {"solar-first"|"essential"|"complete"|"max"} packageId ("recommended" is accepted as the old name of "complete")
+ * @param {object} context { utilityId, customer, backup, waterSavings } — waterSavings: false when captured water
+ *   would not replace water you pay the utility for (then it is shown in litres but valued at AED 0)
  */
-export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, packageId = "recommended", context = {}) {
+export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, packageId = "complete", context = {}) {
   const utility = UTILITIES[context.utilityId] || UTILITIES.dewa;
   const customer = context.customer === "national" ? "national" : "expat";
   const wantsBackup = !!context.backup;
   const tier = TIERS[tierId] || TIERS.S;
-  const pkg = PACKAGES[packageId] || PACKAGES.recommended;
+  const pkg = PACKAGES[packageKey(packageId)];
+  const hasWater = pkg.water !== false;
+  const countWater = context.waterSavings !== false;
   const t = tier.id;
   const site = resolveInputs(t, inputs);
   const c = {
@@ -160,7 +181,9 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   const cellTemp = c.temp + 22;
   const thermalDerate = 1 - tempCoef * Math.max(0, cellTemp - 25);
   const soilingRaw = dusty ? 0.08 : 0.03;
-  const autoClean = pkg.cleaning === "auto";
+  const autoClean = typeof choices.cleaning === "boolean" ? choices.cleaning : pkg.cleaning === "auto";
+  const fullTreatment = hasWater && (typeof choices.treatment === "boolean" ? choices.treatment : !pkg.waterLite);
+  const useRobot = dusty || !hasWater; // the rinse rail needs the rain tank
   const soilingManaged = autoClean ? (dusty ? 0.025 : 0.01) : (dusty ? 0.045 : 0.018);
   const pr = BOS_EFFICIENCY * thermalDerate * (1 - soilingManaged);
   const maxModules = Math.max(1, Math.floor((site.roofM2 * ROOF_PACKING) / MODULE_M2));
@@ -175,7 +198,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   const moduleRate = premium ? RATES.modulePremiumPerW : RATES.moduleStandardPerW;
   const canopyRate = RATES.canopyPerW * (windy ? RATES.reinforcedCanopyFactor : 1);
   components.push({
-    id: "solar", group: "energy", name: "Solar canopy + rain catchment", core: true, recommended: true,
+    id: "solar", group: "energy", name: "Solar canopy", core: true, recommended: true,
     capacity: { value: pvKwp, unit: "kWp", text: `${fmt(pvKwp, 1)} kWp · ${modules} × ${MODULE_W} W` },
     spec: `${premium ? "Heat-tolerant N-type bifacial glass-glass" : "Mono PERC"} modules${windy ? " on a reinforced canopy" : ""}`,
     output: `${fmt(pvKwhYear)} kWh/yr`,
@@ -193,27 +216,41 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
       rule(`Mean wind ≥ 6 m/s (site: ${fmt(c.wind, 1)} m/s)`, windy, windy ? "Reinforced canopy, +15% structure cost" : "Standard canopy structure"),
     ],
     metrics: { pvKwp, modules, maxModules, performanceRatio: pr, thermalDerate, cellTemp },
-    costAed: pvKwp * 1000 * (moduleRate + canopyRate + RATES.electricalPerW),
+    costAed: pvKwp * 1000 * (moduleRate + canopyRate),
+  });
+
+  // ---------- Grid connection + protection (required in every package) ----------
+  components.push({
+    id: "grid", group: "energy", name: "Grid connection + protection", core: true, required: true, recommended: true,
+    capacity: { value: pvKwp, unit: "kWp", text: `Rated for ${fmt(pvKwp, 1)} kWp` },
+    spec: "DC and AC isolators, surge and earth-fault protection, cabling, bidirectional utility meter and connection approval (NOC)",
+    output: "Safe, approved connection to the building and the grid",
+    why: "Required for any grid-connected solar system and by the utility's connection rules. It is never optional and stays in every package, including Solar-first.",
+    rules: [rule("Grid-connected array", true, "Protection, isolation and metering included")],
+    metrics: {},
+    costAed: pvKwp * 1000 * RATES.electricalPerW,
   });
 
   // ---------- Panel cleaning ----------
   const recovered = pvKwp * c.solar * BOS_EFFICIENCY * thermalDerate * (soilingRaw - soilingManaged) * 365;
   components.push({
-    id: "cleaning", group: "energy", name: !autoClean ? "Soiling alerts + manual cleaning" : dusty ? "Waterless robotic cleaning" : "Rain-fed rinse rail", core: true, recommended: true,
+    id: "cleaning", group: "energy", name: !autoClean ? "Soiling alerts + manual cleaning" : useRobot ? "Waterless robotic cleaning" : "Rain-fed rinse rail", core: true, recommended: true,
     capacity: { value: recovered, unit: "kWh/yr", text: `Recovers ~${fmt(recovered)} kWh/yr` },
-    spec: !autoClean ? "Soiling reference cell tells you when a manual clean pays off" : dusty ? "Dry microfibre brush robot, triggered by the soiling reference cell" : "Low-flow spray rail fed from the rain tank",
+    spec: !autoClean ? "Soiling reference cell tells you when a manual clean pays off" : useRobot ? "Dry microfibre brush robot, triggered by the soiling reference cell" : "Low-flow spray rail fed from the rain tank",
     output: `Soiling loss ${Math.round(soilingRaw * 100)}% → ${(soilingManaged * 100).toFixed(1)}%`,
     why: !autoClean
-      ? `Essential skips the cleaning hardware. The controller still measures soiling and alerts you when output has dropped enough that a manual wash is worth it, recovering most of the loss.`
+      ? `Automatic cleaning hardware is excluded. The controller still measures soiling and alerts you when a manual clean is worthwhile. The output estimate assumes those manual cleans happen.`
       : dusty
       ? `Low rain (${fmt(c.rain)} mm/yr) means dust builds up and is rarely washed off, and water is too scarce to spend on rinsing. A waterless robot keeps the array clean without using the tank.`
+      : !hasWater
+      ? "Solar-first has no rain tank, so panel rinsing is not available; a waterless robot cleans the array instead."
       : `Enough rain (${fmt(c.rain)} mm/yr) to refill the tank, so harvested water can rinse the panels whenever the soiling sensor crosses its threshold.`,
     rules: [
       rule(`Rain < 300 mm/yr (site: ${fmt(c.rain)})`, dusty, dusty ? "Waterless robot, 0 L of water used" : "Rinse rail using harvested rain"),
-      rule("Soiling loss ≥ 15% on the reference cell", true, "Controller starts a cleaning cycle (18% forces one)"),
+      rule("Automatic cleaning selected", autoClean, autoClean ? "Controller schedules cleaning within its safe operating limits" : "Soiling alerts remain; cleaning is manual"),
     ],
-    metrics: { recoveredKwhYear: recovered, soilingRaw, soilingManaged },
-    costAed: !autoClean ? 0 : dusty ? Math.max(RATES.robotMin, pvKwp * RATES.robotPerKwp) : Math.max(RATES.rinseMin, pvKwp * RATES.rinsePerKwp),
+    metrics: { recoveredKwhYear: recovered, soilingRaw, soilingManaged, autoClean },
+    costAed: !autoClean ? 0 : useRobot ? Math.max(RATES.robotMin, pvKwp * RATES.robotPerKwp) : Math.max(RATES.rinseMin, pvKwp * RATES.rinsePerKwp),
   });
 
   // ---------- Wind ----------
@@ -307,7 +344,8 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   const condensateLDay = condensateViable ? tier.coolingTons * litresPerTonDay : 0;
   const condensateLYear = condensateLDay * 365 * 0.75; // cooling season share
   components.push({
-    id: "condensate", group: "water", name: "AC condensate recovery", core: false, recommended: condensateViable,
+    id: "condensate", group: "water", name: "AC condensate recovery", core: false, recommended: hasWater && condensateViable,
+    available: hasWater, unavailableWhy: hasWater ? null : "Needs the WELOS water system, which Solar-first does not include.",
     defaultOn: pkg.optionalDefault === "off" ? false : condensateViable,
     capacity: { value: condensateLDay, unit: "L/day", text: condensateViable ? `~${fmt(condensateLDay)} L/day` : "Not viable here" },
     spec: "Collects air-conditioning condensate into the WELOS tank",
@@ -323,7 +361,7 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   // ---------- Rain storage + treatment ----------
   const designEventMm = clamp(c.rain * 0.06, 6, 40);
   const eventCaptureL = site.roofM2 * designEventMm * RUNOFF * FIRST_FLUSH_KEEP;
-  const condensateIncluded = choices.condensate ?? (pkg.optionalDefault === "off" ? false : condensateViable);
+  const condensateIncluded = hasWater && (choices.condensate ?? (pkg.optionalDefault === "off" ? false : condensateViable));
   const condensateBufferL = condensateIncluded ? condensateLDay * 3 : 0;
   const tankTarget = Math.min(Math.max(eventCaptureL, condensateBufferL), Math.max(site.waterLDay * 7, 300));
   const tankL = tankSize(Math.max(300, tankTarget));
@@ -331,9 +369,10 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   const lowRain = c.rain < 120;
   const highRain = c.rain >= 800;
   components.push({
-    id: "water", group: "water", name: "Rain storage + treatment", core: true, recommended: true,
+    id: "water", group: "water", name: "Rain catchment, storage + treatment", core: hasWater, recommended: hasWater,
+    available: hasWater, unavailableWhy: hasWater ? null : "Not in Solar-first: no rain gutter, tank, first flush, filters, pump or water routing.",
     capacity: { value: tankL, unit: "L", text: `${fmt(tankL)} L tank · ${tier.treatmentLpm} L/min treatment` },
-    spec: pkg.waterLite ? "First flush → sediment filter → pump (irrigation and flushing only)" : "First flush → sediment + carbon filters → UV-C → variable-speed pump (non-potable)",
+    spec: !fullTreatment ? "First flush → sediment filter → pump (suitable non-potable uses only; not drinking water)" : "First flush → sediment + carbon filters → UV-C → variable-speed pump (non-potable)",
     output: `${fmt(rainLYear)} L/yr of rain${condensateIncluded ? ` + ${fmt(condensateLYear)} L/yr condensate` : ""}`,
     why: lowRain
       ? `Only ${fmt(c.rain)} mm/yr of rain, arriving in a few short storms. The tank is kept small (${fmt(tankL)} L) to catch one design storm${condensateIncluded ? " and buffer three days of AC condensate" : ""}, instead of paying for a large tank that would sit empty.`
@@ -345,19 +384,25 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
       rule(`Design storm = 6% of annual rain, clamped 6–40 mm (site: ${fmt(designEventMm)} mm)`, true, `Captures ${fmt(eventCaptureL)} L per storm`),
       rule(`Tank ≤ 7 days of demand (${fmt(site.waterLDay * 7)} L)`, tankTarget >= site.waterLDay * 7, tankTarget >= site.waterLDay * 7 ? "Capped by demand" : "Below the demand cap"),
       rule("Condensate recovery included", condensateIncluded, condensateIncluded ? `Tank also buffers 3 days of condensate (${fmt(condensateBufferL)} L)` : "Rain only"),
+      rule("Advanced treatment selected", fullTreatment, fullTreatment ? "Carbon filtration and UV-C added; non-potable use only" : "First flush, tank, sediment filter and pump retained; intended use must suit the lighter treatment"),
     ],
-    metrics: { tankL, rainLYear, designEventMm, eventCaptureL },
-    costAed: (pkg.waterLite ? RATES.treatmentLite[t] : RATES.treatment[t]) + tankL * RATES.tankPerL,
+    metrics: { tankL, rainLYear, designEventMm, eventCaptureL, fullTreatment },
+    // includes the canopy's rain gutter and downpipes
+    costAed: (fullTreatment ? RATES.treatment[t] : RATES.treatmentLite[t]) + tankL * RATES.tankPerL + pvKwp * 1000 * RATES.gutterPerW,
   });
 
   // ---------- Control core ----------
   components.push({
     id: "controller", group: "control", name: "WELOS OS edge controller", core: true, recommended: true,
     capacity: { value: 1, unit: "unit", text: t === "S" ? "1 controller" : t === "M" ? "1 controller + metering hub" : "Redundant controller pair + BMS gateway" },
-    spec: "Offline-first control, safety interlocks, soiling reference cell, energy and water metering",
+    spec: hasWater
+      ? "Offline-first control, safety interlocks, soiling reference cell, energy and water metering"
+      : "Offline-first control, soiling reference cell and energy metering. Water functions are inactive: there is no water hardware to monitor or route",
     output: "Runs every 250 ms. Works with no internet.",
-    why: "Coordinates every subsystem: when to charge, export, clean, divert first flush or hold storm reserve. Hard-wired protections stay independent of it.",
-    rules: [rule("Always included", true, "The WELOS operating layer is the product")],
+    why: hasWater
+      ? "Coordinates every subsystem: when to charge, export, clean, divert first flush or hold storm reserve. Hard-wired protections stay independent of it."
+      : "Kept in Solar-first because it runs the energy side: solar and battery monitoring, charge and export decisions, soiling alerts and automatic cleaning, and the welOS owner app. Rain capture, first-flush diversion, storage, treatment and water routing are not available. The inverter and hard-wired protections operate safely without it. Priced the same as in the integrated packages (conservative).",
+    rules: [rule("Always included", true, hasWater ? "The WELOS operating layer is the product" : "Energy functions only in Solar-first")],
     metrics: {},
     costAed: RATES.controller[t],
   });
@@ -366,8 +411,9 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   for (const part of components) {
     const choice = choices[part.id];
     const byDefault = part.defaultOn ?? part.recommended;
-    part.included = part.core ? true : typeof choice === "boolean" ? choice : byDefault;
-    part.overridden = !part.core && typeof choice === "boolean" && choice !== byDefault;
+    part.available = part.available !== false;
+    part.included = !part.available ? false : part.core ? true : typeof choice === "boolean" ? choice : byDefault;
+    part.overridden = part.available && !part.core && typeof choice === "boolean" && choice !== byDefault;
     part.costAed = roundTo(part.costAed, 10);
   }
 
@@ -384,23 +430,34 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
   const installAed = roundTo(hardwareAed * RATES.installRate[t], 10);
   const totalAed = hardwareAed + installAed;
   const energyKwhYear = pvKwhYear + (included("wind") ? windKwhYear : 0);
-  const waterLYear = rainLYear + (included("condensate") ? condensateLYear : 0);
+  const waterLYear = hasWater ? rainLYear + (included("condensate") ? condensateLYear : 0) : 0;
   // electricity: real bills before and after (wind adds a flat monthly share)
   const windMonthly = included("wind") ? windKwhYear / 12 : 0;
   const econFinal = windMonthly ? annualEconomics({ ...econArgs, pvMonthly: pvMonthly.map((x) => x + windMonthly), loadMonthly, batteryKwh: withBattery ? batteryKwh : 0 }) : econ;
-  const waterSavingsAed = Math.min(waterLYear, site.waterLDay * 365) * RATES.waterPerL;
-  const annualSavingsAed = econFinal.saving + waterSavingsAed;
-  let lifetimeSavingsAed = 0;
-  for (let y = 0; y < RATES.lifeYears; y++) lifetimeSavingsAed += econFinal.saving * (1 - RATES.degradation) ** y + waterSavingsAed;
+  // Every displayed money figure is a whole dirham, and the totals are sums of the displayed parts,
+  // so the arithmetic on the page adds up exactly.
+  const billBeforeAed = Math.round(econFinal.billBefore);
+  const billAfterAed = Math.round(econFinal.billAfter);
+  const electricitySavingsAed = billBeforeAed - billAfterAed;
+  // water only counts where it replaces metered utility water, and only up to the building's use
+  const waterUsedLYear = hasWater ? Math.min(waterLYear, site.waterLDay * 365) : 0;
+  const waterSavingsAed = countWater ? Math.round(waterUsedLYear * RATES.waterPerL) : 0;
+  const annualSavingsAed = electricitySavingsAed + waterSavingsAed;
+  let lifeElec = 0;
+  for (let y = 0; y < RATES.lifeYears; y++) lifeElec += electricitySavingsAed * (1 - RATES.degradation) ** y;
+  const lifetimeElectricityAed = Math.round(lifeElec);
+  const lifetimeWaterAed = waterSavingsAed * RATES.lifeYears;
+  const lifetimeSavingsAed = lifetimeElectricityAed + lifetimeWaterAed;
   const avgLoadMonth = (site.loadKwhDay * 365) / 12;
 
   const monthlyRate = RATES.financeApr / 12;
   const months = RATES.financeYears * 12;
-  const monthlyAed = (totalAed * monthlyRate) / (1 - (1 + monthlyRate) ** -months);
+  const monthlyAed = Math.round((totalAed * monthlyRate) / (1 - (1 + monthlyRate) ** -months));
 
   return {
     tier,
     package: pkg,
+    hasWater,
     request: { climate, tierId: t, inputs, choices, packageId: pkg.id, context },
     utility,
     customer,
@@ -415,25 +472,63 @@ export function sizeSystem(climate, tierId = "S", inputs = {}, choices = {}, pac
       energyKwhYear,
       waterLYear,
       annualSavingsAed,
-      electricitySavingsAed: econFinal.saving,
+      electricitySavingsAed,
       waterSavingsAed,
-      billBeforeAed: econFinal.billBefore,
-      billAfterAed: econFinal.billAfter,
+      waterUsedLYear,
+      waterCounted: hasWater && countWater,
+      waterRatePerL: RATES.waterPerL,
+      waterRateBasis: utility.id === "dewa" ? "DEWA residential water, green slab incl. fuel surcharge and VAT" : `DEWA water rate used as a proxy; ${utility.name} water tariff not checked`,
+      billBeforeAed,
+      billAfterAed,
       exportKwh: econFinal.exported,
       importKwh: econFinal.imported,
       selfSufficiencyPct: (1 - econFinal.imported / Math.max(1, econFinal.load)) * 100,
+      lifetimeElectricityAed,
+      lifetimeWaterAed,
       lifetimeSavingsAed,
       lifetimeNetAed: lifetimeSavingsAed - totalAed,
       marginalRate: marginalRate(avgLoadMonth, utility, { customer, dwelling, days: 30 }),
       withBattery: !!withBattery,
       backupHours: withBattery ? backupHours : 0,
       paybackYears: annualSavingsAed > 0 ? totalAed / annualSavingsAed : null,
+      electricityPaybackYears: electricitySavingsAed > 0 ? totalAed / electricitySavingsAed : null,
       monthlyAed,
-      monthlySavingsAed: annualSavingsAed / 12,
+      financeTotalAed: monthlyAed * months,
+      monthlySavingsAed: Math.round(annualSavingsAed / 12),
       energyCoveragePct: (energyKwhYear / Math.max(1, site.loadKwhDay * 365)) * 100,
       waterCoveragePct: (waterLYear / Math.max(1, site.waterLDay * 365)) * 100,
       co2TonnesYear: (energyKwhYear * RATES.gridKgCo2PerKwh) / 1000,
     },
+  };
+}
+
+/**
+ * The money story of one build, as numbers and as the exact sentences shown on the product page,
+ * in the downloaded summary and by the advisor. Every figure is taken from `result.totals`.
+ */
+export const EXCLUSIONS = "Excludes maintenance, inverter and battery replacement, future tariff changes, financing interest and discounting.";
+export function explainSavings(result) {
+  const t = result.totals, u = result.utility;
+  const m = (x) => `${CURRENCY} ${fmt(x)}`;
+  const water = !result.hasWater
+    ? { counted: false, text: "No water system in this package, so no water savings." }
+    : !t.waterCounted
+      ? { counted: false, text: `${fmt(t.waterLYear)} L/yr captured, valued at ${CURRENCY} 0: you said it would not replace water you pay the utility for.` }
+      : { counted: true, text: `${fmt(t.waterUsedLYear)} L/yr used in place of metered water × ${CURRENCY} ${t.waterRatePerL.toFixed(5)}/L = ${m(t.waterSavingsAed)}/yr (${t.waterRateBasis}).` };
+  return {
+    price: t.totalAed,
+    electricity: { before: t.billBeforeAed, after: t.billAfterAed, saving: t.electricitySavingsAed,
+      text: `${u.name} bill ${m(t.billBeforeAed)} → ${m(t.billAfterAed)} a year = ${m(t.electricitySavingsAed)}/yr electricity saving.` },
+    water: { ...water, saving: t.waterSavingsAed, litres: t.waterUsedLYear, ratePerL: t.waterRatePerL, basis: t.waterRateBasis },
+    annual: { total: t.annualSavingsAed,
+      text: result.hasWater && t.waterCounted ? `${m(t.electricitySavingsAed)} electricity + ${m(t.waterSavingsAed)} water = ${m(t.annualSavingsAed)}/yr` : `${m(t.annualSavingsAed)}/yr (electricity only)` },
+    payback: { years: t.paybackYears, electricityOnlyYears: t.electricityPaybackYears,
+      text: t.paybackYears ? `${m(t.totalAed)} ÷ ${m(t.annualSavingsAed)}/yr = ${t.paybackYears.toFixed(1)} years (simple payback, first-year savings)` : "No payback: the build saves nothing on this tariff." },
+    lifetime: { electricity: t.lifetimeElectricityAed, water: t.lifetimeWaterAed, net: t.lifetimeNetAed,
+      text: `${RATES.lifeYears} years: ${m(t.lifetimeElectricityAed)} electricity (output ageing ${RATES.degradation * 100}%/yr)${t.lifetimeWaterAed ? ` + ${m(t.lifetimeWaterAed)} water` : ""} − ${m(t.totalAed)} price = ${m(t.lifetimeNetAed)}.` },
+    finance: { monthly: t.monthlyAed, total: t.financeTotalAed,
+      text: `Illustrative only: ${m(t.monthlyAed)}/month for ${RATES.financeYears} years at ${(RATES.financeApr * 100).toFixed(2)}% APR (${m(t.financeTotalAed)} repaid in total). Not a lender offer.` },
+    exclusions: EXCLUSIONS,
   };
 }
 
@@ -458,7 +553,7 @@ export function ruleAdvice(result, placeName = "your site") {
   }[lead];
   const reasons = [
     { component: "Solar", text: by.solar.why },
-    { component: "Water", text: by.water.why },
+    { component: "Water", text: result.hasWater ? by.water.why : by.water.unavailableWhy },
     { component: "Wind", text: by.wind.why },
     { component: "Cleaning", text: by.cleaning.why },
   ];
@@ -467,10 +562,15 @@ export function ruleAdvice(result, placeName = "your site") {
   if (by.wind.recommended && !by.wind.included) upgrades.push({ title: "Turn the wind turbine back on", text: `Your hub-height wind supports ${fmt(by.wind.metrics.windKwhYear)} kWh/yr of night-time generation.`, impact: "energy" });
   if (by.solar.metrics.modules >= by.solar.metrics.maxModules && totals.energyCoveragePct < 95) upgrades.push({ title: "Extend the canopy over parking or terraces", text: "The array already fills the roof. Each extra 10 m² adds about 2.2 kWp of capacity.", impact: "energy" });
   if (totals.energyCoveragePct < 60) upgrades.push({ title: "Cut the load before adding hardware", text: "Efficient cooling and smart scheduling through WELOS OS are usually cheaper per kWh than more panels.", impact: "cost" });
-  if (result.package.id !== "essential") {
+  if (result.package.id !== "essential" && result.hasWater) {
     const r = result.request;
     const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential", r.context);
     upgrades.unshift({ title: `Start with Essential at ${CURRENCY} ${fmt(lean.totals.totalAed)}`, text: `Same site, ${CURRENCY} ${fmt(totals.totalAed - lean.totals.totalAed)} less upfront: about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity now, with the canopy and controller ready to expand later.`, impact: "cost" });
+  }
+  if (result.hasWater) {
+    const r = result.request;
+    const sf = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "solar-first", r.context);
+    upgrades.push({ title: `Solar-first at ${CURRENCY} ${fmt(sf.totals.totalAed)} if you don't need water`, text: `Drops the rain catchment, tank, treatment and condensate recovery (and their ${CURRENCY} ${fmt(totals.waterSavingsAed)}/yr water saving). Payback ${sf.totals.paybackYears ? fmt(sf.totals.paybackYears, 1) : "—"} years on electricity alone.`, impact: "cost" });
   }
   if (upgrades.length < 2) upgrades.push({ title: "Enable demand-aware scheduling", text: "Let WELOS OS run pumps, water heating and EV charging at solar peak to raise self-consumption.", impact: "cost" });
   const questions = [
@@ -481,7 +581,7 @@ export function ruleAdvice(result, placeName = "your site") {
   return {
     source: "rules",
     headline,
-    summary: `${fmt(by.solar.metrics.pvKwp, 1)} kWp of solar, ${by.battery.included ? `${fmt(by.battery.metrics.batteryKwh)} kWh of storage` : "no battery (the grid stores your surplus)"} and a ${fmt(by.water.metrics.tankL)} L water system, covering about ${fmt(Math.min(totals.energyCoveragePct, 100))}% of your electricity and ${fmt(Math.min(totals.waterCoveragePct, 100))}% of your non-potable water. Indicative payback is ${totals.paybackYears ? fmt(totals.paybackYears, 1) : "—"} years on ${result.utility.name} tariffs.`,
+    summary: `${fmt(by.solar.metrics.pvKwp, 1)} kWp of solar, ${by.battery.included ? `${fmt(by.battery.metrics.batteryKwh)} kWh of storage` : "no battery (the grid stores your surplus)"}${result.hasWater ? ` and a ${fmt(by.water.metrics.tankL)} L water system, covering about ${fmt(Math.min(totals.energyCoveragePct, 100))}% of your electricity and ${fmt(Math.min(totals.waterCoveragePct, 100))}% of your non-potable water` : `, no water system (Solar-first), covering about ${fmt(Math.min(totals.energyCoveragePct, 100))}% of your electricity`}. Estimated simple payback ${totals.paybackYears ? fmt(totals.paybackYears, 1) : "—"} years on ${result.utility.name} tariffs, on ${explainSavings(result).annual.text}.`,
     reasons,
     upgrades: upgrades.slice(0, 3),
     questions,
@@ -502,16 +602,21 @@ export function ruleAnswer(result, presetId) {
   const r = result.request;
   switch (presetId) {
     case "cheaper": {
-      if (result.package.id === "essential") return `You're already on Essential at ${CURRENCY} ${fmt(t.totalAed)}. To go lower, reduce the daily electricity target or roof area. The array and battery scale down with them, and the canopy stays ready to expand.`;
+      if (result.package.id === "solar-first") return `You're on Solar-first at ${CURRENCY} ${fmt(t.totalAed)}, the build without the water system. To spend less, drop automatic cleaning (soiling alerts stay) or compare Essential, which targets about 60% of your electricity.`;
+      if (result.package.id === "essential") return `You're on Essential at ${CURRENCY} ${fmt(t.totalAed)}. Review any selected add-ons on the product page before reducing the solar target. Automatic cleaning can be replaced by soiling alerts and manual cleaning; the lighter water kit retains first flush, storage and pumping for suitable non-potable uses.`;
       const lean = sizeSystem(r.climate, r.tierId, r.inputs, r.choices, "essential", r.context);
-      return `Switch to Essential: ${CURRENCY} ${fmt(lean.totals.totalAed)} instead of ${CURRENCY} ${fmt(t.totalAed)}. It sizes solar to about 60% of your load with standard modules, replaces the cleaning robot with soiling alerts and uses a lighter water kit. That covers about ${fmt(Math.min(lean.totals.energyCoveragePct, 100))}% of your electricity, at roughly ${CURRENCY} ${fmt(lean.totals.monthlyAed)}/month financed against ${CURRENCY} ${fmt(lean.totals.monthlySavingsAed)}/month saved.`;
+      const leanParts = Object.fromEntries(lean.components.map((p) => [p.id, p]));
+      return `Essential with your current add-on choices: ${CURRENCY} ${fmt(lean.totals.totalAed)} instead of ${CURRENCY} ${fmt(t.totalAed)}. It targets about 60% of daily electricity use with standard modules. ${leanParts.cleaning.metrics.autoClean ? "Automatic cleaning stays selected." : "Soiling alerts stay included; cleaning is manual."} ${leanParts.water.metrics.fullTreatment ? "Advanced treatment stays selected." : "It uses the lighter non-potable water kit."} Modelled annual electricity coverage is ${fmt(lean.totals.energyCoveragePct)}%. Compare the add-ons on the product page to reduce cost without changing the package.`;
     }
     case "water":
-      return by.water.why;
+      return result.hasWater ? by.water.why : `${by.water.unavailableWhy} Choose Essential, Complete or Max to add the water system.`;
     case "wind":
       return `${by.wind.why} ${by.wind.included ? `It adds ${by.wind.output} for ${CURRENCY} ${fmt(by.wind.costAed)}.` : `If you add it anyway it costs ${CURRENCY} ${fmt(by.wind.costAed)} for about ${by.wind.output}.`}`;
     case "payback":
-      return `About ${t.paybackYears ? fmt(t.paybackYears, 1) : "—"} years: ${CURRENCY} ${fmt(t.totalAed)} installed against ${CURRENCY} ${fmt(t.annualSavingsAed)} a year in electricity and water on ${result.utility.name} tariffs. Financed over ${RATES.financeYears} years at ${(RATES.financeApr * 100).toFixed(2)}% that is roughly ${CURRENCY} ${fmt(t.monthlyAed)}/month, against ${CURRENCY} ${fmt(t.monthlySavingsAed)}/month saved.`;
+    {
+      const e = explainSavings(result);
+      return `About ${t.paybackYears ? t.paybackYears.toFixed(1) : "—"} years, as an estimate: ${CURRENCY} ${fmt(t.totalAed)} installed ÷ ${e.annual.text} on ${result.utility.name} tariffs. On electricity alone it is ${t.electricityPaybackYears ? t.electricityPaybackYears.toFixed(1) : "—"} years. Financed over ${RATES.financeYears} years at ${(RATES.financeApr * 100).toFixed(2)}% APR (illustrative) that is about ${CURRENCY} ${fmt(t.monthlyAed)}/month, against ${CURRENCY} ${fmt(t.monthlySavingsAed)}/month saved.`;
+    }
     default:
       return null;
   }

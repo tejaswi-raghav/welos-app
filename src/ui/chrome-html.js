@@ -3,9 +3,8 @@
 export const PAGES = [
   { id: "home", href: "/", label: "Story", n: "01" },
   { id: "explorer", href: "/explorer.html", label: "Explorer", n: "02" },
-  { id: "lab", href: "/lab.html", label: "Simulation Lab", n: "03" },
-  { id: "control", href: "/control.html", label: "Control OS", n: "04" },
-  { id: "product", href: "/product.html", label: "Product", n: "05" },
+  { id: "control", href: "/control.html", label: "Control OS", n: "03" },
+  { id: "product", href: "/product.html", label: "Product", n: "04" },
 ];
 
 export const headTags = `
