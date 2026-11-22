@@ -12,7 +12,7 @@ The benchmark was AquaGrid (live site and source, `tejaswi-raghav/audacity-aquag
 | SVG network with upstream tracing | SVG topology in the Control OS, sharing node and edge definitions with the 3D routes |
 | Values from a backend simulation, "nothing shown in its place" when offline | Values from the deterministic browser simulation of the existing control engine; every surface is labelled simulated |
 
-The identity is deliberately different: a warm architectural paper and ink palette from the WELOS ring (amber, ember), Geist + Geist Mono with Instrument Serif accents, a physically lit rooftop instead of an isometric city, and amber-solid / sky-dashed conventions for power and water.
+The identity is deliberately different: the Solar Ember system (see [DESIGN.md](DESIGN.md)) — ivory and obsidian with orange and gold reserved for brand moments, Geist + Geist Mono, a physically lit rooftop instead of an isometric city, and amber-solid / blue-dashed conventions for power and water.
 
 ## 2. One twin, separated state
 

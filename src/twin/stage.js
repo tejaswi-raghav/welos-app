@@ -18,13 +18,14 @@ const smooth = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
 const easeInOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 const RM = typeof matchMedia !== "undefined" ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
 
+// Mirrors the Solar Ember semantic tokens in src/ui/base.css (power = amber, water = blue, warn = ember).
 export const COLORS = {
-  amber: new THREE.Color("#f2a007"),
-  ember: new THREE.Color("#ef6a12"),
-  sky: new THREE.Color("#1aa7e0"),
-  ink: new THREE.Color("#1b232c"),
-  paper: new THREE.Color("#f3f1ec"),
-  ghost: new THREE.Color("#e4e1da"),
+  amber: new THREE.Color("#f0a010"),
+  ember: new THREE.Color("#d9480f"),
+  sky: new THREE.Color("#1a8fd0"),
+  ink: new THREE.Color("#2a1712"),
+  paper: new THREE.Color("#fff5e6"),
+  ghost: new THREE.Color("#eadfd2"),
   dust: new THREE.Color("#c4a679"),
 };
 
@@ -32,13 +33,13 @@ export { webglAvailable } from "../ui/gl.js";
 
 /* ---------------------------------------------------------------- sky dome */
 const skyVS = `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`;
-const skyFS = `uniform vec3 uTop, uHorizon, uGround, uSunDir, uSunCol; uniform float uSunGlow; varying vec3 vW;
+const skyFS = `uniform vec3 uTop, uHorizon, uGround, uSunDir, uSunCol; uniform float uSunGlow, uAlpha; varying vec3 vW;
   void main(){ vec3 d = normalize(vW - cameraPosition); float h = d.y;
     vec3 c = mix(uHorizon, uTop, smoothstep(0.0, 0.55, h));
     c = mix(c, uGround, smoothstep(0.0, -0.25, h));
     float s = max(dot(d, normalize(uSunDir)), 0.0);
     c += uSunCol * (pow(s, 600.0) * 1.2 + pow(s, 14.0) * 0.22 * uSunGlow);
-    gl_FragColor = vec4(c, 1.0);
+    gl_FragColor = vec4(c, uAlpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }`;
@@ -151,7 +152,7 @@ export class Stage {
 
   /* ------------------------------------------------------------ setup */
   #lights() {
-    this.hemi = new THREE.HemisphereLight(0xfdfbf7, 0xcfc8bb, 0.75);
+    this.hemi = new THREE.HemisphereLight(0xfff6ea, 0xd7c3ad, 0.75);
     this.scene.add(this.hemi);
     this.sun = new THREE.DirectionalLight(0xffffff, 2.6);
     this.sun.castShadow = true;
@@ -161,23 +162,36 @@ export class Stage {
     this.sun.shadow.bias = -0.0004; this.sun.shadow.normalBias = 0.03;
     this.sun.shadow.radius = 3;
     this.scene.add(this.sun, this.sun.target);
-    this.fill = new THREE.DirectionalLight(0xdfe9f5, 0.45);
+    this.fill = new THREE.DirectionalLight(0xf3e6d6, 0.45);
     this.fill.position.set(-14, 9, 12);
     this.scene.add(this.fill);
+    // warm back-light: traces the product's edges in exhibit compositions (hero). Off by default.
+    this.rim = new THREE.DirectionalLight(0xff8a3d, 0);
+    this.rim.position.set(-16, 7, -18);
+    this.scene.add(this.rim);
+    this.rimFade = { v: 0, t: 0 };
   }
 
   #sky() {
     this.skyMat = new THREE.ShaderMaterial({
       vertexShader: skyVS, fragmentShader: skyFS, side: THREE.BackSide, depthWrite: false,
       uniforms: {
-        uTop: { value: new THREE.Color("#b9d3e8") }, uHorizon: { value: new THREE.Color("#f1ede4") }, uGround: { value: new THREE.Color("#ded9cf") },
-        uSunDir: { value: new THREE.Vector3(0.3, 0.8, 0.2) }, uSunCol: { value: new THREE.Color("#fff3d6") }, uSunGlow: { value: 1 },
+        uTop: { value: new THREE.Color("#efd9bf") }, uHorizon: { value: new THREE.Color("#fff1de") }, uGround: { value: new THREE.Color("#e6d6c3") },
+        uSunDir: { value: new THREE.Vector3(0.3, 0.8, 0.2) }, uSunCol: { value: new THREE.Color("#fff0d2") }, uSunGlow: { value: 1 }, uAlpha: { value: 1 },
       },
+      transparent: true,
     });
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), this.skyMat);
     this.sky.frustumCulled = false;
     if (this.opts.env === "rooftop") this.scene.add(this.sky);
-    this.scene.fog = this.opts.env === "rooftop" ? new THREE.Fog(0xf1ede4, 60, 210) : null;
+    this.scene.fog = this.opts.env === "rooftop" ? new THREE.Fog(0xfff1de, 60, 210) : null;
+    // when the rooftop context fades out (exhibit compositions), this catches the product's own shadow
+    if (this.opts.env === "rooftop") {
+      this.catcher = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0, color: 0x1d0d09 }));
+      this.catcher.rotation.x = -Math.PI / 2; this.catcher.position.y = GROUND_Y + 0.004; this.catcher.receiveShadow = true;
+      this.catcher.visible = false;
+      this.scene.add(this.catcher);
+    }
   }
 
   #exhibitGround() {
@@ -186,7 +200,7 @@ export class Stage {
     this.scene.add(shadow);
     const gridMat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false,
-      uniforms: { uColor: { value: new THREE.Color(0x1b232c) }, uAlpha: { value: 0.1 } },
+      uniforms: { uColor: { value: new THREE.Color(0x3a2219) }, uAlpha: { value: 0.1 } },
       vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
       fragmentShader: `uniform vec3 uColor; uniform float uAlpha; varying vec3 vW;
         float line(float v, float s){ float c = v/s; float d = abs(fract(c-.5)-.5)/fwidth(c); return 1.-min(d,1.); }
@@ -228,7 +242,7 @@ export class Stage {
       this.rainSeed.set([x, y, z], i * 3);
     }
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    this.rain = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x4f7896, transparent: true, opacity: 0, depthWrite: false }));
+    this.rain = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x5f84a0, transparent: true, opacity: 0, depthWrite: false }));
     this.rain.frustumCulled = false; this.rain.visible = false;
     this.scene.add(this.rain);
 
@@ -346,7 +360,9 @@ export class Stage {
   setFrame(frame) { this.frame = frame; this.activity = routeActivity(frame); }
   setExplode(v, immediate = false) { this.explode.t = clamp(v); if (immediate || this.reduce) this.explode.v = this.explode.t; }
   setSchematic(v, immediate = false) { this.schem.t = clamp(v); if (immediate || this.reduce) this.schem.v = this.schem.t; if (v > 0) this.#ensureEdges(); }
-  setEnvironment(v) { this.envFade.t = clamp(v); }
+  setEnvironment(v, immediate = false) { this.envFade.t = clamp(v); if (immediate || this.reduce) this.envFade.v = this.envFade.t; }
+  /** Warm back-light strength, 0..1 (hero compositions). */
+  setRim(v, immediate = false) { this.rimFade.t = clamp(v); if (immediate || this.reduce) this.rimFade.v = this.rimFade.t; }
   /** 'off' | 'active' (driven by frame) | 'all' (network overview). Optional filter: Set of route ids or kinds. */
   setFlows(mode, filter = null) { this.flowMode = mode; this.flowFilter = filter; }
   setFocus(keys) { this.focus = keys ? new Set(keys) : null; }
@@ -405,9 +421,9 @@ export class Stage {
           const f = frameMesh.clone(); f.position.set(-1.92 + i * 1.92, 0, -0.88 + j * 1.76); top.add(f);
           const c = cell.clone(); c.position.set(-1.92 + i * 1.92, 0.054, -0.88 + j * 1.76); top.add(c);
         }
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(5.95, 0.12, 0.1), new THREE.MeshStandardMaterial({ color: "#d99a00", roughness: 0.5, metalness: 0.4 }));
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(5.95, 0.12, 0.1), new THREE.MeshStandardMaterial({ color: "#e0901a", roughness: 0.5, metalness: 0.4 }));
         rail.position.set(0, -0.1, 1.82); top.add(rail);
-        const postMat = new THREE.MeshStandardMaterial({ color: "#5e6a76", roughness: 0.4, metalness: 0.7 });
+        const postMat = new THREE.MeshStandardMaterial({ color: "#4a3a33", roughness: 0.45, metalness: 0.6 });
         for (const [px, pz] of [[-2.7, -1.5], [2.7, -1.5], [-2.7, 1.5], [2.7, 1.5]]) {
           const post = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 3.9, 10), postMat);
           post.position.set(px, 1.95, pz); post.castShadow = true; bay.add(post);
@@ -490,7 +506,7 @@ export class Stage {
   #ensureEdges() {
     if (this.edges) return;
     this.edges = [];
-    const mat = new THREE.LineBasicMaterial({ color: 0x1b232c, transparent: true, opacity: 0, depthWrite: false });
+    const mat = new THREE.LineBasicMaterial({ color: 0x2a1712, transparent: true, opacity: 0, depthWrite: false });
     this.edgeMat = mat;
     for (const m of this.meshes) {
       if (m.geometry.attributes.position.count > 6000) continue;
@@ -515,6 +531,7 @@ export class Stage {
     this.explode.v += (this.explode.t - this.explode.v) * (this.reduce ? 1 : k);
     this.schem.v += (this.schem.t - this.schem.v) * (this.reduce ? 1 : k * 0.8);
     this.envFade.v += (this.envFade.t - this.envFade.v) * k;
+    this.rimFade.v += (this.rimFade.t - this.rimFade.v) * k;
     if (Math.abs(this.shift.t - this.shift.v) > 1e-4 || this.shift.applied !== this.shift.v) {
       this.shift.v += (this.shift.t - this.shift.v) * (this.reduce ? 1 : k);
       const ox = -this.shift.v * this.w;
@@ -594,7 +611,14 @@ export class Stage {
     u.uGround.value.setRGB(0.12 + day * 0.75, 0.13 + day * 0.72, 0.15 + day * 0.66);
     if (w.dust > 0.01) { u.uHorizon.value.lerp(new THREE.Color(0.86, 0.78, 0.64), w.dust * 0.6); u.uTop.value.lerp(new THREE.Color(0.8, 0.76, 0.68), w.dust * 0.5); }
     if (w.rain > 0.01) { u.uTop.value.lerp(new THREE.Color(0.48, 0.52, 0.56), w.rain * 0.8); u.uHorizon.value.lerp(new THREE.Color(0.62, 0.64, 0.66), w.rain * 0.7); }
+    // warm the dome toward the brand's desert haze (a light tint, so night and storms still read)
+    u.uTop.value.lerp(new THREE.Color(0.95, 0.86, 0.76), day * 0.32);
+    u.uHorizon.value.lerp(new THREE.Color(1.0, 0.95, 0.88), day * 0.3);
     u.uSunDir.value.copy(dir); u.uSunGlow.value = day * clear;
+    const ef = this.envFade.v;
+    u.uAlpha.value = ef; this.sky.visible = ef > 0.01;
+    if (this.catcher) { this.catcher.visible = ef < 0.98; this.catcher.material.opacity = 0.2 * (1 - ef); }
+    this.rim.intensity = this.rimFade.v * 2.4;
     if (this.scene.fog) { this.scene.fog.color.copy(u.uHorizon.value); this.scene.fog.near = 34 - w.dust * 18; this.scene.fog.far = 250 - w.dust * 150 - w.rain * 110; }
 
     // rotor speed: braked or freewheeling according to the controller
@@ -665,15 +689,14 @@ export class Stage {
     this.leds.forEach((m, i) => {
       const lit = soc > i * 25 + 5;
       m.material.emissiveIntensity = lit ? 0.9 : 0.02;
-      m.material.color.set(lit ? (soc < 25 ? "#ef6a12" : "#1aa7e0") : "#2a323a");
-      m.material.emissive.set(lit ? (soc < 25 ? "#ef6a12" : "#1aa7e0") : "#000000");
+      m.material.color.set(lit ? (soc < 25 ? "#d9480f" : "#f0a010") : "#2e2420");
+      m.material.emissive.set(lit ? (soc < 25 ? "#d9480f" : "#f0a010") : "#000000");
     });
 
     // fade the city context in exhibit compositions
     if (this.roof) {
       const vis = this.envFade.v > 0.02;
       this.roof.group.visible = vis;
-      this.sky.visible = true;
     }
   }
 

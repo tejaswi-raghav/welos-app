@@ -54,7 +54,7 @@ api/            Vercel functions: advisor, climate (NASA POWER), location (OSM)
 firmware/       ESP32-S3 reference firmware
 ```
 
-Brand: the amber ring mark with the `welos™` wordmark (`public/brand/`; `*-ink.png` are the same marks with the wordmark in ink for light backgrounds). Site palette: Paper `#F3F1EC`, Ink `#14191F`, Amber `#F2A007` (power), Ember `#EF6A12`, Sky `#1AA7E0` (water).
+Brand: the Solar Ember identity. The `WELOS` wordmark is vector (`public/brand/welos-wordmark-ink.svg` / `-ivory.svg`), the app icon is `welos-icon.svg`, and `welos-key.jpg` is the key visual. Tokens, colour roles and motion rules: [docs/DESIGN.md](docs/DESIGN.md).
 
 ## WELOS AI
 

@@ -7,7 +7,8 @@ import { simulateDay, SCENARIOS, SCENARIO_ORDER, INPUT_DEFS, defaultInputs, expl
 import { nodeById } from "../twin/topology.js";
 import { DayChart, ModeStrip } from "./charts.jsx";
 
-const C = { amber: "#f2a007", ember: "#ef6a12", sky: "#1aa7e0", ink: "#14191f", muted: "#8b9097", dust: "#b8915c" };
+// Solar Ember semantic tokens: power amber, warn ember, water blue, obsidian ink
+const C = { amber: "#f0a010", ember: "#d9480f", sky: "#1a8fd0", ink: "#1d0d09", muted: "#8a7a6f", dust: "#b8915c" };
 const f2 = (x) => Number(x).toFixed(2), f1 = (x) => Number(x).toFixed(1), pct = (x) => `${(x * 100).toFixed(1)}%`;
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const DAY_POSE = { pos: [11.8, 6.4, 13.8], target: [0.8, 0.5, -0.2], fov: 32 };
@@ -141,7 +142,7 @@ function Lab() {
           <div><dt className="t-label">Wind</dt><dd className="t-num">{f1(t.windKwh)} <small>kWh</small></dd></div>
           <div><dt className="t-label">Demand</dt><dd className="t-num">{f1(t.loadKwh)} <small>kWh</small></dd></div>
           <div><dt className="t-label">From grid</dt><dd className="t-num">{f1(t.importKwh)} <small>kWh</small></dd></div>
-          <div><dt className="t-label">Unserved</dt><dd className={`t-num ${t.shedKwh > 0 ? "c-ember" : ""}`}>{f1(t.shedKwh)} <small>kWh</small></dd></div>
+          <div><dt className="t-label">Unserved</dt><dd className={`t-num ${t.shedKwh > 0 ? "c-warn" : ""}`}>{f1(t.shedKwh)} <small>kWh</small></dd></div>
           <div><dt className="t-label">Lost to dust</dt><dd className="t-num">{f1(t.soilingLossKwh)} <small>kWh</small></dd></div>
           <div><dt className="t-label">Rain captured</dt><dd className="t-num">{t.capturedL.toFixed(0)} <small>L</small></dd></div>
           <div><dt className="t-label">Rinse cycles</dt><dd className="t-num">{t.cleaningCycles} <small>· {t.cleaningL} L</small></dd></div>
@@ -181,7 +182,7 @@ function ChartFor({ id, day, cmp, idx, setIdx }) {
     series={[{ id: "soc", label: "Battery", values: v((f) => f.soc), color: C.amber }]} compare={CF ? [{ id: "socc", values: v((f) => f.soc, CF), color: C.muted }] : []} />;
   if (id === "water") return <DayChart label="Tank level and rainfall" frames={F} idx={idx} onIdx={setIdx} unit="%" max={100} markers={cleanMarks}
     refLines={[{ v: DEFAULT_CONFIG.tankCleaningReservePct, label: `Cleaning reserve ${DEFAULT_CONFIG.tankCleaningReservePct}%` }]}
-    series={[{ id: "rain", label: "Rain ×10 mm/h", values: v((f) => f.sensors.rainfallMmHr * 10), color: "#7fc7e8", kind: "bars" }, { id: "tank", label: "Tank", values: v((f) => f.tank), color: C.sky }]}
+    series={[{ id: "rain", label: "Rain ×10 mm/h", values: v((f) => f.sensors.rainfallMmHr * 10), color: "#8cc8ea", kind: "bars" }, { id: "tank", label: "Tank", values: v((f) => f.tank), color: C.sky }]}
     compare={CF ? [{ id: "tankc", values: v((f) => f.tank, CF), color: C.muted }] : []} />;
   return <DayChart label="Soiling index and the output it costs" frames={F} idx={idx} onIdx={setIdx} unit="" max={30} markers={cleanMarks}
     refLines={[{ v: DEFAULT_CONFIG.cleaningAutoThreshold * 100, label: `Rinse trigger ${DEFAULT_CONFIG.cleaningAutoThreshold * 100}%`, cls: "warn" }]}
